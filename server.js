@@ -3,6 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const qrcode = require('qrcode');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -23,6 +24,10 @@ function readKey() {
 }
 const API_KEY = readKey();
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'craigokelly121@hotmail.com').toLowerCase();
+
+/* the address pupils scan to - printed QRs and old links must keep working, so it
+   is fixed rather than taken from the request host */
+const APP_URL = (process.env.APP_URL || 'https://app.dotheygetit.app').replace(/\/+$/, '');
 
 // ---- a small error log so the owner can see what actually broke
 const ERROR_LOG = [];
@@ -281,6 +286,25 @@ const server = http.createServer(async (req, res) => {
 
     // ---- health
     if (p === '/api/health') return sendJson(res, { ok: true, hasKey: !!API_KEY, model: cfg.model });
+
+    // ---- QR code for a class, for the whiteboard or a printed sheet
+    if (p === '/api/qr' && req.method === 'GET') {
+      const code = String(url.searchParams.get('code') || '').trim().toLowerCase();
+      if (!/^[a-z0-9]{4,12}$/.test(code)) return sendErr(res, 'Bad class code.');
+      const size = Math.min(1024, Math.max(180, Number(url.searchParams.get('size')) || 512));
+      const link = APP_URL + '/?join=' + code;
+      const png = await qrcode.toBuffer(link, {
+        type: 'png', width: size, margin: 2,
+        errorCorrectionLevel: 'Q',                       // survives a smudge or a photocopy
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Content-Length': png.length,
+        'Cache-Control': 'public, max-age=604800'
+      });
+      return res.end(png);
+    }
 
     // ---- auth
     if (p === '/api/signup' && req.method === 'POST') {

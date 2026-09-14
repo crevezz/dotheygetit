@@ -192,6 +192,20 @@ $('#btnOpenStudent').addEventListener('click', () => {
   if (activeClass && activeClass.code) window.open(location.origin + '/?join=' + activeClass.code, '_blank');
 });
 
+/* ---- the class QR code: big enough for the whiteboard, or print it ---- */
+function showQr() {
+  if (!activeClass || !activeClass.code) return toast('Pick a class first');
+  $('#qrTitle').textContent = (activeClass.name || 'This class') + ' — scan to join';
+  $('#qrCode').textContent = activeClass.code;
+  $('#qrImg').src = '/api/qr?code=' + encodeURIComponent(activeClass.code) + '&size=640';
+  $('#qrWrap').classList.remove('hidden');
+}
+$('#btnQr').addEventListener('click', showQr);
+$('#btnQrClose').addEventListener('click', () => $('#qrWrap').classList.add('hidden'));
+$('#btnQrPrint').addEventListener('click', () => window.print());
+$('#qrWrap').addEventListener('click', (e) => { if (e.target.id === 'qrWrap') $('#qrWrap').classList.add('hidden'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#qrWrap').classList.add('hidden'); });
+
 // ------------------------------------------------------------- class list
 $('#btnRosterEdit').addEventListener('click', () => {
   const box = $('#rosterEdit');

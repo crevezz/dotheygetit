@@ -73,6 +73,7 @@
           <div class="coderight">
             <button class="small-btn" id="btnCopyCode" data-tip="Copy the code.">Copy code</button>
             <button class="small-btn" id="btnCopyLink" data-tip="Copy a link that fills the code in for them.">Copy link</button>
+            <button class="small-btn" id="btnQr" data-tip="A big QR code to show on the board or print out.">QR code</button>
           </div>
         </div>
 
@@ -155,6 +156,23 @@
 </main>
 
 <div id="toast"></div>
+
+<!-- QR code for the class - big enough for the whiteboard, or print it -->
+<div id="qrWrap" class="hidden">
+  <div class="qrbox">
+    <h3 id="qrTitle">Scan to join</h3>
+    <div class="qrpic"><img id="qrImg" alt="QR code for this class"/></div>
+    <div class="qrline">
+      <span class="qror">or type this code</span>
+      <span class="qrcode" id="qrCode"></span>
+    </div>
+    <p class="qrhint">Point a phone camera at the code. It opens the join page with the class already filled in. This never changes, so it stays good all year.</p>
+    <div class="srow noprint">
+      <button class="small-btn" id="btnQrPrint">Print this</button>
+      <button class="small-btn" id="btnQrClose">Close</button>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>
