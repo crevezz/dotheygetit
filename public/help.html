@@ -60,7 +60,7 @@
   <div class="hero">
     <h1>Get It? in seven short videos</h1>
     <p>Each one is under a minute. Watch them in order, or just the one you are stuck on.</p>
-    <p class="meta" id="totalLine">Seven videos, 3 minutes 23 seconds in total. Sound on.</p>
+    <p class="meta" id="totalLine">Seven videos, 4 minutes 20 seconds in total. Sound on.</p>
   </div>
 
   <div class="player">
@@ -78,7 +78,7 @@
         <option value="1.75">1.75×</option>
         <option value="2">2×</option>
       </select>
-      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (3 min)</a>
+      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (4 min)</a>
     </div>
   </div>
 
@@ -93,13 +93,13 @@
 
 <script>
 const CHAPTERS = [
-  { n:1, id:'01-create-account',    title:'Create your account',   sub:'Takes about a minute',   d:'Email, password, done. Your classes follow you to any computer.', len:'0:25' },
-  { n:2, id:'02-set-up-your-class', title:'Set up your class',     sub:'One code, lasts all year', d:'Name the class, then paste your list straight from SIMS or Arbor.', len:'0:26' },
-  { n:3, id:'03-write-the-questions', title:'Write the questions', sub:'You type the topic. That is it.', d:'Generate, edit, delete, create the check. No Sunday evening.', len:'0:29' },
-  { n:4, id:'04-how-pupils-join',   title:'How pupils join',       sub:'Play this one on the whiteboard', d:'The whole pupil journey: join, pick your name, explain it, send.', len:'0:41' },
-  { n:5, id:'05-read-your-results', title:'Read your results',     sub:'Who got it, who did not', d:'Green, amber, red — and what each pupil actually said.', len:'0:25' },
-  { n:6, id:'06-spot-the-pattern',  title:'Spot the pattern',      sub:'The record builds itself', d:'A dot per pupil per check. Two in a row is a pattern.', len:'0:23' },
-  { n:7, id:'07-why-i-built-this',  title:'Why I built this',      sub:'The bit behind it', d:'The drive home, and what this is actually for.', len:'0:33' }
+  { n:1, id:'01-create-account',    title:'Create your account',   sub:'Takes about a minute',   d:'Email, password, done. Your classes follow you to any computer.', len:'0:30' },
+  { n:2, id:'02-set-up-your-class', title:'Set up your class',     sub:'One code, lasts all year', d:'Name the class, then paste your list straight from SIMS or Arbor.', len:'0:35' },
+  { n:3, id:'03-write-the-questions', title:'Write the questions', sub:'You type the topic. That is it.', d:'Generate, edit, delete, create the check. No Sunday evening.', len:'0:39' },
+  { n:4, id:'04-how-pupils-join',   title:'How pupils join',       sub:'Play this one on the whiteboard', d:'The whole pupil journey: join, pick your name, explain it, send.', len:'0:52' },
+  { n:5, id:'05-read-your-results', title:'Read your results',     sub:'Who got it, who did not', d:'Green, amber, red — and what each pupil actually said.', len:'0:34' },
+  { n:6, id:'06-spot-the-pattern',  title:'Spot the pattern',      sub:'The record builds itself', d:'A dot per pupil per check. Two in a row is a pattern.', len:'0:30' },
+  { n:7, id:'07-why-i-built-this',  title:'Why I built this',      sub:'The bit behind it', d:'The drive home, and what this is actually for.', len:'0:41' }
 ];
 
 const v = document.getElementById('v');
@@ -174,7 +174,7 @@ document.getElementById('btnAll').addEventListener('click', ev => {
   ev.preventDefault();
   v.src = '/help/all.mp4';
   nowTitle.textContent = 'Get It? — all seven, in order';
-  nowSub.textContent = '3 minutes 23 seconds. Includes the title cards.';
+  nowSub.textContent = '4 minutes 20 seconds. Includes the title cards.';
   v.play().catch(() => {});
   render();
 });
