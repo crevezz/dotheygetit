@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Get It? — how it works, in seven short videos</title>
+<meta name="description" content="Seven short videos: create your account, set up a class, write the questions, how pupils join, read your results, spot the pattern."/>
+<link rel="stylesheet" href="styles.css"/>
+<style>
+  .hero{padding:34px 0 8px}
+  .hero h1{font-size:32px;line-height:1.15;letter-spacing:-.03em;margin:0 0 10px}
+  .hero p{color:var(--muted);margin:0;font-size:17px}
+  .hero .meta{color:var(--muted);font-size:13px;margin-top:12px}
+
+  .player{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:22px 0 26px}
+  .player video{display:block;width:100%;aspect-ratio:16/10;background:#000}
+  .player .bar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .player .bar .now{font-weight:700;font-size:15px}
+  .player .bar .sub{color:var(--muted);font-size:13px}
+  .player .bar .sp{flex:1}
+  .player .bar select{background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font:inherit;font-size:14px}
+
+  .list{display:grid;gap:10px;margin-bottom:36px}
+  .item{display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:var(--surface);
+        border:1px solid var(--line);border-radius:14px;padding:14px 16px;color:var(--text);font:inherit;cursor:pointer;transition:.16s}
+  .item:hover{border-color:#3a4a70;background:var(--surface2);transform:translateY(-1px)}
+  .item.on{border-color:var(--accent);box-shadow:0 8px 26px rgba(79,140,255,.18)}
+  .item .num{width:34px;height:34px;flex:0 0 34px;border-radius:10px;display:grid;place-items:center;
+             background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:800;font-size:14px}
+  .item.on .num{background:var(--green);color:#06210f}
+  .item .txt{flex:1;min-width:0}
+  .item .t{font-weight:700;font-size:15.5px}
+  .item .d{color:var(--muted);font-size:13px;margin-top:1px}
+  .item .len{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+  .item .play{width:0;height:0;border-left:9px solid var(--accent);border-top:6px solid transparent;border-bottom:6px solid transparent}
+  .watched{color:var(--green);font-size:12px;font-weight:700}
+
+  .foot{border-top:1px solid var(--line);padding:22px 0 50px;color:var(--muted);font-size:14px}
+  .foot a{font-weight:600}
+  @media (max-width:620px){
+    .hero h1{font-size:25px}
+    .item .d{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hrow">
+    <div class="brand">
+      <span class="mark">✓</span>
+      <span>Get It?<small>Do they get it?</small></span>
+    </div>
+    <a href="/" style="font-weight:600;font-size:14px;text-decoration:none">Go to the app →</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <h1>Get It? in seven short videos</h1>
+    <p>Each one is under a minute. Watch them in order, or just the one you are stuck on.</p>
+    <p class="meta" id="totalLine">Seven videos, 3 minutes 23 seconds in total. Sound on.</p>
+  </div>
+
+  <div class="player">
+    <video id="v" controls playsinline preload="metadata"></video>
+    <div class="bar">
+      <div>
+        <div class="now" id="nowTitle">—</div>
+        <div class="sub" id="nowSub"></div>
+      </div>
+      <div class="sp"></div>
+      <select id="speed" title="Playback speed">
+        <option value="1">1× speed</option>
+        <option value="1.25">1.25×</option>
+        <option value="1.5" selected>1.5×</option>
+        <option value="1.75">1.75×</option>
+        <option value="2">2×</option>
+      </select>
+      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (3 min)</a>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="foot">
+    <p><b>Play this one on the whiteboard:</b> video 4, “How pupils join”. It shows the whole pupil journey end to end, so you never have to explain it twice.</p>
+    <p>Something not working? <a href="/">Open the app</a> and use the error panel, or reply to the email you got this from.</p>
+  </div>
+
+</main>
+
+<script>
+const CHAPTERS = [
+  { n:1, id:'01-create-account',    title:'Create your account',   sub:'Takes about a minute',   d:'Email, password, done. Your classes follow you to any computer.', len:'0:25' },
+  { n:2, id:'02-set-up-your-class', title:'Set up your class',     sub:'One code, lasts all year', d:'Name the class, then paste your list straight from SIMS or Arbor.', len:'0:26' },
+  { n:3, id:'03-write-the-questions', title:'Write the questions', sub:'You type the topic. That is it.', d:'Generate, edit, delete, create the check. No Sunday evening.', len:'0:29' },
+  { n:4, id:'04-how-pupils-join',   title:'How pupils join',       sub:'Play this one on the whiteboard', d:'The whole pupil journey: join, pick your name, explain it, send.', len:'0:41' },
+  { n:5, id:'05-read-your-results', title:'Read your results',     sub:'Who got it, who did not', d:'Green, amber, red — and what each pupil actually said.', len:'0:25' },
+  { n:6, id:'06-spot-the-pattern',  title:'Spot the pattern',      sub:'The record builds itself', d:'A dot per pupil per check. Two in a row is a pattern.', len:'0:23' },
+  { n:7, id:'07-why-i-built-this',  title:'Why I built this',      sub:'The bit behind it', d:'The drive home, and what this is actually for.', len:'0:33' }
+];
+
+const v = document.getElementById('v');
+const list = document.getElementById('list');
+const nowTitle = document.getElementById('nowTitle');
+const nowSub = document.getElementById('nowSub');
+const speed = document.getElementById('speed');
+let current = 0;
+
+try { speed.value = localStorage.getItem('getit.speed') || '1.5'; } catch {}
+v.playbackRate = parseFloat(speed.value) || 1;
+speed.addEventListener('change', () => {
+  v.playbackRate = parseFloat(speed.value) || 1;
+  try { localStorage.setItem('getit.speed', speed.value); } catch {}
+});
+
+function seen() { try { return JSON.parse(localStorage.getItem('getit.seen') || '[]'); } catch { return []; } }
+function markSeen(id) {
+  const s = seen(); if (!s.includes(id)) s.push(id);
+  try { localStorage.setItem('getit.seen', JSON.stringify(s)); } catch {}
+}
+
+function render() {
+  const s = seen();
+  list.innerHTML = CHAPTERS.map((c, i) => `
+    <button class="item${i === current ? ' on' : ''}" data-i="${i}">
+      <span class="num">${i === current ? '▶' : c.n}</span>
+      <span class="txt">
+        <span class="t">${c.title}</span>
+        <span class="d">${c.d}</span>
+      </span>
+      <span class="len">${c.len}</span>
+      ${s.includes(c.id) ? '<span class="watched">watched</span>' : ''}
+      <span class="play"></span>
+    </button>`).join('');
+}
+
+function play(i, autoplay) {
+  current = Math.max(0, Math.min(CHAPTERS.length - 1, i));
+  const c = CHAPTERS[current];
+  v.src = 'help/' + c.id + '.mp4';
+  nowTitle.textContent = c.n + '. ' + c.title;
+  nowSub.textContent = c.sub;
+  document.title = c.title + ' — Get It? help';
+  history.replaceState(null, '', '#' + c.id);
+  render();
+  if (autoplay) v.play().catch(() => {});
+  markSeen(c.id);
+  if (window.innerWidth < 760) document.querySelector('.player').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+list.addEventListener('click', e => {
+  const b = e.target.closest('.item');
+  if (b) play(Number(b.dataset.i), true);
+});
+
+v.addEventListener('ended', () => {
+  const c = CHAPTERS[current];
+  markSeen(c.id);
+  if (current < CHAPTERS.length - 1) play(current + 1, true);
+  else render();
+});
+v.addEventListener('loadedmetadata', () => { v.playbackRate = parseFloat(speed.value) || 1; });
+
+/* deep link: /help#04-how-pupils-join */
+const want = (location.hash || '').replace('#', '');
+const start = CHAPTERS.findIndex(c => c.id === want);
+play(start >= 0 ? start : 0, false);
+
+/* the "watch the lot" link swaps in the single continuous cut */
+document.getElementById('btnAll').addEventListener('click', ev => {
+  ev.preventDefault();
+  v.src = 'help/all.mp4';
+  nowTitle.textContent = 'Get It? — all seven, in order';
+  nowSub.textContent = '3 minutes 23 seconds. Includes the title cards.';
+  v.play().catch(() => {});
+  render();
+});
+</script>
+</body>
+</html>

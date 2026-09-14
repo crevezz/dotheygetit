@@ -2,3 +2,14 @@ key.txt
 data.json
 data.backup.json
 node_modules/
+
+# tutorial render assets - never commit (the finished videos ARE committed, see public/help)
+tutorial/.eleven.key
+tutorial/.run/
+tutorial/out/
+tutorial/voice/
+tutorial/node_modules/
+tutorial/package.json
+tutorial/package-lock.json
+tutorial/*.log
+tutorial/*.err

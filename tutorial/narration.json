@@ -1,0 +1,56 @@
+{
+  "voice": "bLzt208N1hwaM2qjhmYE",
+  "model": "eleven_multilingual_v2",
+  "settings": { "stability": 0.5, "similarity_boost": 0.8, "style": 0.0 },
+  "chapters": [
+    {
+      "n": 1,
+      "id": "01-create-account",
+      "title": "Create your account",
+      "sub": "Takes about a minute",
+      "text": "Teachers, this is Get It. It answers one question: did they actually understand the lesson? Start by making an account. Email, password, that is it. No card, no countdown. Your classes are saved to the account, so they follow you to any computer in the school. Nothing to install, nothing for IT to set up, and no new system for anyone else to learn. Once you are in, you are ready to make your first check."
+    },
+    {
+      "n": 2,
+      "id": "02-set-up-your-class",
+      "title": "Set up your class",
+      "sub": "One code, lasts all year",
+      "text": "Give the class a name, and Get It gives you a join code. That code never changes, so pin it up on the wall and use it all year. Now paste your class list, straight from SIMS or Arbor, one name per line. You only do this once. From then on, every pupil picks their own name from the list instead of typing it. No spelling mistakes, no wrong names, and nobody slipping in as somebody else. They can do it on a laptop, a tablet, or a phone."
+    },
+    {
+      "n": 3,
+      "id": "03-write-the-questions",
+      "title": "Write the questions",
+      "sub": "You type the topic. That is it.",
+      "text": "Now the bit that used to take your Sunday evening. Type what you just taught, press generate, and the AI writes the questions for you. Read them. Rewrite one if you do not like the wording. Delete any you would not ask in class. Add your own if you have a better one. It takes seconds, and nothing is set in stone. Then press create check. That check is live for that class, and it waits there until they are ready. Next lesson, do the same thing again. Every check you make stays in this list, so nothing gets lost."
+    },
+    {
+      "n": 4,
+      "id": "04-how-pupils-join",
+      "title": "How pupils join",
+      "sub": "Play this one on the whiteboard",
+      "text": "This is the one to play on the whiteboard. Pupils open the link, the code fills itself in, and there are no accounts and no logins for them. They pick their name from your list and they are in. One at a time, or the whole class at once. It does not matter. Then the interesting part. It does not give them a quiz to tick boxes on, because a tick does not tell you anything. It asks them to explain it in their own words. Not a yes or no. Not a guess. Then it reads that answer and digs deeper, asking why, and what happens if. It keeps going until it finds real understanding, or finds the gap. When it is done, it says thank you. Their answers go straight to you, and they never see a mark."
+    },
+    {
+      "n": 5,
+      "id": "05-read-your-results",
+      "title": "Read your results",
+      "sub": "Who got it, who did not",
+      "text": "Back on the teacher tab, open the check. Here is the whole class in one look. Green got it. Amber is shaky. Red did not get it yet. Then each pupil, in their own words: what they got right, what they are still unsure about, and what to do about it next. You did not mark any of this. You did not have to read thirty sets of answers to find the three that matter, and you did not have to work out afterwards who to go back to."
+    },
+    {
+      "n": 6,
+      "id": "06-spot-the-pattern",
+      "title": "Spot the pattern",
+      "sub": "The record builds itself",
+      "text": "Go back to the class. Every pupil has a row, and every check adds a dot. One red is a bad day. Two in a row is a pattern, and you can see it in about three seconds, not three weeks later on the drive home. So is a child who was green in September and amber in November. You are not guessing who is struggling any more. You are looking at it, while you can still do something about it."
+    },
+    {
+      "n": 7,
+      "id": "07-why-i-built-this",
+      "title": "Why I built this",
+      "sub": "The bit behind it",
+      "text": "I built this because of the drive home. You teach the lesson, it feels like it landed, and then something tells you three weeks later that it did not. Usually with the children who would never put their hand up. Asking them in front of the class does not work, because the ones who are lost are the last people who will say so. Marking the books does not tell you either. A right answer can be copied. So I stopped asking. Get It asks them properly, one to one, and shows you the gaps while you can still fix them. That is the whole idea. There is nothing else in it."
+    }
+  ]
+}

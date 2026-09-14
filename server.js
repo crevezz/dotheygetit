@@ -201,7 +201,8 @@ Be fair but honest. Partial understanding is "amber", not "red".`;
 }
 
 // ------------------------------------------------------------------- helpers
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4', '.webm': 'video/webm', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.txt': 'text/plain', '.woff2': 'font/woff2' };
 
 function sendJson(res, obj, extra) {
   const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
@@ -226,13 +227,41 @@ function parseJson(raw) {
   if (a >= 0 && b > a) s = s.slice(a, b + 1);
   try { return JSON.parse(s); } catch { return null; }
 }
-function serveStatic(res, p) {
-  const file = path.join(PUBLIC, p === '/' ? 'index.html' : p);
+function serveStatic(req, res, p) {
+  let rel = p === '/' ? 'index.html' : p;
+  if (rel === '/help' || rel === '/help/') rel = 'help.html';           // the tutorials page
+  const file = path.join(PUBLIC, rel);
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end('no'); }
-  fs.readFile(file, (err, data) => {
-    if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'text/plain' });
-    res.end(data);
+
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
+
+    const type = MIME[path.extname(file)] || 'text/plain';
+    const isMedia = /\.(mp4|webm|png|jpg|ico|woff2)$/i.test(file);
+    const base = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': isMedia ? 'public, max-age=86400' : 'no-cache' };
+
+    /* Range support - without it browsers will not seek in the tutorial videos */
+    const range = req.headers.range;
+    if (range) {
+      const m = /bytes=(\d*)-(\d*)/.exec(range);
+      if (m) {
+        let start = m[1] ? parseInt(m[1], 10) : 0;
+        let end = m[2] ? parseInt(m[2], 10) : st.size - 1;
+        if (isNaN(start) || start < 0) start = 0;
+        if (isNaN(end) || end >= st.size) end = st.size - 1;
+        if (start > end) { res.writeHead(416, { 'Content-Range': `bytes */${st.size}` }); return res.end(); }
+        res.writeHead(206, Object.assign({}, base, {
+          'Content-Range': `bytes ${start}-${end}/${st.size}`,
+          'Content-Length': end - start + 1
+        }));
+        if (req.method === 'HEAD') return res.end();
+        return fs.createReadStream(file, { start, end }).pipe(res);
+      }
+    }
+
+    res.writeHead(200, Object.assign({}, base, { 'Content-Length': st.size }));
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(file).pipe(res);
   });
 }
 function latestSessionForClass(classId) {
@@ -248,7 +277,7 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
 
   try {
-    if (!p.startsWith('/api/')) return serveStatic(res, p);
+    if (!p.startsWith('/api/')) return serveStatic(req, res, p);
 
     // ---- health
     if (p === '/api/health') return sendJson(res, { ok: true, hasKey: !!API_KEY, model: cfg.model });

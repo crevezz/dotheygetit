@@ -1,5 +1,5 @@
 /* ============================================================================
-   Understanding Check - autonomous tutorial recorder
+   Get It? - autonomous tutorial recorder
    ----------------------------------------------------------------------------
    Runs the REAL app (real server, real UI) and films it with a visible cursor.
 
@@ -51,6 +51,8 @@ const V_TOM  = { level:'amber', gotRight:['Fractions are parts of a whole'], get
 const V_PRIYA= { level:'red', gotRight:[], gets:'', shaky:'Everything so far', faked:false,
   notes:'Struggled — little correct here. Worth a check-in.', nextStep:'Go back to what a fraction shows, with pictures.' };
 
+const ROSTER = ['Aisha Noor','Ethan Clarke','Leo Marsh','Maya Khan','Priya Shah','Tom Bell'];
+
 /* ------------------------------------------------------------- server helpers */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -92,12 +94,20 @@ function OVERLAY() {
       '#__cap{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:2147483647;pointer-events:none;',
       '  background:rgba(15,23,42,.93);color:#fff;font:600 17px/1.35 "Segoe UI",Roboto,sans-serif;',
       '  padding:12px 24px;border-radius:999px;max-width:76%;text-align:center;opacity:0;transition:opacity .3s;',
-      '  box-shadow:0 12px 34px rgba(0,0,0,.4);}#__cap.on{opacity:1;}'
+      '  box-shadow:0 12px 34px rgba(0,0,0,.4);}#__cap.on{opacity:1;}',
+      /* chapter card: solid BLACK so ffmpeg blackdetect can find exact chapter cuts */
+      '#__card{position:fixed;inset:0;background:#000;z-index:2147483647;pointer-events:none;display:none;',
+      '  align-items:center;justify-content:center;}#__card.on{display:flex;}',
+      '#__card .in{text-align:center;color:#fff;font-family:"Segoe UI",Roboto,sans-serif;}',
+      '#__card .no{font:700 15px/1 "Segoe UI",Roboto,sans-serif;letter-spacing:.28em;color:#60a5fa;margin-bottom:18px;}',
+      '#__card .ti{font:700 46px/1.15 "Segoe UI",Roboto,sans-serif;letter-spacing:-.5px;}',
+      '#__card .su{font:400 19px/1.4 "Segoe UI",Roboto,sans-serif;color:#94a3b8;margin-top:16px;}'
     ].join('\n');
     document.head.appendChild(s);
 
     const cur = document.createElement('div'); cur.id = '__cur'; document.body.appendChild(cur);
     const cap = document.createElement('div'); cap.id = '__cap'; document.body.appendChild(cap);
+    const card = document.createElement('div'); card.id = '__card'; document.body.appendChild(card);
 
     window.addEventListener('mousemove', e => {
       cur.style.left = e.clientX + 'px'; cur.style.top = e.clientY + 'px';
@@ -109,6 +119,12 @@ function OVERLAY() {
     }, true);
 
     window.__cap = t => { cap.textContent = t; cap.classList.toggle('on', !!t); };
+    window.__card = (no, ti, su) => {
+      if (no === null || no === undefined) { card.classList.remove('on'); card.innerHTML = ''; return; }
+      card.innerHTML = '<div class="in"><div class="no">' + no + '</div><div class="ti">' + ti + '</div>' +
+                       (su ? '<div class="su">' + su + '</div>' : '') + '</div>';
+      card.classList.add('on');
+    };
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
   else setup();
@@ -120,6 +136,27 @@ async function caption(page, text, hold = 1700) {
   await page.waitForTimeout(hold);
 }
 async function clearCaption(page) { await page.evaluate(() => window.__cap('')); }
+
+/* --- chapter cards ---------------------------------------------------------
+   A solid-black title card held for CARD_MS at every chapter boundary.
+   ffmpeg's blackdetect filter then finds the EXACT frames where chapters
+   start and end, so the voiceover cannot drift out of sync.
+   ------------------------------------------------------------------------- */
+const CARD_MS = Number(process.env.CARD_MS) || 2200;
+const TL = [];                       // wall-clock marks, a cross-check on blackdetect
+let T0 = 0;                          // set the moment recording starts
+function mark(name) { TL.push({ name, at: T0 ? Date.now() - T0 : 0 }); }
+
+async function chapter(page, no, title, sub) {
+  await clearCaption(page);
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' })).catch(() => {});
+  await page.waitForTimeout(420);
+  mark('card:' + no);
+  await page.evaluate(([n, t, s]) => window.__card(n, t, s), [no, title, sub || '']);
+  await page.waitForTimeout(CARD_MS);           // static black frames = detectable
+  await page.evaluate(() => window.__card(null));
+  await page.waitForTimeout(500);
+}
 
 /* Wait for a smooth scroll to actually stop before measuring anything. */
 async function scrollSettle(page, timeout = 1400) {
@@ -188,7 +225,7 @@ async function typeIn(page, sel, text, delay = 40, block = 'center') {
 
 /* ========================================================================== */
 async function main() {
-  console.log('Understanding Check - tutorial recorder');
+  console.log('Get It? - tutorial recorder');
   console.log('  Playwright dir :', PW_DIR);
   console.log('  Mode           :', REAL ? 'LIVE OpenRouter API' : 'mocked (deterministic)');
 
@@ -249,10 +286,12 @@ async function main() {
 
     const page = await context.newPage();
     const video = page.video();
+    T0 = Date.now();
+    mark('start');
 
-    /* ================= SCENE 1: teacher lands ================= */
+    /* ======================= recording starts here ======================= */
     await page.goto(BASE, { waitUntil: 'load' });
-    await sleep(600);
+    await sleep(800);
 
     /* --- self-check: prove the film overlay is really live --- */
     await page.mouse.move(320, 260, { steps: 6 });
@@ -272,117 +311,194 @@ async function main() {
     await page.mouse.move(640, 400, { steps: 8 });
     await sleep(400);
 
-    await caption(page, 'Understanding Check — see who really learned it', 2200);
-    await caption(page, "1. Teacher: make a check in under a minute", 1600);
-
-    /* ================= SCENE 2: sign up ================= */
+    /* =========================== CH 1 — Create your account ================= */
+    await chapter(page, 1, 'Create your account', 'Takes about a minute');
+    await caption(page, 'Get It? — see who really learned it', 2600);
+    await focus(page, '#signinCard', { block: 'center', hold: 3200 });
+    await caption(page, 'Your classes live on your account, not on this computer', 3200);
+    await glideTo(page, '#authEmail', { block: 'center', hold: 500 });
     await typeIn(page, '#authEmail', 'ms.reed@oakfield.school', 34);
-    await sleep(300);
+    await sleep(1600);
+    await caption(page, 'Any computer in the school, and it is all still there', 2800);
     await typeIn(page, '#authPass', 'teach123', 55);
-    await sleep(500);
+    await sleep(1400);
     await glideClick(page, '#btnSignup');
     await page.locator('#dash').waitFor({ state: 'visible' });
-    await sleep(700);
+    await sleep(1400);
+    await caption(page, 'No installs. Nothing for IT to set up.', 2400);
+    await focus(page, '#classList', { block: 'center', hold: 2600 });
+    await caption(page, 'Right. Let us set up a class.', 2200);
 
-    /* ================= SCENE 3: add a class ================= */
-    await caption(page, '2. Add a class — it gets a code that lasts all year', 1700);
+    /* =========================== CH 2 — Set up your class ================== */
+    await chapter(page, 2, 'Set up your class', 'One code, lasts all year');
+    await caption(page, 'Give the class a name', 1800);
     await typeIn(page, '#newClassName', 'Year 8 Maths', 44);
-    await sleep(400);
+    await sleep(900);
     await glideClick(page, '#btnAddClass');
     await page.locator('.classrow').first().waitFor({ state: 'visible' });
-    await sleep(600);
-
-    /* ================= SCENE 4: open class, see code ================= */
+    await sleep(900);
     await glideClick(page, '.classrow');
     await page.locator('#classPanel').waitFor({ state: 'visible' });
-    await sleep(500);
+    await sleep(900);
+
     const code = (await page.locator('#classCode').textContent() || '').trim();
     console.log('  Class code:', code);
-    await glideTo(page, '#classCode');
-    await caption(page, 'Students join with this code: ' + code, 2000);
 
-    /* ================= SCENE 5: generate questions ================= */
-    await caption(page, '3. Type the topic — the AI writes the questions', 1600);
+    await focus(page, '#classCode', { block: 'center', hold: 1200 });
+    await caption(page, 'Students join with this code: ' + code, 2600);
+    await glideTo(page, '#btnCopyLink', { block: 'center', hold: 900 });
+    await caption(page, 'It never changes — pin it up, use it all year', 2400);
+
+    await focus(page, '#rosterView', { block: 'center', hold: 900 });
+    await caption(page, 'Now paste your class list, straight from SIMS or Arbor', 2400);
+    await glideClick(page, '#btnRosterEdit');
+    await page.locator('#rosterEdit').waitFor({ state: 'visible' });
+    await focus(page, '#rosterText', { block: 'center', hold: 700 });
+    await typeIn(page, '#rosterText', ROSTER.join('\n'), 5, 'center');
+    await sleep(1000);
+    await glideClick(page, '#btnRosterSave');
+    await page.locator('#rosterView .prow').first().waitFor({ state: 'visible', timeout: 20000 });
+    await focus(page, '#rosterView', { block: 'center', hold: 1400 });
+    await check(page, 'class list saved', '#rosterView');
+    await caption(page, 'Pupils now pick their name from a list. No typos.', 2600);
+
+    /* =========================== CH 3 — Write the questions ================ */
+    await chapter(page, 3, 'Write the questions', 'You type the topic. That is it.');
+    await caption(page, 'Type what you just taught', 1900);
     await typeIn(page, '#topic', TOPIC, 46);
-    await sleep(400);
+    await sleep(1100);
     await glideClick(page, '#btnGenerate');
     await page.locator('#qwrap').waitFor({ state: 'visible', timeout: 30000 });
-    await sleep(900);
-    /* the camera follows the questions down the page (they land below the fold) */
-    await focus(page, '#qwrap', { block: 'center', hold: 800 });
+    await caption(page, 'The AI writes the questions for you', 2300);
+    await sleep(700);
+    await focus(page, '#qwrap', { block: 'center', hold: 1200 });
     await check(page, 'questions generated', '#qwrap');
-    await caption(page, 'AI writes the questions — nothing to prepare', 2000);
     const qn = await page.locator('#qlist .qrow').count();
     for (let i = 0; i < qn; i++) {
-      await glideTo(page, `#qlist .qrow >> nth=${i}`, { block: 'nearest', hold: 120 });
-      await page.waitForTimeout(700);
+      await glideTo(page, `#qlist .qrow >> nth=${i}`, { block: 'nearest', hold: 150 });
+      await page.waitForTimeout(1150);
     }
-    await focus(page, '#qwrap', { block: 'center', hold: 300 });
-    await caption(page, 'Read them, edit them, delete any you do not want', 1800);
-
-    /* ================= SCENE 6: create the check ================= */
+    await focus(page, '#qwrap', { block: 'center', hold: 400 });
+    await caption(page, 'Read them, rewrite them, delete any you do not want', 2300);
     await glideClick(page, '#btnCreateCheck');
-    await page.locator('#checkList .checkrow').first().waitFor({ state: 'visible' });
-    await focus(page, '#checkList .checkrow', { block: 'center', hold: 600 });
-    await caption(page, '4. Create the check — it is live for that class', 1700);
+    await page.locator('#checkList .checkcard').first().waitFor({ state: 'visible' });
+    await focus(page, '#checkList .checkcard', { block: 'center', hold: 1200 });
+    await caption(page, 'Make the check live. It is ready for that class.', 2300);
 
-    /* ================= SCENE 7: student joins ================= */
+    /* silent: give the class some history, so the class list has a running record */
+    try {
+      for (const r of [
+        { name: 'Maya Khan',  verdict: V_MAYA,  transcript: 'Student: The bottom number is how many pieces.\nExaminer: Which is bigger, 3/4 or 2/3?\nStudent: I make the bottoms the same. 9/12 is bigger than 8/12.' },
+        { name: 'Tom Bell',   verdict: V_TOM,   transcript: 'Student: A fraction is a bit of something.\nExaminer: Which is bigger, 3/4 or 2/3?\nStudent: I think 3/4 because 4 is bigger.' },
+        { name: 'Priya Shah', verdict: V_PRIYA, transcript: 'Student: I do not really know.\nExaminer: What does the bottom number mean?\nStudent: Not sure.' },
+        { name: 'Aisha Noor', verdict: V_MAYA,  transcript: 'Student: It is parts of a whole. Equal parts.\nExaminer: Which is bigger, 3/4 or 2/3?\nStudent: Ninths and twelfths... 3/4 is nine twelfths, so 3/4.' }
+      ]) await post('/api/result', Object.assign({ code }, r));
+    } catch (e) { console.log('  (seed skipped:', e.message + ')'); }
+
+    /* second check, so the class list shows a record over more than one lesson */
+    await focus(page, '#topic', { block: 'center', hold: 500 });
+    await page.locator('#topic').fill('');
+    await typeIn(page, '#topic', 'adding fractions', 44);
+    await sleep(800);
+    await glideClick(page, '#btnGenerate');
+    await page.locator('#btnCreateCheck').waitFor({ state: 'visible' });
+    await sleep(1200);
+    await glideClick(page, '#btnCreateCheck');
+    await page.locator('#checkList .checkcard').nth(1).waitFor({ state: 'visible' });
+    await focus(page, '#checkList', { block: 'center', hold: 1000 });
+    await caption(page, 'Next lesson, same thing. Every check stacks up in one place.', 2400);
+
+    /* =========================== CH 4 — How pupils join ==================== */
+    await chapter(page, 4, 'How pupils join', 'Play this one on the whiteboard');
     await glideClick(page, '#tab-student');
-    await focus(page, '#joinCard', { block: 'start', hold: 500 });
-    await caption(page, '5. Student: open the link and type the code', 1600);
-    await typeIn(page, '#joinCode', code, 70);
-    await sleep(300);
-    await typeIn(page, '#studentName', 'Maya', 60);
-    await sleep(400);
+    await focus(page, '#joinCard', { block: 'start', hold: 900 });
+    await caption(page, 'Open the link. No accounts, no logins for pupils.', 2400);
+    await typeIn(page, '#joinCode', code, 80);
+    await sleep(700);
+    await glideClick(page, '#btnJoin');
+    await page.locator('#studentName').waitFor({ state: 'visible' });
+    await sleep(900);
+    await focus(page, '#nameArea', { block: 'center', hold: 1100 });
+    await caption(page, 'Pick your name from the list. No spelling it out.', 2500);
+    await page.locator('#studentName').selectOption({ label: 'Maya Khan' });
+    await sleep(1300);
     await glideClick(page, '#btnJoin');
     await page.locator('#checkCard').waitFor({ state: 'visible' });
     await page.locator('#answer').waitFor({ state: 'visible' });
-    await focus(page, '#checkTopic', { block: 'start', hold: 400 });
-    await sleep(1000);
-
-    /* ================= SCENE 8: the interview ================= */
-    await caption(page, '6. The examiner digs until it knows what they really understand', 2100);
+    await focus(page, '#checkTopic', { block: 'start', hold: 600 });
+    await sleep(1400);
+    await caption(page, 'Then it asks them to explain it, in their own words', 2500);
     for (let i = 0; i < ANSWERS.length; i++) {
       await typeIn(page, '#answer', ANSWERS[i], 16, 'end');
-      await sleep(350);
-      await glideClick(page, '#btnSend', { block: 'end', hold: 200 });
-      await sleep(1500);
-      /* keep the newest question and the answer box in shot as the chat grows */
-      await focus(page, '#answer', { block: 'end', hold: 250 });
-      await check(page, 'answer box in shot', '#answer');
+      await sleep(500);
+      await glideClick(page, '#btnSend', { block: 'end', hold: 250 });
+      await sleep(1700);
+      if (i < ANSWERS.length - 1) {
+        await focus(page, '#answer', { block: 'end', hold: 300 });
+        await check(page, 'answer box in shot', '#answer');
+        if (i === 0) await caption(page, 'It reads the answer, then digs deeper', 2200);
+      } else {
+        await page.waitForTimeout(1100);
+        await focus(page, '.endline', { block: 'center', hold: 1000 }).catch(() => {});
+        await check(page, 'all-done line', '.endline');
+        await caption(page, 'All done. Straight to the teacher.', 2400);
+      }
       await page.waitForTimeout(700);
     }
     await page.locator('#answer:disabled').waitFor({ state: 'attached', timeout: 20000 }).catch(() => {});
-    await sleep(1400);
+    await sleep(1600);
 
-    /* silent: two more students, so the results screen shows a real spread */
+    /* silent: the rest of the class, so the results screen shows a real spread */
     try {
-      await post('/api/result', { code, name: 'Tom',   transcript: 'Student: A fraction is a bit of something.\nExaminer: Which is bigger, 3/4 or 2/3?\nStudent: I think 3/4 because 4 is bigger.', verdict: V_TOM });
-      await post('/api/result', { code, name: 'Priya', transcript: 'Student: I do not really know.\nExaminer: What does the bottom number mean?\nStudent: Not sure.', verdict: V_PRIYA });
+      for (const r of [
+        { name: 'Tom Bell',   verdict: V_TOM,   transcript: 'Student: A fraction is a bit of something.\nExaminer: Which is bigger, 3/4 or 2/3?\nStudent: I think 3/4 because 4 is bigger.' },
+        { name: 'Priya Shah', verdict: V_PRIYA, transcript: 'Student: I do not really know.\nExaminer: What does the bottom number mean?\nStudent: Not sure.' },
+        { name: 'Aisha Noor', verdict: V_MAYA,  transcript: 'Student: It is parts of a whole. Equal parts.\nExaminer: Which is bigger, 3/4 or 2/3?\nStudent: Ninths and twelfths... 3/4 is nine twelfths, so 3/4.' }
+      ]) await post('/api/result', Object.assign({ code }, r));
     } catch (e) { console.log('  (seed skipped:', e.message + ')'); }
 
-    /* ================= SCENE 9: the reveal ================= */
+    /* =========================== CH 5 — Read your results =================== */
+    await chapter(page, 5, 'Read your results', 'Who got it, who did not');
     await glideClick(page, '#tab-teacher');
-    await sleep(700);
-    await caption(page, '7. Back in Teacher: who gets it, who is faking it', 1800);
-    await glideClick(page, '#checkList .checkrow');
+    await sleep(1100);
+    await focus(page, '#checkList', { block: 'center', hold: 900 });
+    await caption(page, 'Every check you have made, newest first', 2400);
+    await glideClick(page, '#checkList .checkcard');
     await page.locator('#results .sresult').first().waitFor({ state: 'visible', timeout: 20000 });
-    await sleep(1000);
-    await focus(page, '#results .stat-row', { block: 'center', hold: 1000 });
+    await sleep(1300);
+    await focus(page, '#results .stat-row', { block: 'center', hold: 1600 });
     await check(page, 'results summary', '#results .stat-row');
-    await glideTo(page, '#results .stat.green', { block: 'nearest', hold: 200 });
-    await caption(page, '🟢 gets it · 🟡 shaky · 🔴 struggling — at a glance', 2400);
-    /* walk down the three pupil cards so none are missed */
+    await glideTo(page, '#results .stat.green', { block: 'nearest', hold: 300 });
+    await caption(page, '🟢 gets it · 🟡 shaky · 🔴 did not get it yet', 2900);
+    await glideTo(page, '#results .sresult', { block: 'center', hold: 600 });
+    await caption(page, 'And what each of them actually said', 2400);
     const sn = await page.locator('#results .sresult').count();
     for (let i = 0; i < sn; i++) {
-      await glideTo(page, `#results .sresult >> nth=${i}`, { block: 'center', hold: 250 });
-      await page.waitForTimeout(1200);
+      await glideTo(page, `#results .sresult >> nth=${i}`, { block: 'center', hold: 300 });
+      await page.waitForTimeout(1500);
     }
-    await caption(page, '…with what they actually get and what to do next', 2200);
+    await caption(page, '…with what to do about it, pupil by pupil', 2600);
 
-    await caption(page, 'No marking. No installs. Fractions of a penny per check.', 2300);
+    /* =========================== CH 6 — Spot the pattern =================== */
+    await chapter(page, 6, 'Spot the pattern', 'The record builds itself');
+    await glideClick(page, '#btnCloseClass');
+    await sleep(1300);
+    await glideClick(page, '.classrow');
+    await page.locator('#classPanel').waitFor({ state: 'visible' });
+    await page.locator('#rosterView .prow').first().waitFor({ state: 'visible', timeout: 20000 });
+    await sleep(1500);
+    await focus(page, '#rosterView', { block: 'center', hold: 2400 });
+    await check(page, 'running record', '#rosterView');
+    await caption(page, 'Every pupil, every check — a dot per lesson', 3000);
+    await glideTo(page, '#rosterView .prow', { block: 'nearest', hold: 400 });
+    await caption(page, 'One red is a bad day. Two is a pattern. You can see it.', 3200);
+    await glideTo(page, '#rosterView .prow >> nth=3', { block: 'nearest', hold: 400 });
+    await page.waitForTimeout(2400);
+    await focus(page, '#checkList', { block: 'center', hold: 2200 });
+    await caption(page, 'Three seconds. Not three weeks, on the drive home.', 3200);
     await clearCaption(page);
-    await sleep(700);
+    await sleep(1100);
+    mark('end');
 
     /* ================= save ================= */
     const raw = video ? await video.path() : null;
@@ -390,11 +506,13 @@ async function main() {
     await browser.close();
 
     if (raw && fs.existsSync(raw)) {
-      const final = path.join(OUT, 'understanding-check-tutorial.webm');
+      const final = path.join(OUT, 'raw.webm');
       if (fs.existsSync(final)) fs.unlinkSync(final);
       fs.renameSync(raw, final);
       const mb = (fs.statSync(final).size / 1048576).toFixed(1);
-      console.log('\n  DONE -> ' + final + '  (' + mb + ' MB)');
+      fs.writeFileSync(path.join(OUT, 'timeline.json'), JSON.stringify({ cardMs: CARD_MS, marks: TL }, null, 2));
+      console.log('\n  raw  -> ' + final + '  (' + mb + ' MB)');
+      console.log('  marks-> ' + TL.map(m => m.name + '@' + (m.at / 1000).toFixed(1) + 's').join('  '));
     } else {
       console.log('\n  No video produced.');
     }

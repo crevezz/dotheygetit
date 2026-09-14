@@ -1,0 +1,83 @@
+{
+  "_note": "Exact chapter boundaries found by blackdetect on the raw takes - do not hand-edit. Regenerate with `node build.js --scan`.",
+  "raw": {
+    "file": "out/raw.webm",
+    "duration": 223
+  },
+  "why": {
+    "file": "out/why.webm",
+    "duration": 47
+  },
+  "chapters": [
+    {
+      "n": 1,
+      "src": "raw",
+      "cardStart": 2.12,
+      "cardEnd": 4.32,
+      "start": 2.12,
+      "span": 33.04,
+      "voStart": 3.12,
+      "window": 32.04
+    },
+    {
+      "n": 2,
+      "src": "raw",
+      "cardStart": 35.16,
+      "cardEnd": 37.36,
+      "start": 35.16,
+      "span": 33.6,
+      "voStart": 36.16,
+      "window": 32.6
+    },
+    {
+      "n": 3,
+      "src": "raw",
+      "cardStart": 68.76,
+      "cardEnd": 70.96,
+      "start": 68.76,
+      "span": 38.36,
+      "voStart": 69.76,
+      "window": 37.36
+    },
+    {
+      "n": 4,
+      "src": "raw",
+      "cardStart": 107.12,
+      "cardEnd": 109.32,
+      "start": 107.12,
+      "span": 53.96,
+      "voStart": 108.12,
+      "window": 52.96
+    },
+    {
+      "n": 5,
+      "src": "raw",
+      "cardStart": 161.08,
+      "cardEnd": 163.28,
+      "start": 161.08,
+      "span": 33.48,
+      "voStart": 162.08,
+      "window": 32.48
+    },
+    {
+      "n": 6,
+      "src": "raw",
+      "cardStart": 194.56,
+      "cardEnd": 196.8,
+      "start": 194.56,
+      "span": 28.44,
+      "voStart": 195.56,
+      "window": 27.44
+    },
+    {
+      "n": 7,
+      "src": "why",
+      "cardStart": 3.24,
+      "cardEnd": 5.48,
+      "start": 3.24,
+      "span": 43.76,
+      "voStart": 4.24,
+      "window": 42.76
+    }
+  ]
+}
