@@ -286,7 +286,14 @@ const server = http.createServer(async (req, res) => {
       const list = store.sessions
         .filter(s => s.classId === classId)
         .sort((a, b) => b.createdAt - a.createdAt)
-        .map(s => ({ id: s.id, topic: s.topic, createdAt: s.createdAt, students: s.students.length }));
+        .map(s => {
+          const levels = { green: 0, amber: 0, red: 0 };
+          s.students.forEach(st => {
+            const l = (st.verdict && st.verdict.level) || 'amber';
+            levels[l] = (levels[l] || 0) + 1;
+          });
+          return { id: s.id, topic: s.topic, createdAt: s.createdAt, students: s.students.length, questions: s.questions || [], levels };
+        });
       return sendJson(res, { checks: list });
     }
 

@@ -236,6 +236,15 @@ $('#btnCreateCheck').addEventListener('click', async () => {
 });
 
 // ------------------------------------------------------------- past checks
+function when(ts) {
+  const d = new Date(ts), now = new Date();
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) return 'Today ' + time;
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return 'Yesterday ' + time;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + time;
+}
+
 async function loadChecks() {
   if (!activeClass) return;
   const j = await api('/api/sessions?classId=' + encodeURIComponent(activeClass.id));
@@ -243,19 +252,46 @@ async function loadChecks() {
     $('#checkList').innerHTML = '<p class="muted">No checks yet. Make one above.</p>';
     return;
   }
-  $('#checkList').innerHTML = j.checks.map(c =>
-    `<div class="checkrow${activeCheckId === c.id ? ' on' : ''}" data-id="${esc(c.id)}" data-tip="See how the class did.">
-       <strong>${esc(c.topic)}</strong>
-       <span class="small">${c.students} finished</span>
-     </div>`
-  ).join('');
-  document.querySelectorAll('.checkrow').forEach(row => {
-    row.addEventListener('click', () => {
-      document.querySelectorAll('.checkrow').forEach(r => r.classList.remove('on'));
-      row.classList.add('on');
-      startResults(row.dataset.id);
+  $('#checkList').innerHTML = j.checks.map((c, i) => {
+    const n = c.students;
+    const L = c.levels || { green: 0, amber: 0, red: 0 };
+    const w = (v) => (n ? (v / n) * 100 : 0);
+    const bar = n
+      ? `<div class="cbar">
+           <i class="g" style="width:${w(L.green)}%"></i>
+           <i class="a" style="width:${w(L.amber)}%"></i>
+           <i class="r" style="width:${w(L.red)}%"></i>
+         </div>
+         <div class="clegend"><b>${L.green}</b> got it &nbsp;·&nbsp; <b>${L.amber}</b> shaky &nbsp;·&nbsp; <b>${L.red}</b> struggling</div>`
+      : `<div class="cbar"></div><div class="clegend">Nobody has finished yet</div>`;
+    const qs = (c.questions || []).map(q => `<li>${esc(q)}</li>`).join('');
+    return `<div class="checkcard${activeCheckId === c.id ? ' on' : ''}${i === 0 ? ' fresh' : ''}" data-id="${esc(c.id)}">
+      <div class="chead">
+        <div>
+          <div class="ctitle">${i === 0 ? '<span class="pill">Latest</span>' : ''}${esc(c.topic)}</div>
+          <div class="cmeta">${esc(when(c.createdAt))} &nbsp;·&nbsp; ${n} finished</div>
+        </div>
+        ${qs ? `<button class="small-btn cq" data-q="${esc(c.id)}">See the questions</button>` : ''}
+      </div>
+      ${bar}
+      <div class="cqlist hidden" id="cq-${esc(c.id)}"><ol>${qs}</ol></div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('.checkcard').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.checkcard').forEach(r => r.classList.remove('on'));
+      card.classList.add('on');
+      startResults(card.dataset.id);
     });
   });
+  document.querySelectorAll('.cq').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const box = document.getElementById('cq-' + btn.dataset.q);
+    if (!box) return;
+    box.classList.toggle('hidden');
+    btn.textContent = box.classList.contains('hidden') ? 'See the questions' : 'Hide the questions';
+  }));
 }
 
 let resultFilter = 'all';
@@ -369,8 +405,9 @@ $('#btnJoin').addEventListener('click', async () => {
       done: false, name, code
     };
     $('#joinCard').classList.add('hidden');
-    $('#doneCard').classList.add('hidden');
     $('#checkCard').classList.remove('hidden');
+    const stick = document.querySelector('.row.stick');
+    if (stick) stick.classList.remove('hidden');
     $('#checkTopic').textContent = j.check.topic;
     $('#chat').innerHTML = '';
     updateProgress();
@@ -452,8 +489,15 @@ async function finish() {
   } catch (e) {
     setMsg($('#chatMsg'), 'Could not send to your teacher. Tell them before you close this.');
   }
-  $('#checkCard').classList.add('hidden');
-  $('#doneCard').classList.remove('hidden');
+  // Keep their answers on screen — just close off the conversation.
+  const stick = document.querySelector('.row.stick');
+  if (stick) stick.classList.add('hidden');
+  $('#progress').textContent = 'Finished';
+  const d = document.createElement('div');
+  d.className = 'endline';
+  d.textContent = '✓ All done — thanks! Your answers have gone to your teacher.';
+  $('#chat').appendChild(d);
+  d.scrollIntoView({ block: 'end', behavior: 'smooth' });
 }
 
 // ------------------------------------------------------------------- startup
