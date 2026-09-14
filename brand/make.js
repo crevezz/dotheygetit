@@ -58,8 +58,12 @@ async function icons(page) {
   console.log('\nicons');
 
   // Favicon: rounded tile, so it looks deliberate in a tab strip.
+  // The tick is drawn a little heavier at tiny sizes - at 16px the standard
+  // weight thins out to barely a pixel and the tick stops reading as a tick.
+  const WEIGHT = { 16: 33, 32: 30, 48: 28, 64: 27 };
   for (const s of [16, 32, 48, 64]) {
-    await shoot(page, svgPage(mark({ size: s, radius: 58 })), `favicon-${s}.png`, s, s, { transparent: true });
+    await shoot(page, svgPage(mark({ size: s, radius: 58, weight: WEIGHT[s] })),
+      `favicon-${s}.png`, s, s, { transparent: true });
   }
 
   // Apple touch: full bleed square - iOS applies its own rounding, and a

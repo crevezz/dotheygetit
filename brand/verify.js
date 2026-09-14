@@ -94,15 +94,39 @@ const ok = (n, cond, extra = '') => {
 
   // the icon mark must survive being shrunk to a tab
   console.log('\nthe mark at favicon sizes');
-  for (const s of [16, 32, 180, 512]) {
+  const WEIGHT = { 16: 33, 32: 30, 48: 28, 64: 27 };
+  for (const s of [16, 32, 48, 64, 180, 512]) {
     await page.setViewportSize({ width: s, height: s });
-    await page.setContent(`<body style="margin:0">${mark({ size: s, radius: Math.round(58 * s / 256) })}</body>`);
+    await page.setContent(`<body style="margin:0">${mark({
+      size: s, radius: Math.round(58 * s / 256), weight: WEIGHT[s] || 26
+    })}</body>`);
     const r = await page.evaluate(() => {
       const svg = document.querySelector('svg');
       const b = svg.getBoundingClientRect();
-      return { w: b.width, h: b.height, paths: svg.querySelectorAll('path').length };
+      return { w: b.width, h: b.height, paths: svg.querySelectorAll('path').length, html: svg.outerHTML };
     });
-    ok(s + 'px: draws one tick, fills the square', r.paths === 1 && Math.abs(r.w - s) < 1, JSON.stringify(r));
+    ok(s + 'px: draws one tick, fills the square', r.paths === 1 && Math.abs(r.w - s) < 1, JSON.stringify({ w: r.w, h: r.h, paths: r.paths }));
+
+    // The tick has to still be there in the rendered pixels, not just in the
+    // markup - an antialiased 1px tick in a 16px tab is a smudge, not a tick.
+    const ink = await page.evaluate(async (html) => {
+      const c = document.createElement('canvas');
+      c.width = c.height = document.querySelector('svg').clientWidth;
+      const x = c.getContext('2d');
+      await new Promise(res => {
+        const i = new Image();
+        i.onload = () => { x.drawImage(i, 0, 0, c.width, c.height); res(); };
+        i.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(html)));
+      });
+      const d = x.getImageData(0, 0, c.width, c.height).data;
+      let white = 0;
+      for (let k = 0; k < d.length; k += 4) {
+        if (0.2126 * d[k] + 0.7152 * d[k + 1] + 0.0722 * d[k + 2] > 200) white++;
+      }
+      return white / (c.width * c.height) * 100;
+    }, r.html);
+    ok(s + 'px: the white tick still reads as ink (>= 4% of pixels)',
+      s > 64 || ink >= 4, ink.toFixed(1) + '% white');
   }
 
   // The .ico is the one file we build by hand, so decode it back rather than

@@ -22,12 +22,12 @@ const TICK = (w, c) =>
  *  scale   how big the tick is relative to the tile (maskable icons need < 1)
  *  plain   drop the gradient tile and just draw the tick (for watermarks)
  */
-function mark({ size = 256, radius = 58, scale = 1, plain = false } = {}) {
+function mark({ size = 256, radius = 58, scale = 1, plain = false, weight = 26 } = {}) {
   const inner = 256 * scale;
   const off = (256 - inner) / 2;
   const body = plain
-    ? TICK(26, '#ffffff')
-    : `<rect width="256" height="256" rx="${radius}" fill="url(#gi)"/>` + TICK(26, '#ffffff');
+    ? TICK(weight, '#ffffff')
+    : `<rect width="256" height="256" rx="${radius}" fill="url(#gi)"/>` + TICK(weight, '#ffffff');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="${size}" height="${size}">
   <defs>${plain ? '' : GRAD}</defs>
   <g transform="translate(${off} ${off}) scale(${scale})">${body}</g>
