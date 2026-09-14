@@ -20,6 +20,7 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 function setMsg(el, text, ok) {
+  if (!el) return;
   el.textContent = text || '';
   el.classList.toggle('ok', !!ok);
 }
@@ -64,23 +65,60 @@ document.querySelectorAll('.tab').forEach(btn => {
 });
 
 // =================================================================== TEACHER
-// No login. Your classes live in this browser, so nothing is lost when the
-// free server restarts. Only the live check itself sits on the server.
-const LSKEY = 'getit.classes.v1';
-
-let myClasses = readLocal();
+let me = null;
+let myClasses = [];
 let activeClass = null;
 let activeCheckId = null;
+let checks = [];
 let generated = [];
 let resultFilter = 'all';
 let pollTimer = null;
 
-function readLocal() {
-  try { const a = JSON.parse(localStorage.getItem(LSKEY)); return Array.isArray(a) ? a : []; }
-  catch { return []; }
+async function boot() {
+  try { const j = await api('/api/me'); me = j.teacher; } catch { me = null; }
+  if (me) {
+    $('#signinCard').classList.add('hidden');
+    $('#dash').classList.remove('hidden');
+    $('#whoami').textContent = me.email + (me.role === 'admin' ? ' · owner' : '');
+    await loadClasses();
+    loadAdmin();
+  } else {
+    $('#signinCard').classList.remove('hidden');
+    $('#dash').classList.add('hidden');
+  }
 }
-function writeLocal() { localStorage.setItem(LSKEY, JSON.stringify(myClasses)); }
-function uid() { return Math.random().toString(36).slice(2, 10); }
+
+$('#btnLogin').addEventListener('click', () => doAuth('/api/login'));
+$('#btnSignup').addEventListener('click', () => doAuth('/api/signup'));
+
+async function doAuth(path) {
+  setMsg($('#authMsg'), '');
+  const email = $('#authEmail').value.trim();
+  const password = $('#authPass').value;
+  if (!email || !password) return setMsg($('#authMsg'), 'Enter your email and a password.');
+  try {
+    await post(path, { email, password });
+    $('#authPass').value = '';
+    await boot();
+  } catch (e) { setMsg($('#authMsg'), e.message); }
+}
+
+$('#btnLogout').addEventListener('click', async () => {
+  try { await post('/api/logout'); } catch {}
+  me = null; myClasses = []; activeClass = null;
+  $('#adminWrap').innerHTML = '';
+  $('#classPanel').classList.add('hidden');
+  await boot();
+});
+
+// ----------------------------------------------------------------- classes
+async function loadClasses() {
+  try {
+    const j = await api('/api/classes');
+    myClasses = j.classes || [];
+  } catch { myClasses = []; }
+  renderClasses();
+}
 
 function renderClasses() {
   if (!myClasses.length) {
@@ -90,7 +128,7 @@ function renderClasses() {
   $('#classList').innerHTML = myClasses.map(c =>
     `<div class="classrow${activeClass && activeClass.id === c.id ? ' on' : ''}" data-id="${esc(c.id)}">
        <strong>${esc(c.name)}</strong>
-       <span class="small">${c.checks.length} check${c.checks.length === 1 ? '' : 's'}${c.code ? ' · code <b>' + esc(c.code) + '</b>' : ''}</span>
+       <span class="small">${c.checks} check${c.checks === 1 ? '' : 's'}${c.code ? ' · code <b>' + esc(c.code) + '</b>' : ''}</span>
      </div>`
   ).join('');
   document.querySelectorAll('.classrow').forEach(row => {
@@ -98,16 +136,16 @@ function renderClasses() {
   });
 }
 
-$('#btnAddClass').addEventListener('click', () => {
+$('#btnAddClass').addEventListener('click', async () => {
   setMsg($('#classMsg'), '');
   const name = $('#newClassName').value.trim();
   if (!name) return setMsg($('#classMsg'), 'Type a class name first.');
-  const c = { id: uid(), name, code: '', key: '', checks: [] };
-  myClasses.push(c);
-  writeLocal();
-  $('#newClassName').value = '';
-  renderClasses();
-  openClass(c.id);
+  try {
+    const j = await post('/api/class', { name });
+    $('#newClassName').value = '';
+    await loadClasses();
+    openClass(j.class.id);
+  } catch (e) { setMsg($('#classMsg'), e.message); }
 });
 
 $('#btnCloseClass').addEventListener('click', () => {
@@ -117,12 +155,12 @@ $('#btnCloseClass').addEventListener('click', () => {
   renderClasses();
 });
 
-function openClass(id) {
+async function openClass(id) {
   const c = myClasses.find(x => x.id === id);
   if (!c) return;
   stopPolling();
   activeClass = c;
-  activeCheckId = c.checks.length ? c.checks[0].id : null;
+  activeCheckId = null;
   $('#classPanel').classList.remove('hidden');
   $('#classTitle').textContent = c.name;
   $('#classCode').textContent = c.code || '— — — —';
@@ -134,19 +172,18 @@ function openClass(id) {
   $('#btnGenerate').textContent = '1. Generate questions';
   setMsg($('#checkMsg'), '');
   generated = [];
-  $('#liveBar').classList.toggle('hidden', !c.checks.length);
-  if (c.checks.length) $('#liveText').textContent = 'Latest check is live — students use code ' + c.code;
+  $('#liveBar').classList.add('hidden');
   renderClasses();
-  renderChecks();
+  await loadChecks();
 }
 
 $('#btnCopyCode').addEventListener('click', () => {
   if (activeClass && activeClass.code) copy(activeClass.code, 'Class code');
-  else toast('Make a check first');
+  else toast('Pick a class first');
 });
 $('#btnCopyLink').addEventListener('click', () => {
   if (activeClass && activeClass.code) copy(location.origin + '/?join=' + activeClass.code, 'Student link');
-  else toast('Make a check first');
+  else toast('Pick a class first');
 });
 $('#btnOpenStudent').addEventListener('click', () => {
   if (activeClass && activeClass.code) window.open(location.origin + '/?join=' + activeClass.code, '_blank');
@@ -210,52 +247,43 @@ $('#btnCreateCheck').addEventListener('click', async () => {
   if (!activeClass) return setMsg($('#checkMsg'), 'Pick a class first.');
   $('#btnCreateCheck').disabled = true;
   try {
-    const j = await post('/api/check', {
-      code: activeClass.code, key: activeClass.key,
-      name: activeClass.name, topic: $('#topic').value.trim(), questions
-    });
-    activeClass.code = j.code;
-    activeClass.key = j.key;
-    activeClass.checks.unshift({ id: j.checkId, topic: j.topic, questions: j.questions, createdAt: j.createdAt, snapshot: [] });
-    writeLocal();
-
-    $('#classCode').textContent = j.code;
+    const j = await post('/api/session', { classId: activeClass.id, topic: $('#topic').value.trim(), questions });
+    activeCheckId = j.check.id;
     $('#qwrap').classList.add('hidden');
     $('#btnCreateCheck').classList.add('hidden');
     $('#topic').value = '';
     $('#btnGenerate').textContent = '1. Generate questions';
     generated = [];
-    $('#liveText').textContent = 'Live now — students use code ' + j.code;
+    $('#liveText').textContent = 'Live now — students use code ' + activeClass.code;
     $('#liveBar').classList.remove('hidden');
-    setMsg($('#checkMsg'), '', true);
-    renderClasses();
-    activeCheckId = j.checkId;
-    renderChecks();
+    await loadChecks();
+    await openCheck(activeCheckId);
     startPolling();
-    loadLive();
   } catch (e) { setMsg($('#checkMsg'), e.message); }
   $('#btnCreateCheck').disabled = false;
 });
 
 // ------------------------------------------------------------- past checks
-function renderChecks() {
+async function loadChecks() {
   if (!activeClass) return;
-  const checks = activeClass.checks;
+  try {
+    const j = await api('/api/sessions?classId=' + encodeURIComponent(activeClass.id));
+    checks = j.checks || [];
+  } catch { checks = []; }
+  renderChecks();
+}
+
+function renderChecks() {
   if (!checks.length) {
     $('#checkList').innerHTML = '<p class="muted">No checks yet. Make one above.</p>';
     return;
   }
   $('#checkList').innerHTML = checks.map((c, i) => {
-    const snap = c.snapshot || [];
-    const n = snap.length;
-    const L = levelsOf(snap);
+    const n = c.students || 0;
+    const L = c.levels || levelsOf([]);
     const w = (v) => (n ? (v / n) * 100 : 0);
     const bar = n
-      ? `<div class="cbar">
-           <i class="g" style="width:${w(L.green)}%"></i>
-           <i class="a" style="width:${w(L.amber)}%"></i>
-           <i class="r" style="width:${w(L.red)}%"></i>
-         </div>
+      ? `<div class="cbar"><i class="g" style="width:${w(L.green)}%"></i><i class="a" style="width:${w(L.amber)}%"></i><i class="r" style="width:${w(L.red)}%"></i></div>
          <div class="clegend"><b>${L.green}</b> got it &nbsp;·&nbsp; <b>${L.amber}</b> shaky &nbsp;·&nbsp; <b>${L.red}</b> struggling</div>`
       : `<div class="cbar"></div><div class="clegend">Nobody has finished yet</div>`;
     const qs = (c.questions || []).map(q => `<li>${esc(q)}</li>`).join('');
@@ -285,54 +313,27 @@ function renderChecks() {
 }
 
 function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
-function startPolling() {
-  stopPolling();
-  pollTimer = setInterval(loadLive, 12000);
-}
+function startPolling() { stopPolling(); pollTimer = setInterval(() => openCheck(activeCheckId, true), 12000); }
 
-function openCheck(id) {
-  if (!activeClass) return;
-  const ch = activeClass.checks.find(x => x.id === id);
-  if (!ch) return;
+async function openCheck(id, quiet) {
+  if (!id) return;
   activeCheckId = id;
-  resultFilter = 'all';
-  renderChecks();
-
-  const isLatest = activeClass.checks[0] && activeClass.checks[0].id === id;
-  if (isLatest && activeClass.code && activeClass.key) {
-    startPolling();
-    loadLive();
-  } else {
-    stopPolling();
-    drawResults(ch, ch.snapshot || [], false);
-  }
-}
-
-async function loadLive() {
-  if (!activeClass || !activeClass.code) return;
-  const ch = activeClass.checks.find(x => x.id === activeCheckId);
-  if (!ch) return;
+  if (!quiet) renderChecks();
   try {
-    const j = await api('/api/results?code=' + encodeURIComponent(activeClass.code) + '&key=' + encodeURIComponent(activeClass.key));
-    ch.snapshot = j.students || [];
-    ch.questions = j.questions || ch.questions;
-    writeLocal();
-    drawResults(ch, ch.snapshot, true);
-    renderChecks();
+    const j = await api('/api/session?id=' + encodeURIComponent(id));
+    const s = j.check || {};
+    drawResults(s, s.students || []);
+    if (!quiet) renderChecks();
   } catch (e) {
-    if (!ch.snapshot || !ch.snapshot.length) {
-      $('#results').innerHTML = `<div class="card"><h3>${esc(ch.topic)}</h3><p class="muted">${esc(e.message)}</p></div>`;
-    } else {
-      drawResults(ch, ch.snapshot, false);
-    }
+    if (!quiet) $('#results').innerHTML = `<div class="card"><p class="muted">${esc(e.message)}</p></div>`;
   }
 }
 
-function drawResults(ch, students, live) {
+function drawResults(s, students) {
   if (!students.length) {
     $('#results').innerHTML =
-      `<div class="card"><h3>${esc(ch.topic)}</h3>
-        <p class="muted">Nobody has finished yet. Give the class the code <b>${esc(activeClass.code)}</b> and leave this page open — it updates by itself.</p>
+      `<div class="card"><h3>${esc(s.topic || '')}</h3>
+        <p class="muted">Nobody has finished yet. Give the class the code <b>${esc((activeClass && activeClass.code) || '')}</b> and leave this page open — it updates by itself.</p>
       </div>`;
     return;
   }
@@ -372,14 +373,13 @@ function drawResults(ch, students, live) {
 
   $('#results').innerHTML =
     `<div class="card">
-       <div class="srow"><h3>${esc(ch.topic)}</h3><span class="small">${live ? 'updates live' : 'last looked ' + esc(when(ch.createdAt))}</span></div>
+       <div class="srow"><h3>${esc(s.topic || '')}</h3><span class="small">updates by itself</span></div>
        <div class="stat-row">
          <div class="stat green" data-tip="Really understands it."><b>${L.green}</b><span>get it</span></div>
          <div class="stat amber" data-tip="Partly knows it, with clear gaps."><b>${L.amber}</b><span>shaky</span></div>
          <div class="stat red" data-tip="Got little right — needs help."><b>${L.red}</b><span>struggling</span></div>
        </div>
        <p class="summary"><b>${students.length}</b> finished · <b>${needHelp}</b> need${needHelp === 1 ? 's' : ''} a hand</p>
-       ${live ? '' : '<p class="muted">Saved copy from when you last looked at it.</p>'}
        <div class="filters">
          <button data-f="all" class="${resultFilter === 'all' ? 'on' : ''}">Everyone (${students.length})</button>
          <button data-f="help" class="${resultFilter === 'help' ? 'on' : ''}">Needs help (${needHelp})</button>
@@ -389,11 +389,42 @@ function drawResults(ch, students, live) {
 
   document.querySelectorAll('.filters button').forEach(b => b.addEventListener('click', () => {
     resultFilter = b.dataset.f;
-    drawResults(ch, students, live);
+    drawResults(s, students);
   }));
 }
 
-renderClasses();
+// ------------------------------------------------------------ owner / admin
+async function loadAdmin() {
+  if (!me || me.role !== 'admin') { $('#adminWrap').innerHTML = ''; return; }
+  try {
+    const j = await api('/api/admin/overview');
+    const t = j.totals;
+    const rows = j.teachers.map(x => `
+      <div class="sresult lv-${x.role === 'admin' ? 'green' : 'amber'}">
+        <div class="head"><span class="name">${esc(x.email)}</span><span class="tag">${esc(x.role)}</span></div>
+        <div class="detail">
+          <div><span class="k">Joined</span>${esc(when(x.createdAt))}</div>
+          <div><span class="k">Classes</span>${x.classes.length} &nbsp; <span class="k">Checks</span>${x.checkCount} &nbsp; <span class="k">Answers</span>${x.studentCount}</div>
+          ${x.classes.length ? `<div class="notes">${x.classes.map(c => esc(c.name) + ' <b>' + esc(c.code) + '</b>').join(' · ')}</div>` : ''}
+        </div>
+      </div>`).join('');
+    $('#adminWrap').innerHTML =
+      `<div class="card">
+         <div class="srow"><h3>Owner view</h3><span class="small">everyone using it</span></div>
+         <div class="stat-row">
+           <div class="stat green"><b>${t.teachers}</b><span>teachers</span></div>
+           <div class="stat amber"><b>${t.classes}</b><span>classes</span></div>
+           <div class="stat"><b>${t.checks}</b><span>checks</span></div>
+           <div class="stat"><b>${t.students}</b><span>answers</span></div>
+         </div>
+         ${rows || '<p class="muted">Nobody has signed up yet.</p>'}
+       </div>`;
+  } catch (e) {
+    $('#adminWrap').innerHTML = '';
+  }
+}
+
+boot();
 
 // =================================================================== STUDENT
 let chat = { history: [], covered: 0, digs: 0, topic: '', questions: [], done: false, name: '', code: '' };
@@ -500,7 +531,6 @@ async function finish() {
   } catch (e) {
     setMsg($('#chatMsg'), 'Could not send to your teacher. Tell them before you close this.');
   }
-  // Keep their answers on screen — just close off the conversation.
   const stick = document.querySelector('.row.stick');
   if (stick) stick.classList.add('hidden');
   $('#progress').textContent = 'Finished';

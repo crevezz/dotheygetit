@@ -27,12 +27,29 @@
   <!-- ============================ TEACHER ============================ -->
   <section id="view-teacher">
 
-    <div id="dash">
+    <div class="card narrow" id="signinCard">
+      <h2>Teacher sign in</h2>
+      <p class="muted">Your classes are saved to your account, so they follow you to any computer.</p>
+      <label>Email</label>
+      <input id="authEmail" type="email" placeholder="you@school.sch.uk" autocomplete="email"/>
+      <label>Password</label>
+      <input id="authPass" type="password" placeholder="At least 6 characters" autocomplete="current-password"/>
+      <div class="btnrow">
+        <button id="btnLogin" class="primary" data-tip="Log in to your existing account.">Log in</button>
+        <button id="btnSignup" class="ghost" data-tip="First time here? This makes your account.">Create account</button>
+      </div>
+      <p class="msg" id="authMsg"></p>
+    </div>
+
+    <div class="hidden" id="dash">
+      <div id="adminWrap"></div>
 
       <div class="card">
         <div class="srow">
           <h3>Your classes</h3>
+          <button id="btnLogout" class="small-btn" data-tip="Sign out of your account.">Log out</button>
         </div>
+        <p class="muted" id="whoami"></p>
         <div id="classList"></div>
         <div class="row">
           <input id="newClassName" placeholder="New class name, e.g. Year 8 Maths"/>

@@ -22,6 +22,7 @@ function readKey() {
   catch { return process.env.OPENROUTER_API_KEY || ''; }
 }
 const API_KEY = readKey();
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'craigokelly121@hotmail.com').toLowerCase();
 
 // -------------------------------------------------------------------- store
 let store = { teachers: [], classes: [], sessions: [], tokens: {} };
@@ -93,7 +94,7 @@ function currentTeacher(req) {
   if (!id) return null;
   return store.teachers.find(x => x.id === id) || null;
 }
-function publicTeacher(t) { return { id: t.id, email: t.email }; }
+function publicTeacher(t) { return { id: t.id, email: t.email, role: t.role || 'teacher', name: t.name || '' }; }
 
 // ----------------------------------------------------------------------- llm
 async function llm(messages, opts = {}) {
@@ -242,7 +243,8 @@ const server = http.createServer(async (req, res) => {
       if (pw.length < 6) return sendErr(res, 'Password must be at least 6 characters.');
       if (store.teachers.find(t => t.email === email)) return sendErr(res, 'That email is already registered. Try logging in.');
       const salt = rid(8);
-      const t = { id: rid(6), email, salt, hash: hashPass(pw, salt), createdAt: Date.now() };
+      const role = email === ADMIN_EMAIL ? 'admin' : 'teacher';
+      const t = { id: rid(6), email, salt, hash: hashPass(pw, salt), role, createdAt: Date.now() };
       store.teachers.push(t);
       const tok = rid(16);
       store.tokens[tok] = t.id;
@@ -432,6 +434,32 @@ const server = http.createServer(async (req, res) => {
       let v = parseJson(raw);
       if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
       return sendJson(res, { verdict: v });
+    }
+
+    // ---- owner view: every teacher, class and check on the system
+    if (p === '/api/admin/overview' && req.method === 'GET') {
+      const me = currentTeacher(req);
+      if (!me) return sendErr(res, 'Not signed in.', 401);
+      if (me.role !== 'admin') return sendErr(res, 'Not allowed.', 403);
+      const teachers = store.teachers.map(x => {
+        const classes = store.classes.filter(c => c.teacherId === x.id).map(c => {
+          const checks = store.sessions.filter(s => s.classId === c.id);
+          const students = checks.reduce((n, s) => n + (s.students || []).length, 0);
+          return { id: c.id, name: c.name, code: c.code, checks: checks.length, students };
+        });
+        return {
+          id: x.id, email: x.email, role: x.role || 'teacher', createdAt: x.createdAt,
+          classes, checkCount: classes.reduce((n, c) => n + c.checks, 0),
+          studentCount: classes.reduce((n, c) => n + c.students, 0)
+        };
+      }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const totals = {
+        teachers: teachers.length,
+        classes: store.classes.length,
+        checks: store.sessions.length,
+        students: store.sessions.reduce((n, s) => n + (s.students || []).length, 0)
+      };
+      return sendJson(res, { teachers, totals });
     }
 
     // ---- no-login checks: the teacher's browser remembers its own classes
