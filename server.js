@@ -400,6 +400,42 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { verdict: v });
     }
 
+    // ---- no-login checks: the teacher's browser remembers its own classes
+    if (p === '/api/check' && req.method === 'POST') {
+      const b = await readBody(req);
+      const topic = String(b.topic || '').trim() || 'Untitled';
+      const questions = Array.isArray(b.questions) ? b.questions.map(q => String(q || '').trim()).filter(Boolean) : [];
+      if (!questions.length) return sendErr(res, 'No questions supplied.');
+      let code = String(b.code || '').trim().toLowerCase();
+      let c = null;
+      if (code) {
+        c = store.classes.find(x => x.code === code);
+        if (c && c.key !== String(b.key || '')) return sendErr(res, 'That code is taken. Add a new class.');
+      } else {
+        code = mkCode(6);
+        while (store.classes.find(x => x.code === code)) code = mkCode(6);
+      }
+      if (!c) {
+        c = { id: rid(6), code, key: rid(14), name: String(b.name || '').trim(), anon: true, createdAt: Date.now() };
+        store.classes.push(c);
+      }
+      const s = { id: rid(4), classId: c.id, topic, questions, students: [], createdAt: Date.now() };
+      store.sessions.push(s);
+      saveStore();
+      return sendJson(res, { code: c.code, key: c.key, checkId: s.id, topic, questions, createdAt: s.createdAt });
+    }
+
+    if (p === '/api/results' && req.method === 'GET') {
+      const code = String(url.searchParams.get('code') || '').trim().toLowerCase();
+      const key = String(url.searchParams.get('key') || '').trim();
+      const c = store.classes.find(x => x.code === code);
+      if (!c) return sendErr(res, 'The server has forgotten this check (free hosting clears itself).');
+      if (c.key !== key) return sendErr(res, 'Not your check.');
+      const s = latestSessionForClass(c.id);
+      if (!s) return sendErr(res, 'The server has forgotten this check (free hosting clears itself).');
+      return sendJson(res, { topic: s.topic, questions: s.questions, createdAt: s.createdAt, students: s.students || [] });
+    }
+
     // ---- save a student result (student submits with class code)
     if (p === '/api/result' && req.method === 'POST') {
       const b = await readBody(req);

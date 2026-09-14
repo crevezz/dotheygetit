@@ -32,12 +32,24 @@ function toast(text) {
   toastTimer = setTimeout(() => t.classList.remove('on'), 1900);
 }
 async function copy(text, label) {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast(label + ' copied');
-  } catch {
-    toast('Press Ctrl+C to copy');
-  }
+  try { await navigator.clipboard.writeText(text); toast(label + ' copied'); }
+  catch { toast('Press Ctrl+C to copy'); }
+}
+function when(ts) {
+  const d = new Date(ts), now = new Date();
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) return 'Today ' + time;
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return 'Yesterday ' + time;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + time;
+}
+function levelsOf(students) {
+  const L = { green: 0, amber: 0, red: 0 };
+  (students || []).forEach(st => {
+    const l = (st.verdict && st.verdict.level) || 'amber';
+    L[l] = (L[l] || 0) + 1;
+  });
+  return L;
 }
 
 // --------------------------------------------------------------------- tabs
@@ -52,61 +64,33 @@ document.querySelectorAll('.tab').forEach(btn => {
 });
 
 // =================================================================== TEACHER
-let me = null;
-let classes = [];
+// No login. Your classes live in this browser, so nothing is lost when the
+// free server restarts. Only the live check itself sits on the server.
+const LSKEY = 'getit.classes.v1';
+
+let myClasses = readLocal();
 let activeClass = null;
-let generated = [];
 let activeCheckId = null;
+let generated = [];
+let resultFilter = 'all';
 let pollTimer = null;
 
-async function loadMe() {
-  const j = await api('/api/me');
-  me = j.teacher;
-  if (me) {
-    $('#authCard').classList.add('hidden');
-    $('#dash').classList.remove('hidden');
-    loadClasses();
-  } else {
-    $('#authCard').classList.remove('hidden');
-    $('#dash').classList.add('hidden');
-  }
+function readLocal() {
+  try { const a = JSON.parse(localStorage.getItem(LSKEY)); return Array.isArray(a) ? a : []; }
+  catch { return []; }
 }
+function writeLocal() { localStorage.setItem(LSKEY, JSON.stringify(myClasses)); }
+function uid() { return Math.random().toString(36).slice(2, 10); }
 
-$('#btnLogin').addEventListener('click', async () => {
-  setMsg($('#authMsg'), '');
-  try {
-    await post('/api/login', { email: $('#authEmail').value, password: $('#authPass').value });
-    await loadMe();
-  } catch (e) { setMsg($('#authMsg'), e.message); }
-});
-
-$('#btnSignup').addEventListener('click', async () => {
-  setMsg($('#authMsg'), '');
-  try {
-    await post('/api/signup', { email: $('#authEmail').value, password: $('#authPass').value });
-    await loadMe();
-  } catch (e) { setMsg($('#authMsg'), e.message); }
-});
-
-$('#btnLogout').addEventListener('click', async () => {
-  await post('/api/logout');
-  stopPolling();
-  activeClass = null;
-  $('#classPanel').classList.add('hidden');
-  await loadMe();
-});
-
-async function loadClasses() {
-  const j = await api('/api/classes');
-  classes = j.classes;
-  if (!classes.length) {
-    $('#classList').innerHTML = '<p class="muted">No classes yet. Add one below to get a join code.</p>';
+function renderClasses() {
+  if (!myClasses.length) {
+    $('#classList').innerHTML = '<p class="muted">No classes yet. Add one below — it only takes a name.</p>';
     return;
   }
-  $('#classList').innerHTML = classes.map(c =>
-    `<div class="classrow${activeClass && activeClass.id === c.id ? ' on' : ''}" data-id="${esc(c.id)}" data-tip="Open this class.">
+  $('#classList').innerHTML = myClasses.map(c =>
+    `<div class="classrow${activeClass && activeClass.id === c.id ? ' on' : ''}" data-id="${esc(c.id)}">
        <strong>${esc(c.name)}</strong>
-       <span class="small">${c.checks} check${c.checks === 1 ? '' : 's'} · code <b>${esc(c.code)}</b></span>
+       <span class="small">${c.checks.length} check${c.checks.length === 1 ? '' : 's'}${c.code ? ' · code <b>' + esc(c.code) + '</b>' : ''}</span>
      </div>`
   ).join('');
   document.querySelectorAll('.classrow').forEach(row => {
@@ -114,54 +98,58 @@ async function loadClasses() {
   });
 }
 
-$('#btnAddClass').addEventListener('click', async () => {
+$('#btnAddClass').addEventListener('click', () => {
   setMsg($('#classMsg'), '');
   const name = $('#newClassName').value.trim();
   if (!name) return setMsg($('#classMsg'), 'Type a class name first.');
-  try {
-    const j = await post('/api/class', { name });
-    $('#newClassName').value = '';
-    await loadClasses();
-    openClass(j.class.id);
-  } catch (e) { setMsg($('#classMsg'), e.message); }
+  const c = { id: uid(), name, code: '', key: '', checks: [] };
+  myClasses.push(c);
+  writeLocal();
+  $('#newClassName').value = '';
+  renderClasses();
+  openClass(c.id);
 });
 
 $('#btnCloseClass').addEventListener('click', () => {
   stopPolling();
   activeClass = null;
   $('#classPanel').classList.add('hidden');
-  loadClasses();
+  renderClasses();
 });
 
 function openClass(id) {
-  const c = classes.find(x => x.id === id);
+  const c = myClasses.find(x => x.id === id);
   if (!c) return;
   stopPolling();
   activeClass = c;
+  activeCheckId = c.checks.length ? c.checks[0].id : null;
   $('#classPanel').classList.remove('hidden');
   $('#classTitle').textContent = c.name;
-  $('#classCode').textContent = c.code;
+  $('#classCode').textContent = c.code || '— — — —';
   $('#qwrap').classList.add('hidden');
   $('#btnCreateCheck').classList.add('hidden');
-  $('#liveBar').classList.add('hidden');
   $('#qlist').innerHTML = '';
   $('#results').innerHTML = '';
   $('#topic').value = '';
   $('#btnGenerate').textContent = '1. Generate questions';
-  generated = [];
   setMsg($('#checkMsg'), '');
-  loadClasses();
-  loadChecks();
+  generated = [];
+  $('#liveBar').classList.toggle('hidden', !c.checks.length);
+  if (c.checks.length) $('#liveText').textContent = 'Latest check is live — students use code ' + c.code;
+  renderClasses();
+  renderChecks();
 }
 
 $('#btnCopyCode').addEventListener('click', () => {
-  if (activeClass) copy(activeClass.code, 'Class code');
+  if (activeClass && activeClass.code) copy(activeClass.code, 'Class code');
+  else toast('Make a check first');
 });
 $('#btnCopyLink').addEventListener('click', () => {
-  if (activeClass) copy(location.origin + '/?join=' + activeClass.code, 'Student link');
+  if (activeClass && activeClass.code) copy(location.origin + '/?join=' + activeClass.code, 'Student link');
+  else toast('Make a check first');
 });
 $('#btnOpenStudent').addEventListener('click', () => {
-  if (activeClass) window.open(location.origin + '/?join=' + activeClass.code, '_blank');
+  if (activeClass && activeClass.code) window.open(location.origin + '/?join=' + activeClass.code, '_blank');
 });
 
 // --------------------------------------------------------- generate questions
@@ -220,41 +208,47 @@ $('#btnCreateCheck').addEventListener('click', async () => {
   setMsg($('#checkMsg'), '');
   if (!questions.length) return setMsg($('#checkMsg'), 'Add at least one question.');
   if (!activeClass) return setMsg($('#checkMsg'), 'Pick a class first.');
+  $('#btnCreateCheck').disabled = true;
   try {
-    await post('/api/session', { classId: activeClass.id, topic: $('#topic').value.trim(), questions });
-    setMsg($('#checkMsg'), '', true);
+    const j = await post('/api/check', {
+      code: activeClass.code, key: activeClass.key,
+      name: activeClass.name, topic: $('#topic').value.trim(), questions
+    });
+    activeClass.code = j.code;
+    activeClass.key = j.key;
+    activeClass.checks.unshift({ id: j.checkId, topic: j.topic, questions: j.questions, createdAt: j.createdAt, snapshot: [] });
+    writeLocal();
+
+    $('#classCode').textContent = j.code;
     $('#qwrap').classList.add('hidden');
     $('#btnCreateCheck').classList.add('hidden');
     $('#topic').value = '';
     $('#btnGenerate').textContent = '1. Generate questions';
     generated = [];
-    $('#liveText').textContent = 'Live now — students use code ' + activeClass.code;
+    $('#liveText').textContent = 'Live now — students use code ' + j.code;
     $('#liveBar').classList.remove('hidden');
-    loadChecks();
-    loadClasses();
+    setMsg($('#checkMsg'), '', true);
+    renderClasses();
+    activeCheckId = j.checkId;
+    renderChecks();
+    startPolling();
+    loadLive();
   } catch (e) { setMsg($('#checkMsg'), e.message); }
+  $('#btnCreateCheck').disabled = false;
 });
 
 // ------------------------------------------------------------- past checks
-function when(ts) {
-  const d = new Date(ts), now = new Date();
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === now.toDateString()) return 'Today ' + time;
-  const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (d.toDateString() === y.toDateString()) return 'Yesterday ' + time;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + time;
-}
-
-async function loadChecks() {
+function renderChecks() {
   if (!activeClass) return;
-  const j = await api('/api/sessions?classId=' + encodeURIComponent(activeClass.id));
-  if (!j.checks.length) {
+  const checks = activeClass.checks;
+  if (!checks.length) {
     $('#checkList').innerHTML = '<p class="muted">No checks yet. Make one above.</p>';
     return;
   }
-  $('#checkList').innerHTML = j.checks.map((c, i) => {
-    const n = c.students;
-    const L = c.levels || { green: 0, amber: 0, red: 0 };
+  $('#checkList').innerHTML = checks.map((c, i) => {
+    const snap = c.snapshot || [];
+    const n = snap.length;
+    const L = levelsOf(snap);
     const w = (v) => (n ? (v / n) * 100 : 0);
     const bar = n
       ? `<div class="cbar">
@@ -279,11 +273,7 @@ async function loadChecks() {
   }).join('');
 
   document.querySelectorAll('.checkcard').forEach(card => {
-    card.addEventListener('click', () => {
-      document.querySelectorAll('.checkcard').forEach(r => r.classList.remove('on'));
-      card.classList.add('on');
-      startResults(card.dataset.id);
-    });
+    card.addEventListener('click', () => openCheck(card.dataset.id));
   });
   document.querySelectorAll('.cq').forEach(btn => btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -294,43 +284,60 @@ async function loadChecks() {
   }));
 }
 
-let resultFilter = 'all';
-
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(loadLive, 12000);
 }
 
-function startResults(id) {
+function openCheck(id) {
+  if (!activeClass) return;
+  const ch = activeClass.checks.find(x => x.id === id);
+  if (!ch) return;
   activeCheckId = id;
   resultFilter = 'all';
-  loadResults();
-  stopPolling();
-  pollTimer = setInterval(loadResults, 12000);
+  renderChecks();
+
+  const isLatest = activeClass.checks[0] && activeClass.checks[0].id === id;
+  if (isLatest && activeClass.code && activeClass.key) {
+    startPolling();
+    loadLive();
+  } else {
+    stopPolling();
+    drawResults(ch, ch.snapshot || [], false);
+  }
 }
 
-async function loadResults() {
-  if (!activeCheckId) return;
-  let j;
-  try { j = await api('/api/session?id=' + encodeURIComponent(activeCheckId)); }
-  catch (e) { $('#results').innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; return; }
+async function loadLive() {
+  if (!activeClass || !activeClass.code) return;
+  const ch = activeClass.checks.find(x => x.id === activeCheckId);
+  if (!ch) return;
+  try {
+    const j = await api('/api/results?code=' + encodeURIComponent(activeClass.code) + '&key=' + encodeURIComponent(activeClass.key));
+    ch.snapshot = j.students || [];
+    ch.questions = j.questions || ch.questions;
+    writeLocal();
+    drawResults(ch, ch.snapshot, true);
+    renderChecks();
+  } catch (e) {
+    if (!ch.snapshot || !ch.snapshot.length) {
+      $('#results').innerHTML = `<div class="card"><h3>${esc(ch.topic)}</h3><p class="muted">${esc(e.message)}</p></div>`;
+    } else {
+      drawResults(ch, ch.snapshot, false);
+    }
+  }
+}
 
-  const s = j.check;
-  const students = s.students || [];
-
+function drawResults(ch, students, live) {
   if (!students.length) {
     $('#results').innerHTML =
-      `<div class="card"><h3>${esc(s.topic)}</h3>
-        <p class="muted">Nobody has finished yet. Give the class the code <b>${esc(j.classCode || '')}</b> and leave this open — it updates by itself.</p>
+      `<div class="card"><h3>${esc(ch.topic)}</h3>
+        <p class="muted">Nobody has finished yet. Give the class the code <b>${esc(activeClass.code)}</b> and leave this page open — it updates by itself.</p>
       </div>`;
     return;
   }
 
-  const counts = { green: 0, amber: 0, red: 0 };
-  students.forEach(st => {
-    const l = (st.verdict && st.verdict.level) || 'amber';
-    counts[l] = (counts[l] || 0) + 1;
-  });
-
+  const L = levelsOf(students);
   const order = { red: 0, amber: 1, green: 2 };
   const shown = students
     .filter(st => resultFilter === 'all' || ((st.verdict && st.verdict.level) || 'amber') !== 'green')
@@ -361,17 +368,18 @@ async function loadResults() {
     </div>`;
   }).join('');
 
-  const needHelp = counts.amber + counts.red;
+  const needHelp = L.amber + L.red;
 
   $('#results').innerHTML =
     `<div class="card">
-       <div class="srow"><h3>${esc(s.topic)}</h3><span class="small">updates live</span></div>
+       <div class="srow"><h3>${esc(ch.topic)}</h3><span class="small">${live ? 'updates live' : 'last looked ' + esc(when(ch.createdAt))}</span></div>
        <div class="stat-row">
-         <div class="stat green" data-tip="Really understands it."><b>${counts.green}</b><span>get it</span></div>
-         <div class="stat amber" data-tip="Partly knows it, with clear gaps."><b>${counts.amber}</b><span>shaky</span></div>
-         <div class="stat red" data-tip="Got little right — needs help."><b>${counts.red}</b><span>struggling</span></div>
+         <div class="stat green" data-tip="Really understands it."><b>${L.green}</b><span>get it</span></div>
+         <div class="stat amber" data-tip="Partly knows it, with clear gaps."><b>${L.amber}</b><span>shaky</span></div>
+         <div class="stat red" data-tip="Got little right — needs help."><b>${L.red}</b><span>struggling</span></div>
        </div>
        <p class="summary"><b>${students.length}</b> finished · <b>${needHelp}</b> need${needHelp === 1 ? 's' : ''} a hand</p>
+       ${live ? '' : '<p class="muted">Saved copy from when you last looked at it.</p>'}
        <div class="filters">
          <button data-f="all" class="${resultFilter === 'all' ? 'on' : ''}">Everyone (${students.length})</button>
          <button data-f="help" class="${resultFilter === 'help' ? 'on' : ''}">Needs help (${needHelp})</button>
@@ -381,9 +389,11 @@ async function loadResults() {
 
   document.querySelectorAll('.filters button').forEach(b => b.addEventListener('click', () => {
     resultFilter = b.dataset.f;
-    loadResults();
+    drawResults(ch, students, live);
   }));
 }
+
+renderClasses();
 
 // =================================================================== STUDENT
 let chat = { history: [], covered: 0, digs: 0, topic: '', questions: [], done: false, name: '', code: '' };
@@ -410,6 +420,7 @@ $('#btnJoin').addEventListener('click', async () => {
     if (stick) stick.classList.remove('hidden');
     $('#checkTopic').textContent = j.check.topic;
     $('#chat').innerHTML = '';
+    $('#progress').textContent = '';
     updateProgress();
     await nextTurn();
   } catch (e) {
@@ -501,9 +512,8 @@ async function finish() {
 }
 
 // ------------------------------------------------------------------- startup
-(async () => {
-  const params = new URLSearchParams(location.search);
-  const join = params.get('join');
+(function () {
+  const join = new URLSearchParams(location.search).get('join');
   if (join) {
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
     $('#tab-student').classList.add('active');
@@ -512,5 +522,4 @@ async function finish() {
     $('#joinCode').value = join.trim().toLowerCase();
     setTimeout(() => $('#studentName').focus(), 100);
   }
-  try { await loadMe(); } catch {}
 })();
