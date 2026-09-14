@@ -1,0 +1,10 @@
+{
+  "name": "understanding-check",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prove a person really learned something, when AI can fake the work.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "brainModel": "google/gemini-2.5-flash-lite",
+  "verdictModel": "google/gemini-2.5-flash",
+  "maxQuestions": 5,
+  "port": 4590,
+  "appTitle": "Understanding Check"
+}
