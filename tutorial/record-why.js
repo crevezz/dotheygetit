@@ -40,7 +40,9 @@ async function main() {
   T0 = Date.now();
   mark('start');
 
-  const cap = (t, hold = 2600) => page.evaluate(x => window.__cap(x), t).then(() => page.waitForTimeout(hold));
+  const CAPTIONS = process.env.CAPTIONS !== '0';
+  const cap = (t, hold = 2600) =>
+    (CAPTIONS ? page.evaluate(x => window.__cap(x), t) : Promise.resolve()).then(() => page.waitForTimeout(hold));
   const clearCap = () => page.evaluate(() => window.__cap(''));
 
   await page.goto(URL, { waitUntil: 'load', timeout: 45000 });

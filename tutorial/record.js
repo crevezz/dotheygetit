@@ -131,8 +131,12 @@ function OVERLAY() {
 }
 
 /* --------------------------------------------------------------- page helpers */
+/* CAPTIONS=0 records with no on-screen captions. The hold time is still spent
+   on the scene, so chapter lengths (and therefore the voiceover sync set up in
+   build.js) are unchanged. */
+const CAPTIONS = process.env.CAPTIONS !== '0';
 async function caption(page, text, hold = 1700) {
-  await page.evaluate(t => window.__cap(t), text);
+  if (CAPTIONS) await page.evaluate(t => window.__cap(t), text);
   await page.waitForTimeout(hold);
 }
 async function clearCaption(page) { await page.evaluate(() => window.__cap('')); }
@@ -301,13 +305,17 @@ async function main() {
       return { hasCursor: !!c, hasCaption: !!p, curLeft: c && c.style.left, curTop: c && c.style.top };
     });
     console.log('  Overlay check    :', JSON.stringify(ov));
-    const capOk = await page.evaluate(() => {
-      window.__cap('overlay test');
-      const p = document.getElementById('__cap');
-      return p.classList.contains('on') && p.textContent === 'overlay test';
-    });
-    console.log('  Caption check    :', capOk);
-    await clearCaption(page);
+    if (CAPTIONS) {
+      const capOk = await page.evaluate(() => {
+        window.__cap('overlay test');
+        const p = document.getElementById('__cap');
+        return p.classList.contains('on') && p.textContent === 'overlay test';
+      });
+      console.log('  Caption check    :', capOk);
+      await clearCaption(page);
+    } else {
+      console.log('  Captions         : off (CAPTIONS=0)');
+    }
     await page.mouse.move(640, 400, { steps: 8 });
     await sleep(400);
 
