@@ -417,8 +417,35 @@ async function loadAdmin() {
            <div class="stat"><b>${t.checks}</b><span>checks</span></div>
            <div class="stat"><b>${t.students}</b><span>answers</span></div>
          </div>
+         <div class="btnrow">
+           <button id="btnSelftest" class="primary" data-tip="Sends one test question to the AI to check it is still working.">Test the AI</button>
+           <button id="btnErrors" class="ghost" data-tip="Show the last 20 things that went wrong.">Check for errors</button>
+         </div>
+         <p class="msg" id="healthMsg"></p>
+         <div id="errorList"></div>
          ${rows || '<p class="muted">Nobody has signed up yet.</p>'}
        </div>`;
+
+    $('#btnSelftest').addEventListener('click', async () => {
+      setMsg($('#healthMsg'), 'Asking the AI...');
+      try {
+        const r = await post('/api/admin/selftest');
+        if (r.ok) setMsg($('#healthMsg'), `AI working · ${r.model} · replied "${r.reply}" in ${(r.ms / 1000).toFixed(1)}s`, true);
+        else setMsg($('#healthMsg'), `AI NOT WORKING — ${r.error}`);
+      } catch (e) { setMsg($('#healthMsg'), e.message); }
+    });
+
+    $('#btnErrors').addEventListener('click', async () => {
+      setMsg($('#healthMsg'), '');
+      try {
+        const r = await api('/api/admin/errors');
+        const up = r.uptimeSec < 90 ? r.uptimeSec + 's' : Math.round(r.uptimeSec / 60) + ' min';
+        const head = `<p class="muted">Up ${esc(up)} · storage: <b>${esc(r.storage)}</b>${r.storage === 'file' ? ' (data will be lost on restart!)' : ''}</p>`;
+        $('#errorList').innerHTML = head + (r.errors.length
+          ? r.errors.map(x => `<div class="sresult lv-red"><div class="head"><span class="name">${esc(when(x.at))}</span><span class="tag">${esc(x.where)}</span></div><div class="notes">${esc(x.message)}</div></div>`).join('')
+          : '<p class="muted">No errors. </p>');
+      } catch (e) { setMsg($('#healthMsg'), e.message); }
+    });
   } catch (e) {
     $('#adminWrap').innerHTML = '';
   }

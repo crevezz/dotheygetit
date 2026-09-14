@@ -24,6 +24,25 @@ function readKey() {
 const API_KEY = readKey();
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'craigokelly121@hotmail.com').toLowerCase();
 
+// ---- a small error log so the owner can see what actually broke
+const ERROR_LOG = [];
+function logError(where, message) {
+  ERROR_LOG.unshift({
+    at: Date.now(),
+    where: String(where || '').slice(0, 120),
+    message: String(message || '').slice(0, 300)
+  });
+  if (ERROR_LOG.length > 20) ERROR_LOG.length = 20;
+}
+process.on('uncaughtException', (e) => {
+  console.error('uncaught', e);
+  logError('(uncaught)', e && e.message);
+});
+process.on('unhandledRejection', (e) => {
+  console.error('unhandled', e);
+  logError('(promise)', (e && e.message) || String(e));
+});
+
 // -------------------------------------------------------------------- store
 let store = { teachers: [], classes: [], sessions: [], tokens: {} };
 let redis = null;
@@ -437,6 +456,40 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- owner view: every teacher, class and check on the system
+    // ---- owner: is the AI actually working right now?
+    if (p === '/api/admin/selftest' && req.method === 'POST') {
+      const me = currentTeacher(req);
+      if (!me) return sendErr(res, 'Not signed in.', 401);
+      if (me.role !== 'admin') return sendErr(res, 'Not allowed.', 403);
+      const started = Date.now();
+      try {
+        const reply = await llm([
+          { role: 'system', content: 'Reply with exactly: OK' },
+          { role: 'user', content: 'ping' }
+        ], { max_tokens: 5 });
+        return sendJson(res, {
+          ok: true, model: cfg.model, ms: Date.now() - started,
+          reply: String(reply || '').trim().slice(0, 40) || '(empty)'
+        });
+      } catch (e) {
+        logError('/api/admin/selftest', e.message);
+        return sendJson(res, { ok: false, model: cfg.model, ms: Date.now() - started, error: e.message });
+      }
+    }
+
+    // ---- owner: what has been breaking?
+    if (p === '/api/admin/errors' && req.method === 'GET') {
+      const me = currentTeacher(req);
+      if (!me) return sendErr(res, 'Not signed in.', 401);
+      if (me.role !== 'admin') return sendErr(res, 'Not allowed.', 403);
+      return sendJson(res, {
+        errors: ERROR_LOG,
+        uptimeSec: Math.round(process.uptime()),
+        storage: process.env.REDIS_URL ? 'redis' : 'file',
+        startedAt: Date.now() - Math.round(process.uptime() * 1000)
+      });
+    }
+
     if (p === '/api/admin/overview' && req.method === 'GET') {
       const me = currentTeacher(req);
       if (!me) return sendErr(res, 'Not signed in.', 401);
@@ -514,6 +567,7 @@ const server = http.createServer(async (req, res) => {
 
     return sendErr(res, 'Unknown endpoint.', 404);
   } catch (e) {
+    logError(req.url, e.message || 'Server error');
     return sendErr(res, e.message || 'Server error', 500);
   }
 });
