@@ -173,8 +173,11 @@ async function openClass(id) {
   setMsg($('#checkMsg'), '');
   generated = [];
   $('#liveBar').classList.add('hidden');
+  $('#rosterEdit').classList.add('hidden');
+  $('#rosterMsg').textContent = '';
   renderClasses();
   await loadChecks();
+  await loadRoster();
 }
 
 $('#btnCopyCode').addEventListener('click', () => {
@@ -188,6 +191,63 @@ $('#btnCopyLink').addEventListener('click', () => {
 $('#btnOpenStudent').addEventListener('click', () => {
   if (activeClass && activeClass.code) window.open(location.origin + '/?join=' + activeClass.code, '_blank');
 });
+
+// ------------------------------------------------------------- class list
+$('#btnRosterEdit').addEventListener('click', () => {
+  const box = $('#rosterEdit');
+  box.classList.toggle('hidden');
+  $('#btnRosterEdit').textContent = box.classList.contains('hidden') ? 'Edit list' : 'Cancel';
+  if (!box.classList.contains('hidden')) $('#rosterText').focus();
+});
+
+$('#btnRosterSave').addEventListener('click', async () => {
+  if (!activeClass) return;
+  setMsg($('#rosterMsg'), 'Saving...');
+  try {
+    const j = await post('/api/roster', { classId: activeClass.id, names: $('#rosterText').value });
+    setMsg($('#rosterMsg'), j.roster.length + ' names saved.', true);
+    $('#rosterEdit').classList.add('hidden');
+    $('#btnRosterEdit').textContent = 'Edit list';
+    await loadRoster();
+  } catch (e) { setMsg($('#rosterMsg'), e.message); }
+});
+
+async function loadRoster() {
+  if (!activeClass) return;
+  try {
+    const j = await api('/api/pupils?classId=' + encodeURIComponent(activeClass.id));
+    renderRoster(j);
+  } catch { renderRoster({ roster: [], pupils: [] }); }
+}
+
+function renderRoster(j) {
+  const roster = j.roster || [];
+  const pups = j.pupils || [];
+  const byName = {};
+  pups.forEach(p => { byName[String(p.name).trim().toLowerCase()] = p; });
+
+  const listed = roster.map(n => ({ name: n, results: (byName[n.toLowerCase()] || {}).results || [] }));
+  const extra = pups.filter(p => !roster.some(n => n.toLowerCase() === String(p.name).trim().toLowerCase()))
+                    .map(p => ({ name: p.name + ' (not on your list)', results: p.results }));
+
+  const all = listed.concat(extra);
+  $('#rosterText').value = roster.join('\n');
+
+  if (!all.length) {
+    $('#rosterView').innerHTML = 'No names yet. Paste your class list and pupils stop typing their own names.';
+    return;
+  }
+
+  const dots = (results) => results.slice(-8).map(r =>
+    `<i class="dot2 lv-${esc(r.level)}" data-tip="${esc(r.topic + ' — ' + when(r.at))}"></i>`).join('');
+
+  $('#rosterView').innerHTML =
+    `<div class="clegend"><b>${listed.length}</b> on your list${extra.length ? ' · <b>' + extra.length + '</b> not on it' : ''} &nbsp;·&nbsp; ${j.checks} check${j.checks === 1 ? '' : 's'}</div>` +
+    all.map(p => `<div class="prow">
+        <span class="pname">${esc(p.name)}</span>
+        <span class="pdots">${p.results.length ? dots(p.results) : '<span class="muted">no answers yet</span>'}</span>
+      </div>`).join('');
+}
 
 // --------------------------------------------------------- generate questions
 $('#btnGenerate').addEventListener('click', async () => {
@@ -457,15 +517,76 @@ boot();
 let chat = { history: [], covered: 0, digs: 0, topic: '', questions: [], done: false, name: '', code: '' };
 let sending = false;
 
+let joinCache = null;
+
+function renderNamePicker(names) {
+  const area = $('#nameArea');
+  if (!names || !names.length) {
+    area.innerHTML = '<label>Your name</label><input id="studentName" placeholder="e.g. Amira K" autocomplete="off" data-tip="So your teacher knows it is you."/>';
+    return;
+  }
+  area.innerHTML =
+    '<label>Your name</label>' +
+    '<select id="studentName">' +
+    '<option value="">Pick your name...</option>' +
+    names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') +
+    '<option value="__other">My name is not here</option>' +
+    '</select>' +
+    '<input id="otherName" class="hidden" placeholder="Type your full name" style="margin-top:8px"/>';
+  $('#studentName').addEventListener('change', () => {
+    const other = $('#otherName');
+    if ($('#studentName').value === '__other') { other.classList.remove('hidden'); other.focus(); }
+    else other.classList.add('hidden');
+  });
+}
+
+function pickedName() {
+  const el = document.getElementById('studentName');
+  if (el && el.tagName === 'SELECT') {
+    if (el.value === '__other') return ($('#otherName').value || '').trim();
+    return el.value;
+  }
+  return (el && el.value ? el.value : '').trim();
+}
+
+$('#joinCode').addEventListener('input', () => { joinCache = null; });
+
 $('#btnJoin').addEventListener('click', async () => {
   setMsg($('#joinMsg'), '');
   const code = $('#joinCode').value.trim().toLowerCase();
-  const name = $('#studentName').value.trim();
   if (!code) return setMsg($('#joinMsg'), 'Enter the class code.');
-  if (!name) return setMsg($('#joinMsg'), 'Enter your name.');
+
+  const el = document.getElementById('studentName');
+  const hasPicker = !!(el && el.tagName === 'SELECT');
+
+  // First press: look the class up, and if the teacher pasted a list, show it.
+  if (!hasPicker && !(joinCache && joinCache.code === code)) {
+    $('#btnJoin').disabled = true;
+    try {
+      const j = await api('/api/join?code=' + encodeURIComponent(code));
+      joinCache = { code, data: j };
+      if ((j.names || []).length) {
+        renderNamePicker(j.names);
+        setMsg($('#joinMsg'), 'Now pick your name, then press Start.', true);
+        $('#btnJoin').disabled = false;
+        return;
+      }
+    } catch (e) {
+      setMsg($('#joinMsg'), e.message);
+      $('#btnJoin').disabled = false;
+      return;
+    }
+    $('#btnJoin').disabled = false;
+  }
+
+  const name = pickedName();
+  if (!name) return setMsg($('#joinMsg'), hasPicker ? 'Pick your name from the list.' : 'Enter your name.');
+
   $('#btnJoin').disabled = true;
   try {
-    const j = await api('/api/join?code=' + encodeURIComponent(code));
+    let j = (joinCache && joinCache.code === code) ? joinCache.data : null;
+    if (!j) j = await api('/api/join?code=' + encodeURIComponent(code));
+    joinCache = null;
     chat = {
       history: [], covered: 0, digs: 0,
       topic: j.check.topic,

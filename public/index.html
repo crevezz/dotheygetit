@@ -75,11 +75,26 @@
           </div>
         </div>
 
+        <div class="roster">
+          <div class="srow">
+            <span class="label">Your class list</span>
+            <button class="small-btn" id="btnRosterEdit" data-tip="Paste your class list so pupils pick their name instead of typing it.">Edit list</button>
+          </div>
+          <div id="rosterView" class="clegend">No names yet. Paste your class list and pupils stop typing their own names.</div>
+          <div id="rosterEdit" class="hidden">
+            <textarea id="rosterText" rows="6" placeholder="Paste one name per line, straight from SIMS or your register"></textarea>
+            <div class="btnrow">
+              <button id="btnRosterSave" class="primary" data-tip="Save the list. It stays on this class all year.">Save list</button>
+            </div>
+            <p class="msg" id="rosterMsg"></p>
+          </div>
+        </div>
+
         <hr/>
 
         <h3>New check</h3>
         <span class="label">What did you teach?</span>
-        <input id="topic" placeholder="e.g. comparing fractions" data-tip="Type what you taught. Keep it short — the AI turns it into questions."/>
+        <input id="topic" placeholder="e.g. comparing fractions" data-tip="Type what you taught. Keep it short - the AI turns it into questions."/>
         <div class="btnrow">
           <button id="btnGenerate" class="primary" data-tip="The AI writes a few questions. Edit or delete any you don't like.">1. Generate questions</button>
           <button id="btnCreateCheck" class="hidden" data-tip="Makes this check live. Students who join now get these exact questions.">2. Create check</button>
@@ -113,9 +128,11 @@
       <p class="muted">Your teacher will give you a code. No account, no login.</p>
       <label>Class code</label>
       <input id="joinCode" placeholder="e.g. k7pm2q" autocapitalize="off" autocomplete="off" data-tip="Ask your teacher for this."/>
-      <label>Your name</label>
-      <input id="studentName" placeholder="e.g. Amira K" autocomplete="off" data-tip="So your teacher knows it's you."/>
-      <button id="btnJoin" class="primary wide" data-tip="No right or wrong answers — just explain it in your own words.">Start</button>
+      <div id="nameArea">
+        <label>Your name</label>
+        <input id="studentName" placeholder="e.g. Amira K" autocomplete="off" data-tip="So your teacher knows it's you."/>
+      </div>
+      <button id="btnJoin" class="primary wide" data-tip="No right or wrong answers - just explain it in your own words.">Start</button>
       <p class="msg" id="joinMsg"></p>
     </div>
 

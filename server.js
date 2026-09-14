@@ -327,8 +327,55 @@ const server = http.createServer(async (req, res) => {
       const s = latestSessionForClass(c.id);
       if (!s) return sendErr(res, 'No check is ready for this class yet.');
       const names = [];
+      (c.roster || []).forEach(n => { if (!names.includes(n)) names.push(n); });
       s.students.forEach(st => { if (!names.includes(st.name)) names.push(st.name); });
       return sendJson(res, { className: c.name, check: { id: s.id, topic: s.topic, questions: s.questions || [] }, names });
+    }
+
+    // ---- the class list: pupils pick their name instead of typing it
+    if (p === '/api/roster' && req.method === 'POST') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Not logged in.', 401);
+      const b = await readBody(req);
+      const c = store.classes.find(x => x.id === b.classId && x.teacherId === t.id);
+      if (!c) return sendErr(res, 'Class not found.');
+      const raw = Array.isArray(b.names) ? b.names : String(b.names || '').split(/[\n,;]+/);
+      const seen = new Set();
+      const names = [];
+      raw.forEach(n => {
+        const s = String(n || '').replace(/\s+/g, ' ').trim();
+        if (!s || s.length > 60) return;
+        const k = s.toLowerCase();
+        if (seen.has(k)) return;
+        seen.add(k);
+        names.push(s);
+      });
+      c.roster = names;
+      saveStore();
+      return sendJson(res, { roster: names });
+    }
+
+    // ---- how each pupil has done across every check in this class
+    if (p === '/api/pupils' && req.method === 'GET') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Not logged in.', 401);
+      const classId = url.searchParams.get('classId');
+      const c = store.classes.find(x => x.id === classId && x.teacherId === t.id);
+      if (!c) return sendErr(res, 'Class not found.');
+      const checks = store.sessions.filter(s => s.classId === classId).sort((a, b) => a.createdAt - b.createdAt);
+      const map = {};
+      const order = [];
+      checks.forEach(s => (s.students || []).forEach(st => {
+        const k = String(st.name || '').trim().toLowerCase();
+        if (!k) return;
+        if (!map[k]) { map[k] = { name: st.name, results: [] }; order.push(k); }
+        map[k].results.push({ topic: s.topic, at: s.createdAt, level: (st.verdict && st.verdict.level) || 'amber' });
+      }));
+      return sendJson(res, {
+        roster: c.roster || [],
+        checks: checks.length,
+        pupils: order.map(k => map[k])
+      });
     }
 
     // ---- checks (sessions)
