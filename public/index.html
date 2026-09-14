@@ -3,31 +3,40 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Understanding Check</title>
+<title>Get It? — Do they get it?</title>
+<meta name="description" content="Find out who really understood your lesson — while you can still do something about it."/>
 <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
 
 <header>
-  <h1>Understanding <span>Check</span></h1>
-  <nav>
-    <button id="tab-teacher" class="tab active" data-tip="For teachers: make checks and see results.">Teacher</button>
-    <button id="tab-student" class="tab" data-tip="For students: enter your class code and answer the questions.">Student</button>
-  </nav>
+  <div class="wrap hrow">
+    <div class="brand">
+      <span class="mark">✓</span>
+      <span>Get It?<small>Do they get it?</small></span>
+    </div>
+    <nav>
+      <button id="tab-teacher" class="tab active" data-tip="For teachers: make a check and see who got it.">Teacher</button>
+      <button id="tab-student" class="tab" data-tip="For students: enter your class code and answer the questions.">Student</button>
+    </nav>
+  </div>
 </header>
 
-<main>
+<main class="wrap">
 
   <!-- ============================ TEACHER ============================ -->
   <section id="view-teacher">
 
-    <div class="card" id="authCard">
-      <h3>Teacher sign in</h3>
-      <div class="row"><input id="authEmail" placeholder="Email" type="email" autocomplete="email"/></div>
-      <div class="row"><input id="authPass" placeholder="Password" type="password" autocomplete="current-password"/></div>
-      <div class="row">
+    <div class="card narrow" id="authCard">
+      <h2>Teacher sign in</h2>
+      <p class="muted">Make a check, get a code, hand it to your class.</p>
+      <label>Email</label>
+      <input id="authEmail" type="email" placeholder="you@school.sch.uk" autocomplete="email"/>
+      <label>Password</label>
+      <input id="authPass" type="password" placeholder="At least 6 characters" autocomplete="current-password"/>
+      <div class="btnrow">
         <button id="btnLogin" class="primary" data-tip="Log in to your existing account.">Log in</button>
-        <button id="btnSignup" data-tip="First time here? Create an account with your email.">Create account</button>
+        <button id="btnSignup" class="ghost" data-tip="First time here? This makes your account.">Create account</button>
       </div>
       <p class="msg" id="authMsg"></p>
     </div>
@@ -36,37 +45,54 @@
 
       <div class="card">
         <div class="srow">
-          <h3 style="margin:0;">Your classes</h3>
+          <h3>Your classes</h3>
           <button id="btnLogout" class="small-btn" data-tip="Sign out of your account.">Log out</button>
         </div>
         <div id="classList"></div>
         <div class="row">
           <input id="newClassName" placeholder="New class name, e.g. Year 8 Maths"/>
-          <button id="btnAddClass" class="primary" data-tip="Creates a class with its own permanent join code. Reuse it all year.">Add class</button>
+          <button id="btnAddClass" class="primary" data-tip="Makes a class with its own permanent join code. Reuse it all year.">Add class</button>
         </div>
         <p class="msg" id="classMsg"></p>
       </div>
 
       <div class="card hidden" id="classPanel">
-        <h3 id="classTitle"></h3>
+        <div class="srow">
+          <h3 id="classTitle"></h3>
+          <button class="small-btn" id="btnCloseClass" data-tip="Hide this class.">Close</button>
+        </div>
 
-        <p class="muted">Students join with this code:</p>
-        <div class="join-code" data-tip="Students type this code on the Student tab. It stays the same all year — just make a new check each lesson."><span id="classCode"></span></div>
-        <p class="muted" style="text-align:center; margin-top:0;">Anyone goes to the Student tab and types this.</p>
+        <div class="codebox">
+          <div class="codeleft">
+            <span class="label">Students join with</span>
+            <div class="join-code" data-tip="Students type this code on the Student tab. It stays the same all year."><span id="classCode"></span></div>
+          </div>
+          <div class="coderight">
+            <button class="small-btn" id="btnCopyCode" data-tip="Copy the code.">Copy code</button>
+            <button class="small-btn" id="btnCopyLink" data-tip="Copy a link that fills the code in for them.">Copy link</button>
+          </div>
+        </div>
 
         <hr/>
+
         <h3>New check</h3>
-        <span class="label">Topic</span>
-        <div class="row"><input id="topic" placeholder="e.g. comparing fractions" data-tip="Type what you taught. Keep it short and simple — the AI turns it into questions."/></div>
-        <div class="row">
-          <button id="btnGenerate" class="primary" data-tip="The AI writes a few questions. You can edit or delete any of them.">1. Generate questions</button>
-          <button id="btnCreateCheck" class="hidden" data-tip="Makes this check live. Students who join now will get these exact questions.">2. Create check</button>
+        <span class="label">What did you teach?</span>
+        <input id="topic" placeholder="e.g. comparing fractions" data-tip="Type what you taught. Keep it short — the AI turns it into questions."/>
+        <div class="btnrow">
+          <button id="btnGenerate" class="primary" data-tip="The AI writes a few questions. Edit or delete any you don't like.">1. Generate questions</button>
+          <button id="btnCreateCheck" class="hidden" data-tip="Makes this check live. Students who join now get these exact questions.">2. Create check</button>
         </div>
         <div id="qwrap" class="hidden">
           <div id="qlist"></div>
           <button id="btnAddQ" class="small-btn" data-tip="Add a question of your own.">+ Add question</button>
         </div>
         <p class="msg" id="checkMsg"></p>
+
+        <div class="livebar hidden" id="liveBar">
+          <span class="dot"></span>
+          <span id="liveText">Check is live</span>
+          <button class="small-btn" id="btnOpenStudent" data-tip="Open the student view in a new tab.">Open student view</button>
+        </div>
 
         <hr/>
         <h3>Past checks</h3>
@@ -80,26 +106,41 @@
   <!-- ============================ STUDENT ============================ -->
   <section id="view-student" class="hidden">
 
-    <div class="card" id="joinCard">
-      <h3>Join a check</h3>
-      <div class="row"><input id="joinCode" placeholder="Class code" autocapitalize="off" autocomplete="off" data-tip="Ask your teacher for the class code."/></div>
-      <div class="row"><input id="studentName" placeholder="Your name" autocomplete="off" data-tip="Type your name so your teacher knows it's you."/></div>
-      <button id="btnJoin" class="primary" data-tip="Start the check. There are no right or wrong answers to type — just explain what you know.">Start</button>
+    <div class="card narrow" id="joinCard">
+      <h2>Join a check</h2>
+      <p class="muted">Your teacher will give you a code. No account, no login.</p>
+      <label>Class code</label>
+      <input id="joinCode" placeholder="e.g. k7pm2q" autocapitalize="off" autocomplete="off" data-tip="Ask your teacher for this."/>
+      <label>Your name</label>
+      <input id="studentName" placeholder="e.g. Amira K" autocomplete="off" data-tip="So your teacher knows it's you."/>
+      <button id="btnJoin" class="primary wide" data-tip="No right or wrong answers — just explain it in your own words.">Start</button>
       <p class="msg" id="joinMsg"></p>
     </div>
 
     <div class="card hidden" id="checkCard">
-      <h3 id="checkTopic"></h3>
-      <div id="chat"></div>
-      <div class="row">
-        <input id="answer" placeholder="Type your answer..." autocomplete="off"/>
-        <button id="btnSend" class="primary" data-tip="Send your answer (or press Enter).">Send</button>
+      <div class="srow">
+        <h3 id="checkTopic"></h3>
+        <span class="progress" id="progress"></span>
       </div>
+      <div id="chat"></div>
+      <div class="row stick">
+        <input id="answer" placeholder="Type your answer..." autocomplete="off" autofocus/>
+        <button id="btnSend" class="primary" data-tip="Send (or press Enter).">Send</button>
+      </div>
+      <p class="msg" id="chatMsg"></p>
+    </div>
+
+    <div class="card hidden done-card" id="doneCard">
+      <div class="bigmark">✓</div>
+      <h2>All done — thanks!</h2>
+      <p class="muted">Your teacher has your answers. You can close this now.</p>
     </div>
 
   </section>
 
 </main>
+
+<div id="toast"></div>
 
 <script src="app.js"></script>
 </body>

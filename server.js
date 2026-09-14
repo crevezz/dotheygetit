@@ -415,7 +415,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(cfg.port, () => {
   console.log('');
-  console.log('  Understanding Check is running');
+  console.log('  Get It? is running');
   console.log('  ->  http://localhost:' + cfg.port);
   console.log('  Key loaded: ' + (API_KEY ? 'yes' : 'NO - add key.txt and restart'));
   console.log('');

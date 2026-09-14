@@ -481,7 +481,7 @@ footer .brand{justify-content:center;margin-bottom:12px}
     <div class="whylist" style="margin:0 auto;">
       <div class="why rv"><span class="tick">✓</span><p><b>There's no answer to copy.</b> No essay to lift, nothing to paste — they have to explain it themselves.</p></div>
       <div class="why rv"><span class="tick">✓</span><p><b>There's nothing to guess.</b> No A-B-C-D, no lucky 1-in-4. And if they waffle, it digs until the truth shows.</p></div>
-      <div class="why rv"><span class="tick">✓</span><p><b>Kids can't tell you what they're stuck on.</b> So we don't ask. It finds the gap — and tells you what to do about it.</p></div>
+      <div class="why rv"><span class="tick">✓</span><p><b>Kids can't tell you what they're stuck on.</b> So we don't ask. It finds the gap — so you know exactly where they're stuck.</p></div>
     </div>
   </div>
 </section>
@@ -605,16 +605,16 @@ footer .brand{justify-content:center;margin-bottom:12px}
   <div class="box">
     <button class="close" onclick="closeSignup()" aria-label="Close">&times;</button>
     <div class="form">
-      <h3>Get early access</h3>
-      <p>We're opening Get It? to a small group of teachers first. Leave your school email and we'll set you up.</p>
+      <h3>Get a school quote</h3>
+      <p>Tell us roughly how many teachers. We'll send a price for your school — that's it.</p>
       <input id="suEmail" type="email" placeholder="you@school.sch.uk" />
-      <button class="btn primary" onclick="submitSignup()">Request access</button>
-      <p class="fine">No spam. One email when it's your turn.</p>
+      <button class="btn primary" onclick="submitSignup()">Request a quote</button>
+      <p class="fine">No spam. One email with your price.</p>
     </div>
     <div class="done">
       <div class="big">🎉</div>
-      <h3>You're on the list</h3>
-      <p>We'll be in touch shortly to get you started.</p>
+      <h3>Thanks — got it</h3>
+      <p>We'll email your school a quote shortly.</p>
     </div>
   </div>
 </div>
@@ -638,14 +638,19 @@ function submitSignup(){
     localStorage.setItem('getit_leads', JSON.stringify(a));
   } catch(e) {}
   window.location.href = 'mailto:' + CONTACT_EMAIL +
-    '?subject=' + encodeURIComponent('Get It? - access request') +
-    '&body=' + encodeURIComponent('Please set me up with Get It?.\n\nEmail: ' + email);
+    '?subject=' + encodeURIComponent('Get It? - school quote request') +
+    '&body=' + encodeURIComponent('Please send a quote for our school.\n\nEmail: ' + email);
   document.getElementById('signup').classList.add('sent');
 }
+/* Every "try" button goes straight to the live app. */
+var APP_URL = 'https://app.dotheygetit.app';
+function toApp(){ window.location.href = APP_URL; }
 document.querySelectorAll('button').forEach(function(b){
   var t = (b.textContent || '').trim().toLowerCase();
-  if(['try it free','try it on one class','start free','start 14-day trial','get a quote'].indexOf(t) > -1){
-    b.onclick = openSignup;
+  if(['try it free','try it on one class','start free','start 14-day trial'].indexOf(t) > -1){
+    b.onclick = toApp;
+  } else if(t === 'get a quote'){
+    b.onclick = function(){ openSignup(); };
   }
 });
 document.getElementById('signup').addEventListener('click', function(e){ if(e.target.id === 'signup') closeSignup(); });
