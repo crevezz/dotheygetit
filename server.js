@@ -25,15 +25,48 @@ const API_KEY = readKey();
 
 // -------------------------------------------------------------------- store
 let store = { teachers: [], classes: [], sessions: [], tokens: {} };
-try {
-  const j = JSON.parse(fs.readFileSync(DATA, 'utf8'));
-  store = Object.assign(store, j);
-} catch {}
-if (!Array.isArray(store.teachers)) store.teachers = [];
-if (!Array.isArray(store.classes)) store.classes = [];
-if (!Array.isArray(store.sessions)) store.sessions = [];
-if (!store.tokens) store.tokens = {};
-function saveStore() { fs.writeFileSync(DATA, JSON.stringify(store, null, 2)); }
+let redis = null;
+
+function normalise() {
+  if (!Array.isArray(store.teachers)) store.teachers = [];
+  if (!Array.isArray(store.classes)) store.classes = [];
+  if (!Array.isArray(store.sessions)) store.sessions = [];
+  if (!store.tokens || typeof store.tokens !== 'object') store.tokens = {};
+}
+
+// Storage: Redis when REDIS_URL is set (survives restarts and deploys),
+// otherwise a local file. Free hosting wipes the file, which is why accounts
+// used to vanish.
+async function initStore() {
+  if (process.env.REDIS_URL) {
+    try {
+      const { createClient } = require('redis');
+      redis = createClient({ url: process.env.REDIS_URL });
+      redis.on('error', e => console.error('  redis:', e.message));
+      await redis.connect();
+      const raw = await redis.get('getit:store');
+      if (raw) Object.assign(store, JSON.parse(raw));
+      normalise();
+      console.log('  Storage: Redis — accounts and classes are kept');
+      return;
+    } catch (e) {
+      console.error('  Redis unavailable (' + e.message + ') — using the local file');
+      redis = null;
+    }
+  }
+  try { Object.assign(store, JSON.parse(fs.readFileSync(DATA, 'utf8'))); } catch {}
+  normalise();
+  console.log('  Storage: local file — data is lost when the server restarts');
+}
+
+function saveStore() {
+  if (redis) {
+    redis.set('getit:store', JSON.stringify(store)).catch(e => console.error('  redis save:', e.message));
+    return;
+  }
+  try { fs.writeFileSync(DATA, JSON.stringify(store, null, 2)); } catch {}
+}
+const readyPromise = initStore();
 
 // --------------------------------------------------------------------- auth
 function hashPass(pw, salt) { return crypto.scryptSync(pw, salt, 64).toString('hex'); }
@@ -190,6 +223,7 @@ function latestSessionForClass(classId) {
 
 // -------------------------------------------------------------------- server
 const server = http.createServer(async (req, res) => {
+  await readyPromise;
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
 
