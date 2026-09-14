@@ -13,3 +13,7 @@ tutorial/package.json
 tutorial/package-lock.json
 tutorial/*.log
 tutorial/*.err
+push.out
+push.err
+*.tmp
+
