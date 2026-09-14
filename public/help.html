@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Get It? — how it works, in seven short videos</title>
 <meta name="description" content="Seven short videos: create your account, set up a class, write the questions, how pupils join, read your results, spot the pattern."/>
-<link rel="stylesheet" href="styles.css"/>
+<link rel="stylesheet" href="/styles.css"/>
 <style>
   .hero{padding:34px 0 8px}
   .hero h1{font-size:32px;line-height:1.15;letter-spacing:-.03em;margin:0 0 10px}
@@ -140,7 +140,7 @@ function render() {
 function play(i, autoplay) {
   current = Math.max(0, Math.min(CHAPTERS.length - 1, i));
   const c = CHAPTERS[current];
-  v.src = 'help/' + c.id + '.mp4';
+  v.src = '/help/' + c.id + '.mp4';
   nowTitle.textContent = c.n + '. ' + c.title;
   nowSub.textContent = c.sub;
   document.title = c.title + ' — Get It? help';
@@ -172,7 +172,7 @@ play(start >= 0 ? start : 0, false);
 /* the "watch the lot" link swaps in the single continuous cut */
 document.getElementById('btnAll').addEventListener('click', ev => {
   ev.preventDefault();
-  v.src = 'help/all.mp4';
+  v.src = '/help/all.mp4';
   nowTitle.textContent = 'Get It? — all seven, in order';
   nowSub.textContent = '3 minutes 23 seconds. Includes the title cards.';
   v.play().catch(() => {});
