@@ -17,3 +17,6 @@ push.out
 push.err
 *.tmp
 
+
+# generated brand assets - rebuild with: node brand/make.js
+brand/out/
