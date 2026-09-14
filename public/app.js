@@ -127,13 +127,33 @@ function renderClasses() {
   }
   $('#classList').innerHTML = myClasses.map(c =>
     `<div class="classrow${activeClass && activeClass.id === c.id ? ' on' : ''}" data-id="${esc(c.id)}">
-       <strong>${esc(c.name)}</strong>
-       <span class="small">${c.checks} check${c.checks === 1 ? '' : 's'}${c.code ? ' · code <b>' + esc(c.code) + '</b>' : ''}</span>
+       <span class="crowmain">
+         <strong>${esc(c.name)}</strong>
+         <span class="small">${c.checks} check${c.checks === 1 ? '' : 's'}${c.code ? ' · code <b>' + esc(c.code) + '</b>' : ''}</span>
+       </span>
+       <button class="small-btn cdel" data-del="${esc(c.id)}" data-name="${esc(c.name)}" data-checks="${c.checks}" data-tip="Delete this class, its code and every check in it.">Delete</button>
      </div>`
   ).join('');
   document.querySelectorAll('.classrow').forEach(row => {
     row.addEventListener('click', () => openClass(row.dataset.id));
   });
+  document.querySelectorAll('.cdel').forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const n = btn.dataset.checks;
+    const q = 'Delete "' + btn.dataset.name + '"?\n\nThis also deletes ' + (n === '1' ? 'its 1 check' : 'its ' + n + ' checks') +
+              ' and every answer in them. The join code stops working. This cannot be undone.';
+    if (!confirm(q)) return;
+    try {
+      const j = await post('/api/class/delete', { classId: btn.dataset.del });
+      toast('Deleted' + (j.deletedChecks ? ' — ' + j.deletedChecks + ' check(s) went with it' : ''));
+      if (activeClass && activeClass.id === btn.dataset.del) {
+        stopPolling(); activeClass = null; activeCheckId = null;
+        $('#classPanel').classList.add('hidden');
+        $('#results').innerHTML = '';
+      }
+      await loadClasses();
+    } catch (err) { toast(err.message); }
+  }));
 }
 
 $('#btnAddClass').addEventListener('click', async () => {
@@ -206,6 +226,79 @@ $('#btnQrPrint').addEventListener('click', () => window.print());
 $('#qrWrap').addEventListener('click', (e) => { if (e.target.id === 'qrWrap') $('#qrWrap').classList.add('hidden'); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#qrWrap').classList.add('hidden'); });
 
+/* ---- export the class as a spreadsheet ---- */
+$('#btnExport').addEventListener('click', () => {
+  if (!activeClass) return toast('Pick a class first');
+  location.href = '/api/export?classId=' + encodeURIComponent(activeClass.id);
+});
+
+/* ---- change your own password ---- */
+$('#btnPw').addEventListener('click', () => {
+  const b = $('#pwBox');
+  b.classList.toggle('hidden');
+  if (!b.classList.contains('hidden')) $('#pwCurrent').focus();
+});
+$('#btnPwCancel').addEventListener('click', () => {
+  $('#pwBox').classList.add('hidden');
+  $('#pwCurrent').value = ''; $('#pwNext').value = '';
+  setMsg($('#pwMsg'), '');
+});
+$('#btnPwSave').addEventListener('click', async () => {
+  const current = $('#pwCurrent').value;
+  const next = $('#pwNext').value;
+  if (!current || !next) return setMsg($('#pwMsg'), 'Fill both boxes.');
+  if (next.length < 6) return setMsg($('#pwMsg'), 'Six characters or more.');
+  try {
+    await post('/api/password', { current, next });
+    $('#pwCurrent').value = ''; $('#pwNext').value = '';
+    $('#pwBox').classList.add('hidden');
+    setMsg($('#pwMsg'), '');
+    toast('Password changed');
+  } catch (e) { setMsg($('#pwMsg'), e.message); }
+});
+
+/* ---- one pupil, across every check ---- */
+async function openPupil(name) {
+  if (!activeClass) return;
+  const real = String(name).replace(/ \(not on your list\)$/, '');
+  $('#pupTitle').textContent = real;
+  $('#pupMeta').textContent = 'Loading...';
+  $('#pupBody').innerHTML = '';
+  $('#pupWrap').classList.remove('hidden');
+  try {
+    const j = await api('/api/pupil?classId=' + encodeURIComponent(activeClass.id) + '&name=' + encodeURIComponent(real));
+    const rs = j.results || [];
+    const answered = rs.filter(r => r.verdict).length;
+    $('#pupMeta').textContent = rs.length
+      ? activeClass.name + ' · ' + rs.length + ' check' + (rs.length === 1 ? '' : 's') + ' · ' + answered + ' answered'
+      : 'Nothing yet.';
+    if (!rs.length) {
+      $('#pupBody').innerHTML = '<p class="muted">They have not answered a check in this class yet.</p>';
+      return;
+    }
+    $('#pupBody').innerHTML = rs.map(r => {
+      const v = r.verdict || {};
+      const lv = v.level || 'amber';
+      const bits = [];
+      if (v.gets) bits.push('<div><span class="k">Gets</span>' + esc(v.gets) + '</div>');
+      if (v.shaky) bits.push('<div><span class="k">Shaky</span>' + esc(v.shaky) + '</div>');
+      if (v.nextStep) bits.push('<div class="nextstep"><span class="k">Next</span>' + esc(v.nextStep) + '</div>');
+      const said = r.transcript
+        ? '<details class="said"><summary>What they actually said</summary><pre>' + esc(r.transcript) + '</pre></details>'
+        : '';
+      return '<div class="sresult lv-' + esc(lv) + '">' +
+        '<div class="head"><span class="name">' + esc(r.topic) + '</span>' +
+        '<span class="tag lv-' + esc(lv) + '">' + esc(lv) + '</span></div>' +
+        '<div class="cmeta">' + esc(when(r.at)) + '</div>' +
+        (bits.length ? '<div class="detail">' + bits.join('') + '</div>' : '') +
+        said + '</div>';
+    }).join('');
+  } catch (e) { $('#pupMeta').textContent = e.message; }
+}
+$('#btnPupClose').addEventListener('click', () => $('#pupWrap').classList.add('hidden'));
+$('#pupWrap').addEventListener('click', (e) => { if (e.target.id === 'pupWrap') $('#pupWrap').classList.add('hidden'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#pupWrap').classList.add('hidden'); });
+
 // ------------------------------------------------------------- class list
 $('#btnRosterEdit').addEventListener('click', () => {
   const box = $('#rosterEdit');
@@ -258,9 +351,11 @@ function renderRoster(j) {
   $('#rosterView').innerHTML =
     `<div class="clegend"><b>${listed.length}</b> on your list${extra.length ? ' · <b>' + extra.length + '</b> not on it' : ''} &nbsp;·&nbsp; ${j.checks} check${j.checks === 1 ? '' : 's'}</div>` +
     all.map(p => `<div class="prow">
-        <span class="pname">${esc(p.name)}</span>
+        <button class="pname plink" data-name="${esc(p.name)}" data-tip="See everything this pupil has done.">${esc(p.name)}</button>
         <span class="pdots">${p.results.length ? dots(p.results) : '<span class="muted">no answers yet</span>'}</span>
       </div>`).join('');
+
+  document.querySelectorAll('.plink').forEach(b => b.addEventListener('click', () => openPupil(b.dataset.name)));
 }
 
 // --------------------------------------------------------- generate questions
@@ -368,6 +463,7 @@ function renderChecks() {
           <div class="cmeta">${esc(when(c.createdAt))} &nbsp;·&nbsp; ${n} finished</div>
         </div>
         ${qs ? `<button class="small-btn cq" data-q="${esc(c.id)}">See the questions</button>` : ''}
+        <button class="small-btn ckill" data-kill="${esc(c.id)}" data-topic="${esc(c.topic)}" data-tip="Delete this check and every answer in it.">Delete</button>
       </div>
       ${bar}
       <div class="cqlist hidden" id="cq-${esc(c.id)}"><ol>${qs}</ol></div>
@@ -383,6 +479,17 @@ function renderChecks() {
     if (!box) return;
     box.classList.toggle('hidden');
     btn.textContent = box.classList.contains('hidden') ? 'See the questions' : 'Hide the questions';
+  }));
+  document.querySelectorAll('.ckill').forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm('Delete the check "' + btn.dataset.topic + '"?\n\nEvery answer in it goes too. This cannot be undone.')) return;
+    try {
+      await post('/api/session/delete', { id: btn.dataset.kill });
+      if (activeCheckId === btn.dataset.kill) { activeCheckId = null; $('#results').innerHTML = ''; }
+      toast('Check deleted');
+      await loadChecks();
+      await loadRoster();
+    } catch (err) { toast(err.message); }
   }));
 }
 
@@ -445,6 +552,22 @@ function drawResults(s, students) {
 
   const needHelp = L.amber + L.red;
 
+  /* the point of the whole thing: not colours per child, but one list of who to
+     go back to and what to do with them. Read together, the same gap shows up
+     again and again - which usually means how it was taught, not who was off. */
+  const todo = students
+    .filter(st => ((st.verdict && st.verdict.level) || 'amber') !== 'green')
+    .sort((a, b) => {
+      const la = order[(a.verdict && a.verdict.level) || 'amber'] ?? 3;
+      const lb = order[(b.verdict && b.verdict.level) || 'amber'] ?? 3;
+      if (la !== lb) return la - lb;
+      return String(a.name).localeCompare(String(b.name));
+    })
+    .map(st => {
+      const v = st.verdict || {};
+      return { name: st.name, lv: v.level || 'amber', next: v.nextStep || v.shaky || '' };
+    });
+
   $('#results').innerHTML =
     `<div class="card">
        <div class="srow"><h3>${esc(s.topic || '')}</h3><span class="small">updates by itself</span></div>
@@ -454,6 +577,10 @@ function drawResults(s, students) {
          <div class="stat red" data-tip="Got little right — needs help."><b>${L.red}</b><span>struggling</span></div>
        </div>
        <p class="summary"><b>${students.length}</b> finished · <b>${needHelp}</b> need${needHelp === 1 ? 's' : ''} a hand</p>
+       ${todo.length ? `<div class="tomorrow">
+         <div class="tline"><span class="tk">Tomorrow</span><span class="tv">${todo.length} to go back to — and what to do with them</span></div>
+         <ul>${todo.map(t => `<li><i class="dot2 lv-${esc(t.lv)}"></i><b>${esc(t.name)}</b>${t.next ? '<span class="tnext">' + esc(t.next) + '</span>' : ''}</li>`).join('')}</ul>
+       </div>` : ''}
        <div class="filters">
          <button data-f="all" class="${resultFilter === 'all' ? 'on' : ''}">Everyone (${students.length})</button>
          <button data-f="help" class="${resultFilter === 'help' ? 'on' : ''}">Needs help (${needHelp})</button>

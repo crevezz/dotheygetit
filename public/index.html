@@ -49,8 +49,18 @@
         <div class="srow">
           <h3>Your classes</h3>
           <button id="btnLogout" class="small-btn" data-tip="Sign out of your account.">Log out</button>
+          <button id="btnPw" class="small-btn" data-tip="Change the password on your account.">Change password</button>
         </div>
         <p class="muted" id="whoami"></p>
+        <div id="pwBox" class="hidden">
+          <div class="row">
+            <input id="pwCurrent" type="password" placeholder="Your current password" autocomplete="current-password"/>
+            <input id="pwNext" type="password" placeholder="New password (6+ characters)" autocomplete="new-password"/>
+            <button id="btnPwSave" class="primary">Save</button>
+            <button id="btnPwCancel" class="small-btn">Cancel</button>
+          </div>
+          <p class="msg" id="pwMsg"></p>
+        </div>
         <div id="classList"></div>
         <div class="row">
           <input id="newClassName" placeholder="New class name, e.g. Year 8 Maths"/>
@@ -62,6 +72,7 @@
       <div class="card hidden" id="classPanel">
         <div class="srow">
           <h3 id="classTitle"></h3>
+          <button class="small-btn" id="btnExport" data-tip="Download the whole class as a spreadsheet.">Export results</button>
           <button class="small-btn" id="btnCloseClass" data-tip="Hide this class.">Close</button>
         </div>
 
@@ -171,6 +182,18 @@
       <button class="small-btn" id="btnQrPrint">Print this</button>
       <button class="small-btn" id="btnQrClose">Close</button>
     </div>
+  </div>
+</div>
+
+<!-- one pupil: everything they have ever done in this class -->
+<div id="pupWrap" class="hidden">
+  <div class="pupbox">
+    <div class="srow">
+      <h3 id="pupTitle">Pupil</h3>
+      <button class="small-btn noprint" id="btnPupClose">Close</button>
+    </div>
+    <p class="muted" id="pupMeta"></p>
+    <div id="pupBody"></div>
   </div>
 </div>
 

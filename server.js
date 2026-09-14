@@ -665,6 +665,114 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { ok: true });
     }
 
+    // ---- delete a class, and everything inside it
+    if (p === '/api/class/delete' && req.method === 'POST') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Please log in.', 401);
+      const b = await readBody(req);
+      const c = store.classes.find(x => x.id === b.classId && x.teacherId === t.id);
+      if (!c) return sendErr(res, 'Class not found.');
+      const gone = store.sessions.filter(s => s.classId === c.id).length;
+      store.classes = store.classes.filter(x => x.id !== c.id);
+      store.sessions = store.sessions.filter(s => s.classId !== c.id);
+      saveStore();
+      return sendJson(res, { ok: true, deletedChecks: gone });
+    }
+
+    // ---- delete one check
+    if (p === '/api/session/delete' && req.method === 'POST') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Please log in.', 401);
+      const b = await readBody(req);
+      const s = store.sessions.find(x => x.id === b.id && x.teacherId === t.id);
+      if (!s) return sendErr(res, 'Check not found.');
+      store.sessions = store.sessions.filter(x => x.id !== s.id);
+      saveStore();
+      return sendJson(res, { ok: true });
+    }
+
+    // ---- change your own password
+    if (p === '/api/password' && req.method === 'POST') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Please log in.', 401);
+      const b = await readBody(req);
+      const cur = String(b.current || '');
+      const next = String(b.next || '');
+      if (hashPass(cur, t.salt) !== t.hash) return sendErr(res, 'That is not your current password.');
+      if (next.length < 6) return sendErr(res, 'The new password must be at least 6 characters.');
+      if (next === cur) return sendErr(res, 'That is already your password.');
+      t.salt = rid(8);
+      t.hash = hashPass(next, t.salt);
+      saveStore();
+      return sendJson(res, { ok: true });
+    }
+
+    // ---- one pupil: every check they have done, oldest first
+    if (p === '/api/pupil' && req.method === 'GET') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Please log in.', 401);
+      const classId = url.searchParams.get('classId');
+      const name = String(url.searchParams.get('name') || '').trim().toLowerCase();
+      const c = store.classes.find(x => x.id === classId && x.teacherId === t.id);
+      if (!c) return sendErr(res, 'Class not found.');
+      const results = [];
+      store.sessions
+        .filter(s => s.classId === classId)
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .forEach(s => (s.students || []).forEach(st => {
+          if (String(st.name || '').trim().toLowerCase() !== name) return;
+          results.push({
+            checkId: s.id, topic: s.topic, at: s.createdAt,
+            verdict: st.verdict || null,
+            transcript: String(st.transcript || '').slice(0, 4000)
+          });
+        }));
+      const real = results.filter(r => r.verdict);
+      const last = real[real.length - 1] || {};
+      return sendJson(res, {
+        className: c.name,
+        name: name,
+        done: real.length,
+        latest: last.verdict || null,
+        results
+      });
+    }
+
+    // ---- the whole class as a spreadsheet
+    if (p === '/api/export' && req.method === 'GET') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Please log in.', 401);
+      const classId = url.searchParams.get('classId');
+      const c = store.classes.find(x => x.id === classId && x.teacherId === t.id);
+      if (!c) return sendErr(res, 'Class not found.');
+      const checks = store.sessions.filter(s => s.classId === classId).sort((a, b) => a.createdAt - b.createdAt);
+      const names = [];
+      (c.roster || []).forEach(n => { if (!names.includes(n)) names.push(n); });
+      checks.forEach(s => (s.students || []).forEach(st => { if (st.name && !names.includes(st.name)) names.push(st.name); }));
+
+      const quote = (v) => '"' + String(v === undefined || v === null ? '' : v)
+        .replace(/"/g, '""').replace(/[\r\n]+/g, ' ').slice(0, 2000) + '"';
+      const find = (s, n) => (s.students || []).find(x => String(x.name || '').trim().toLowerCase() === n.trim().toLowerCase());
+
+      const head = ['Pupil']
+        .concat(checks.map(s => s.topic + ' (' + new Date(s.createdAt).toISOString().slice(0, 10) + ')'))
+        .concat(['Checks done', 'Latest level', 'Shaky on', 'Next step']);
+      const rows = names.map(n => {
+        const cells = checks.map(s => { const st = find(s, n); return st ? ((st.verdict && st.verdict.level) || 'amber') : ''; });
+        const verdicts = checks.map(s => find(s, n)).filter(st => st && st.verdict).map(st => st.verdict);
+        const last = verdicts[verdicts.length - 1] || {};
+        return [n].concat(cells).concat([verdicts.length, last.level || '', last.shaky || '', last.nextStep || '']);
+      });
+      const csv = '\uFEFF' + [head].concat(rows).map(r => r.map(quote).join(',')).join('\r\n') + '\r\n';
+      const fname = (c.name || 'class').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'class';
+      res.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="' + fname + '-get-it.csv"',
+        'Cache-Control': 'no-store'
+      });
+      return res.end(csv);
+    }
+
     return sendErr(res, 'Unknown endpoint.', 404);
   } catch (e) {
     logError(req.url, e.message || 'Server error');
