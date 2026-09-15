@@ -1,0 +1,30 @@
+Mark points a pupil can be half-way on, and results the teacher can actually read
+
+Three things came out of running the 30-pupil sim against the new card.
+
+1. A question with ONE mark point cannot produce an amber - the pupil either hit it or
+   they did not - so a whole class came back all green and all red with nothing in
+   between, and the card had nothing to say about anyone. On the run that exposed it the
+   writer had ignored "2 or 3 points" and returned 2/1/1. If the first draft is thin we
+   now ask once more, against the questions we already have, and keep the better draft.
+
+2. The writer bundles two ideas into one string and drops the capital after the comma,
+   so "explains that the denominators must be the same,explains that the numerators must
+   be the same" arrived as a single point - which cannot be half hit, which is the whole
+   reason the marking counts points at all. splitPoints now breaks on any full stop,
+   semicolon or spaced dash, on the ", the pupil" join, and on a comma followed by the
+   verbs the writer reaches for when it bundles.
+
+3. /api/results demanded a class key, and a class made from a teacher account has none -
+   so the endpoint refused the teacher who owned the class and every read-back came back
+   empty. Three failing checks in the sim were that one bug. A class made without an
+   account still needs its key.
+
+30 pupils, 3 questions, real AI on every turn: 18/30 graded to the band a teacher would
+give, and the safety checks clean - no pupil two bands out, nobody who clearly understood
+was failed, nobody who gave nothing was passed. That is honest, not good: the marking
+still disagrees with a teacher about 4 times in 10. What changed is that the remaining
+disagreements are now next-door bands rather than a green pupil marked red.
+
+eval/marks-eval.js checks the points themselves, because they are printed on the card and
+so are read by a teacher: 28 of 31 came back as single clean lines.

@@ -224,8 +224,18 @@ function splitPoints(list) {
     let s = String(raw == null ? '' : raw).trim();
     if (!s) continue;
     if (s === '[object Object]') continue;
-    s = s.replace(/^the pupil\s+/i, '').replace(/^\-\s*/, '');
-    const parts = s.split(/\.\s*,?\s*(?=[A-Z])|;\s*(?=[A-Z])/).map(x => x.trim().replace(/[,.]$/, '').trim());
+    s = s.replace(/^(the\s+)?pupil\s+/i, '').replace(/^\-\s*/, '');
+    /* The model bundles two ideas into one string, lower case after the join, so a
+       sentence rule that needs a capital walks straight past it:
+       "finds a common denominator,the pupil converts fractions to have common denominators".
+       Turn the ", the pupil" join into a full stop, then split on any full stop, semicolon
+       or spaced dash - one idea per point is the whole basis of the marking. */
+    s = s.replace(/,\s*the pupil\s+/gi, '. ');
+    /* and the same trick without the preface: "explains that X,explains that Y". The
+       writer reaches for a verb list when it bundles, so split on a comma followed by
+       one of those verbs. Both halves stay - which is the point. */
+    s = s.replace(/,\s*(?=(explains|states|says|shows|knows|mentions|names|identifies|describes|uses|writes|adds|compares|tells|keeps|gives|notes)\b)/gi, '. ');
+    const parts = s.split(/[.;]\s+|\s+[-\u2013]\s+/).map(x => x.trim().replace(/[,.]$/, '').trim());
     for (const p of parts) {
       if (p.length < 12) continue;              /* too short to be a real point on its own */
       if (/[,.]\s+and\s+/i.test(p) && p.length > 60) {
@@ -839,7 +849,26 @@ const server = http.createServer(async (req, res) => {
          from then on every pupil is marked against the teacher's standard - not the
          model's opinion of the day. */
       const rawMarks = obj && Array.isArray(obj.marks) ? obj.marks : [];
-      const marks = qs.map((q, i) => splitPoints(Array.isArray(rawMarks[i]) ? rawMarks[i] : []));
+      let marks = qs.map((q, i) => splitPoints(Array.isArray(rawMarks[i]) ? rawMarks[i] : []));
+      /* A question with ONE mark point cannot produce an amber: the pupil either hit it
+         or they did not, so the class comes back all green and all red with nothing in
+         between. That is not a stricter marking, it is a broken one - and it is exactly
+         what a class of 30 did on a run where the writer ignored "2 or 3 points".
+         One more ask, against the questions we already have, and keep the better of the
+         two attempts. Cheap, and it only fires when the first draft was thin. */
+      const thin = marks.filter(m => m.length < 2).length;
+      if (thin) {
+        try {
+          const retry = await llm([{ role: 'system', content: markWriterSystem(topic, qs) }],
+            { json: true, temperature: 0.4 });
+          const o2 = parseJson(retry);
+          if (o2 && Array.isArray(o2.marks)) {
+            const alt = qs.map((q, i) => splitPoints(Array.isArray(o2.marks[i]) ? o2.marks[i] : []));
+            const score = a => a.filter(m => m.length >= 2).length;
+            if (score(alt) > score(marks)) marks = alt;
+          }
+        } catch (e) { logError('/api/generate marks retry', e.message); }
+      }
       return sendJson(res, { questions: qs, marks });
     }
 
@@ -1036,7 +1065,16 @@ const server = http.createServer(async (req, res) => {
       const key = String(url.searchParams.get('key') || '').trim();
       const c = store.classes.find(x => x.code === code);
       if (!c) return sendErr(res, 'The server has forgotten this check (free hosting clears itself).');
-      if (c.key !== key) return sendErr(res, 'Not your check.');
+      /* A class made from a teacher account has no key of its own - the login IS the
+         key. Demanding one anyway meant this endpoint refused the very teacher who
+         owned the class, so anything reading results by code came back empty. A class
+         made without an account still needs its key, and still gets checked. */
+      if (c.key) {
+        if (c.key !== key) return sendErr(res, 'Not your check.');
+      } else {
+        const t = currentTeacher(req);
+        if (!t || c.teacherId !== t.id) return sendErr(res, 'Not your check.', 401);
+      }
       const s = latestSessionForClass(c.id);
       if (!s) return sendErr(res, 'The server has forgotten this check (free hosting clears itself).');
       return sendJson(res, { topic: s.topic, questions: s.questions, createdAt: s.createdAt, students: s.students || [] });
