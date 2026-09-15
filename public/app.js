@@ -558,8 +558,19 @@ function drawResults(s, students) {
       return String(a.name).localeCompare(String(b.name));
     });
 
-  const rows = shown.map(st => {
-    const v = st.verdict || {};
+  /* The answers used to sit in one flat block, all the same colour, so a teacher had to
+     work out which line was the question and which was the child. Now the examiner's
+     questions are grey and the pupil's answers are bright with a coloured edge down the
+     side - the eye finds the child's own words without reading a word of it. */
+  const tlog = (t) => String(t || '').split('\n').filter(x => x.trim()).map(line => {
+    const m = line.match(/^\s*([A-Za-z][A-Za-z ]{2,12}):\s*(.*)$/);
+    if (!m) return `<div class="tline"><div class="tbody">${esc(line)}</div></div>`;
+    const who = m[1].trim();
+    const isQ = /^(examiner|teacher|question)$/i.test(who);
+    return `<div class="tline ${isQ ? 'q' : 'a'}"><div class="twho">${esc(isQ ? 'Question' : 'Their answer')}</div><div class="tbody">${esc(m[2])}</div></div>`;
+  }).join('');
+
+  const rows = shown.map(st => {    const v = st.verdict || {};
     const lv = st.teacherLevel || v.level || 'amber';
     const tip = st.teacherLevel ? 'You set this mark.' : lv === 'green' ? 'Really understands it.'
               : lv === 'amber' ? 'Partly knows it, with clear gaps.'
@@ -574,7 +585,7 @@ function drawResults(s, students) {
       <div class="head"><span class="name">${esc(st.name)}</span><span class="tag lv-${esc(lv)}" data-tip="${esc(tip)}">${esc(lv)}</span></div>
       ${v.notes ? `<div class="notes">${esc(v.notes)}</div>` : ''}
       ${ev.length ? `<div class="evwrap">
-        <div class="evhead" data-tip="Your own mark points, one line each - what they showed and what they did not. The words in quotes are exactly what the pupil typed.">What they had to show <b>${gotAll} of ${ofAll}</b></div>
+        <div class="evhead" data-tip="Your own mark points, one line each - what they showed and what they did not. The words in quotes are exactly what the pupil typed. The colour comes from the questions, not from this count.">What they had to show <b>${gotAll} of ${ofAll}</b>${v.qs ? ` &middot; something on <b>${v.shown} of ${v.qs}</b> questions` : ''}</div>
         ${ev.map(e => `<div class="evq">
           ${e.q ? `<div class="evqt">${esc(e.q)}</div>` : ''}
           <ul class="evlist">${e.points.map(p => `<li class="${p.hit ? 'hit' : 'miss'}">
@@ -596,7 +607,7 @@ function drawResults(s, students) {
           `<button class="ovbtn${lv === x ? ' on' : ''}" data-sid="${esc(s.id)}" data-name="${esc(st.name)}" data-lv="${x}">${x}</button>`).join('')}
         ${st.teacherLevel ? `<span class="ovnote" data-tip="The marking said ${esc(st.aiLevel || '?')}. You changed it.">you changed this</span>` : ''}
       </div>
-      ${st.transcript ? `<details class="transcript"><summary data-tip="Read the conversation word for word.">See their answers</summary><pre>${esc(st.transcript)}</pre></details>` : ''}
+      ${st.transcript ? `<details class="transcript"><summary data-tip="Read the conversation word for word.">See their answers</summary><div class="tlog">${tlog(st.transcript)}</div></details>` : ''}
     </div>`;
   }).join('');
 

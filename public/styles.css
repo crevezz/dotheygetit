@@ -32,8 +32,8 @@
 .evlist li.miss .evmark { background:rgba(255,107,107,.14); color:var(--red); }
 .evlist li.hit .evt { color:var(--text); }
 .evlist li.miss .evt { color:var(--muted); }
-.evsaid { flex-basis:100%; margin:1px 0 0 33px; font-size:12px; font-style:italic; color:var(--muted); }
-.evlist li.hit .evsaid { color:var(--green); opacity:.9; }
+.evsaid { flex-basis:100%; margin:3px 0 0 33px; font-size:12.5px; font-style:italic; color:var(--muted); border-left:2px solid var(--line); padding:2px 0 2px 9px; }
+.evlist li.hit .evsaid { color:var(--green); border-left-color:var(--green); opacity:.95; }
 
 /* the class read together: a point most of them missed is a teaching gap, not 30 pupils */
 .lostit { border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:12px;
@@ -270,6 +270,19 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
   background:var(--bg);border:1px solid var(--line);border-radius:11px;
   padding:14px;margin:11px 0 0;color:var(--muted);font-family:inherit;
 }
+/* Questions and answers were one flat colour, so the teacher had to work out which line
+   was which. The question is now quiet grey; the child's answer is bright with a coloured
+   edge, and each line is labelled, so the eye goes straight to what they wrote. */
+.tlog{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:4px 14px;margin:11px 0 0}
+.tlog .tline{padding:10px 0}
+.tlog .tline + .tline{border-top:1px solid rgba(37,50,78,.55)}
+.tlog .twho{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.tlog .tbody{font-size:14px;line-height:1.6;word-wrap:break-word}
+.tlog .tline.q .twho{color:var(--muted)}
+.tlog .tline.q .tbody{color:var(--muted)}
+.tlog .tline.a{border-left:3px solid var(--accent);padding-left:12px;margin-left:-3px}
+.tlog .tline.a .twho{color:var(--accent)}
+.tlog .tline.a .tbody{color:var(--text);font-weight:500}
 
 /* ---------------------------------------------------------------- chat */
 .progress{

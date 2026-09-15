@@ -229,6 +229,15 @@ no number to give, so its points are the reasons. One of them must be the claim 
 the words a pupil would likely use, so that a muddled but real attempt can reach it. A pupil
 who gets there in clumsy words has shown the idea; never write a point that needs tidy
 wording to be reachable.
+WRITE EVERY POINT IN THE WORDS THE PUPIL WOULD SAY OUT LOUD, not the words from the
+textbook. This is the difference between marking the idea and marking the vocabulary. A
+point written in schoolbook language is reachable ONLY by the pupil who has memorised the
+phrase - the child who understands it but says it their own way scores nothing, which is
+backwards and is the one thing a teacher will not forgive. Written plainly, both reach it.
+Good: "makes the bottoms the same so they can be compared", "the answer is 4/5".
+Bad: "finds a common denominator to compare them", "converts the fractions to decimals"
+(this one only rewards a pupil who can already recite the method).
+If in doubt, ask: could a ten-year-old who gets this but hates writing reach this line?
 Each point is ONE idea in ONE short sentence, twelve words or so. Never put two ideas in
 one point and never write a list inside one. If you catch yourself writing a comma followed
 by "and", that is two points - split them.
@@ -555,14 +564,23 @@ Return ONLY JSON: {"shown":[1,3]}`;
     base += ps.length;
   }
   if (!evidence.length) return null;
-  /* With two points a question - the answer and the working - a pupil who is right but
-     cannot explain sits at about half the points, and half must read amber. Green is for
-     the pupil who answered AND showed some working somewhere: all five answers plus one
-     real reason is six of ten. */
-  const share = allPool ? hitPool / allPool : 0;
-  let level = share >= 0.6 ? 'green' : share >= 0.3 ? 'amber' : 'red';
-  if (blanks && level === 'green') level = 'amber';
-  return { level, hit: hitPool, total: allPool, blanks, evidence };
+  /* The colour is decided by QUESTIONS, not by points. A percentage always has a grey
+     zone - 36% is not obviously amber and not obviously red - and a teacher should never
+     have to argue with a number. Questions are whole numbers, so they have a cliff:
+       nothing on any question          -> red
+       something on every question, and
+       one of them answered AND explained -> green
+       anything in between               -> amber
+     A blank question therefore caps the pupil at amber on its own: they cannot have shown
+     something on every question if one of them was empty. The points still counted, and
+     are still shown, but only as detail underneath - they do not move the colour. */
+  const qCount = evidence.length;
+  const shownQs = evidence.filter(e => e.got > 0).length;
+  const fullQs = evidence.filter(e => e.got >= e.total).length;
+  const level = !shownQs ? 'red'
+    : (shownQs === qCount && fullQs > 0) ? 'green'
+    : 'amber';
+  return { level, hit: hitPool, total: allPool, blanks, shown: shownQs, qs: qCount, evidence };
 }
 
 function verdictSystem(topic) {
@@ -1086,6 +1104,8 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
           v.pointsHit = graded.hit;
           v.pointsTotal = graded.total;
           v.blanks = graded.blanks;
+          v.qs = graded.qs;
+          v.shown = graded.shown;
         } else if (!marks.length) {
           const perQ = await levelFromQuestions(topic, transcript);
           if (perQ) v.level = perQ;
