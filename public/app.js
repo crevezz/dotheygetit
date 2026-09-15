@@ -769,6 +769,7 @@ async function nextTurn() {
   const typing = addBubble('examiner typing', '• • •');
   try {
     const j = await post('/api/chat', {
+      code: chat.code,
       topic: chat.topic, questions: chat.questions,
       history: chat.history, covered: chat.covered, digs: chat.digs
     });

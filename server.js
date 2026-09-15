@@ -185,9 +185,27 @@ A point only counts if it is an ANSWER TO WHAT WAS ASKED. A true fact about the 
 that does not answer the question is not a point - it is a dodge, and dodging is red.
 STEP 2 - List what they got wrong or missed.
 STEP 3 - Choose the level:
-- "green" = explained the main idea in their own words and coped with follow-up questions.
+- "green" = they got the main idea right and can say how they know. That is the whole bar.
+  They do NOT have to be fluent, complete, or use the correct words. A child who is right
+  in their own rough language, or who gets there after one wobble, is "green".
 - "amber" = they answered the actual question and got at least one part right, but there are clear gaps.
 - "red" = they did not answer the question: nothing right, guesses, silences, or talks around it.
+
+TWO WORKED EXAMPLES - copy this judgement:
+
+Topic "how a plant gets its food". Student: "It does not eat anything. It takes the gas out
+of the air and water up the roots and makes its own sugar using sunlight." Then asked what
+happens in a cupboard: "It could not make the sugar so it would use up what it saved and then die."
+-> GREEN. Rough wording, but the idea is there and they could use it on a new question.
+
+Topic "the water cycle". Student: "It goes into the ground and then it gets hot and goes up
+again. I dont know the words for it."
+-> AMBER. Right direction, but there is no mechanism and they cannot say how they know.
+Sounding unsure is fine; having nothing to why it happens is not green.
+
+The difference is not polished English - it is whether they can do anything with the idea
+beyond repeating it. Expect roughly a third of a class to be green. No greens at all means
+you are too harsh. And being unsure between amber and red is amber.
 
 HOW THEY WRITE MUST NOT CHANGE THE LEVEL. Judge the understanding, never the packaging.
 Spelling, grammar, punctuation and clumsy sentences are irrelevant. A child who gets it
@@ -515,6 +533,13 @@ const server = http.createServer(async (req, res) => {
       let covered = Number(b.covered) || 0;
       let digs = Number(b.digs) || 0;
       if (!topic) return sendErr(res, 'A topic is required.');
+
+      /* The code has to exist. Without this a pupil who mistypes it still gets a
+         full, convincing conversation - and nothing they say ever reaches the
+         teacher, who would have no idea they were missing. */
+      const codeIn = String(b.code || '').trim().toLowerCase();
+      const cls = store.classes.find(x => x.code === codeIn);
+      if (!codeIn || !cls) return sendErr(res, 'That class code is not right. Check it with your teacher.');
 
       const total = questions.length || cfg.maxQuestions;
       const asked = history.filter(x => x.role === 'assistant').length;
