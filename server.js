@@ -156,6 +156,44 @@ looking at something, and they are never needed: a question about a diagram can 
 asked in words. (Words like graph, chart, map and table are fine as ideas - "what does a bar
 chart show you?" - just never as "look at the chart".)`;
 
+/* One idea per mark point. The model kept bundling several ideas into a single point
+   ("uses sunlight, water and carbon dioxide to make glucose"), and it even emitted two
+   points as one comma-joined string. A bundled point cannot be half-hit, so a pupil who
+   half understood scored the same as one who did not - which is what put the middle band
+   all over the place. */
+const MARK_RULES = `Write 2 or 3 mark points for each question - 2 for a question with one main idea,
+3 only for a richer question. Never pad a question out to three: if two points say the
+same thing in different words, that is one point, and the pupil's mark is meaningless.
+Each point is ONE idea in ONE short sentence, twelve words or so. Never put two ideas in
+one point and never write a list inside one. If you catch yourself writing a comma followed
+by "and", that is two points - split them.
+They must be about the subject, and never about how it is written.
+Good: "says the bottoms have to match first", "explains that more pieces means each piece is
+smaller", "says a fifth is bigger than a tenth".
+Bad: "uses sunlight, water and carbon dioxide to make glucose" (three ideas in one),
+"correctly states the denominator remains seven" beside "writes the answer as 5/7"
+(the same fact twice), "clear answer", "good use of vocabulary".`;
+
+/* Split any point that came back carrying two ideas, and drop the "The pupil ..." preface. */
+function splitPoints(list) {
+  const out = [];
+  for (const raw of list) {
+    let s = String(raw == null ? '' : raw).trim();
+    if (!s) continue;
+    if (s === '[object Object]') continue;
+    s = s.replace(/^the pupil\s+/i, '').replace(/^\-\s*/, '');
+    const parts = s.split(/\.\s*,?\s*(?=[A-Z])|;\s*(?=[A-Z])/).map(x => x.trim().replace(/[,.]$/, '').trim());
+    for (const p of parts) {
+      if (p.length < 12) continue;              /* too short to be a real point on its own */
+      if (/[,.]\s+and\s+/i.test(p) && p.length > 60) {
+        /* a comma-and joining two long clauses is two ideas - keep both halves */
+        p.split(/,\s+and\s+/i).forEach(h => { const t = h.trim().replace(/[,.]$/, ''); if (t.length >= 12) out.push(t); });
+      } else out.push(p);
+    }
+  }
+  return out.slice(0, 3);
+}
+
 function questionWriterSystem(topic, count) {
   return `You are helping a teacher write a quick understanding check.
 
@@ -177,12 +215,7 @@ Return ONLY JSON, exactly this shape:
 {"questions":["...","..."],"marks":[["...","..."],["...","..."]]}
 
 "marks" is a parallel list: marks[0] holds the mark points for questions[0], and so on.
-Each question gets 2 or 3 mark points - the specific things an answer has to actually show
-to count as real understanding of it. The teacher marks against these, so they must be about
-the maths or the science and NOT about how it is written.
-Good: "says the bottoms have to match first", "compares the tops", "explains that more
-pieces means each piece is smaller".
-Bad: "clear answer", "good vocabulary", "shows understanding".`;
+${MARK_RULES}`;
 }
 
 /* The teacher has written or edited the questions. These are the mark points for THEM.
@@ -195,11 +228,7 @@ function markWriterSystem(topic, questions) {
 A teacher wrote these questions to find out whether a pupil really understands it:
 ${list}
 
-For EACH question, write the 2 or 3 mark points - the specific things an answer has to
-actually show to count as real understanding of it. The work is marked against these, so
-they must be about the maths or the science, and never about how it is written.
-Good: "says the bottoms have to match first", "explains that more pieces means each piece
-is smaller". Bad: "clear answer", "shows understanding", "good vocabulary".
+${MARK_RULES}
 
 ${NO_IMAGES}
 
@@ -737,8 +766,7 @@ const server = http.createServer(async (req, res) => {
          from then on every pupil is marked against the teacher's standard - not the
          model's opinion of the day. */
       const rawMarks = obj && Array.isArray(obj.marks) ? obj.marks : [];
-      const marks = qs.map((q, i) => (Array.isArray(rawMarks[i]) ? rawMarks[i] : [])
-        .map(m => String(m || '').trim()).filter(Boolean).slice(0, 3));
+      const marks = qs.map((q, i) => splitPoints(Array.isArray(rawMarks[i]) ? rawMarks[i] : []));
       return sendJson(res, { questions: qs, marks });
     }
 
@@ -1016,6 +1044,27 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- the whole class as a spreadsheet
+    /* The teacher has the final say. Whatever the marking said, the teacher can set the
+       level themselves. The disagreement is kept rather than overwritten, because a
+       teacher's own judgement is the only real label we have - every override is a
+       worked example of where the marking was wrong. */
+    if (p === '/api/override' && req.method === 'POST') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Please log in.', 401);
+      const b = await readBody(req);
+      const s = store.sessions.find(x => x.id === b.sessionId && x.teacherId === t.id);
+      if (!s) return sendErr(res, 'Check not found.');
+      const stu = (s.students || []).find(x => x.name === b.name);
+      if (!stu) return sendErr(res, 'Pupil not found.');
+      const lv = String(b.level || '').trim().toLowerCase();
+      if (lv && !['green', 'amber', 'red'].includes(lv)) return sendErr(res, 'Bad level.');
+      const ai = stu.aiLevel || (stu.verdict && stu.verdict.level) || null;
+      if (lv && lv === ai) { stu.teacherLevel = null; }        /* agreeing is not a correction */
+      else { stu.teacherLevel = lv || null; stu.aiLevel = ai; if (lv) stu.overriddenAt = Date.now(); }
+      saveStore();
+      return sendJson(res, { ok: true, level: stu.teacherLevel, aiLevel: stu.aiLevel });
+    }
+
     if (p === '/api/export' && req.method === 'GET') {
       const t = currentTeacher(req);
       if (!t) return sendErr(res, 'Please log in.', 401);

@@ -512,6 +512,32 @@ async function openCheck(id, quiet) {
 }
 
 function drawResults(s, students) {
+  /* the teacher's override. Wired once, on the document, so it survives every redraw. */
+  if (!drawResults._wired) {
+    drawResults._wired = true;
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest && e.target.closest('.ovbtn');
+      if (!b) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const wasOn = b.classList.contains('on');
+      const lv = wasOn ? '' : b.dataset.lv;
+      const r = await post('/api/override', { sessionId: b.dataset.sid, name: b.dataset.name, level: lv });
+      if (!r || !r.ok) return toast('Could not save that');
+      const row = b.closest('.sresult');
+      const final = r.level || '';
+      if (row) {
+        row.querySelectorAll('.ovbtn').forEach(x => x.classList.toggle('on', x.dataset.lv === final));
+        const tag = row.querySelector('.tag');
+        if (tag) {
+          const l = final || (row.dataset.ailevel || '');
+          if (l) { tag.className = 'tag lv-' + l; tag.textContent = l + (final ? ' (you)' : ''); }
+        }
+      }
+      toast(final ? 'Marked ' + final + ' — overruling the marking' : 'Back to the marking');
+    });
+  }
+
   if (!students.length) {
     $('#results').innerHTML =
       `<div class="card"><h3>${esc(s.topic || '')}</h3>
@@ -534,11 +560,11 @@ function drawResults(s, students) {
 
   const rows = shown.map(st => {
     const v = st.verdict || {};
-    const lv = v.level || 'amber';
-    const tip = lv === 'green' ? 'Really understands it.'
+    const lv = st.teacherLevel || v.level || 'amber';
+    const tip = st.teacherLevel ? 'You set this mark.' : lv === 'green' ? 'Really understands it.'
               : lv === 'amber' ? 'Partly knows it, with clear gaps.'
               : 'Got little right — needs help.';
-    return `<div class="sresult lv-${esc(lv)}">
+    return `<div class="sresult lv-${esc(lv)}" data-ailevel="${esc(v.level || '')}">
       <div class="head"><span class="name">${esc(st.name)}</span><span class="tag lv-${esc(lv)}" data-tip="${esc(tip)}">${esc(lv)}</span></div>
       ${v.notes ? `<div class="notes">${esc(v.notes)}</div>` : ''}
       <div class="detail">
@@ -546,6 +572,12 @@ function drawResults(s, students) {
         ${v.shaky ? `<div><span class="k" data-tip="Where they are weak.">Shaky</span>${esc(v.shaky)}</div>` : ''}
         ${v.nextStep ? `<div class="nextstep"><span class="k" data-tip="One thing to do with them next.">Next</span>${esc(v.nextStep)}</div>` : ''}
         ${v.faked ? `<div class="warn" data-tip="Their answers sounded copied or AI-written.">Possible bluffing</div>` : ''}
+      </div>
+      <div class="ovrow">
+        <span class="ovlab" data-tip="The teacher has the final say. Anything you change here is remembered, and it helps the marking learn.">You decide</span>
+        ${['green', 'amber', 'red'].map(x =>
+          `<button class="ovbtn${lv === x ? ' on' : ''}" data-sid="${esc(s.id)}" data-name="${esc(st.name)}" data-lv="${x}">${x}</button>`).join('')}
+        ${st.teacherLevel ? `<span class="ovnote" data-tip="The marking said ${esc(st.aiLevel || '?')}. You changed it.">you changed this</span>` : ''}
       </div>
       ${st.transcript ? `<details class="transcript"><summary data-tip="Read the conversation word for word.">See their answers</summary><pre>${esc(st.transcript)}</pre></details>` : ''}
     </div>`;
