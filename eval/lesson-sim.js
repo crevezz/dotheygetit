@@ -166,6 +166,14 @@ async function pool(items, limit, fn) {
   const MARKS = (gen.body && gen.body.marks) || [];
   ok('every question carries mark points', MARKS.length === QUESTIONS.length && MARKS.every(a => a.length >= 2),
     MARKS.map(a => a.length).join('/') + ' ' + JSON.stringify(MARKS));
+  /* Without mark points the check is not marked at all: every pupil falls back to the
+     loose AI read, which hands out greens to a mixed class. That must stop the run, not
+     quietly produce a number. */
+  if (!MARKS.length || MARKS.some(a => !a.length)) {
+    log('  the generator returned no marks (' + gen.status + '): ' + JSON.stringify(gen.body).slice(0, 400));
+    stop();
+    process.exit(1);
+  }
 
   const check = await post('/api/session', { classId, topic: TOPIC, questions: QUESTIONS, marks: MARKS }, teacher);
   const checkId = check.body && check.body.check && check.body.check.id;
@@ -194,6 +202,7 @@ async function pool(items, limit, fn) {
     const verdict = v.body && v.body.verdict;
     const saved = await post('/api/result', { code, name, transcript, verdict });
     return { name, turns, badReply, failed, gotVerdict: !!verdict, level: verdict && verdict.level,
+      hit: (verdict && verdict.pointsHit) || 0, tot: (verdict && verdict.pointsTotal) || 0,
       saved: saved.status === 200, band: prof.band, who: prof.who,
       note: verdict && verdict.gets, next: verdict && verdict.nextStep };
   });
@@ -260,10 +269,16 @@ async function pool(items, limit, fn) {
   const seenByProfile = {};
   for (const r of results) {
     const k = r.who;
-    if (!seenByProfile[k]) seenByProfile[k] = { band: r.band, got: [], names: [], notes: [] };
+    if (!seenByProfile[k]) seenByProfile[k] = { band: r.band, got: [], names: [], notes: [], hits: [], tots: [] };
     seenByProfile[k].got.push(r.level);
     seenByProfile[k].names.push(r.name);
     seenByProfile[k].notes.push(r.note);
+    seenByProfile[k].hits.push(r.hit);
+    seenByProfile[k].tots.push(r.tot);
+  }
+  for (const p of Object.values(seenByProfile)) {
+    const h = p.hits.reduce((a, b) => a + b, 0), t = p.tots.reduce((a, b) => a + b, 0);
+    p.share = t ? (100 * h / t).toFixed(0) + '%' : 'n/a';
   }
   const hits = results.filter(r => r.level === r.band).length;
   const bad = results.filter(r => Math.abs(order.indexOf(r.level) - order.indexOf(r.band)) >= 2);
@@ -271,7 +286,7 @@ async function pool(items, limit, fn) {
     const tally = p.got.reduce((a, l) => (a[l] = (a[l] || 0) + 1, a), {});
     const allRight = p.got.every(l => l === p.band);
     log('  ' + (allRight ? 'OK  ' : 'MISS') + ' ' + who.padEnd(28) + 'teacher: ' + p.band.padEnd(6) +
-      'ai: ' + JSON.stringify(tally));
+      'ai: ' + JSON.stringify(tally) + '  points ' + p.share);
   }
   log('  graded to the teacher\'s band: ' + hits + '/' + results.length +
     '  (' + (hits / results.length * 100).toFixed(0) + '%)');

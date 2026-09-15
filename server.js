@@ -277,8 +277,14 @@ function splitPoints(list) {
     /* and the same trick without the preface: "explains that X,explains that Y". The
        writer reaches for a verb list when it bundles, so split on a comma followed by
        one of those verbs. Both halves stay - which is the point. */
-    s = s.replace(/,\s*(?=(explains|states|says|shows|knows|mentions|names|identifies|describes|uses|writes|adds|compares|tells|keeps|gives|notes|because|since|takes|subtracts|combines|calculates|works|finds|converts|multiplies|divides|counts|removes|leaves|equals|means|matches|lists|repeats|orders|rounds|solves|answers|represents|totals)\b)/gi, '. ');
-    const parts = s.split(/[.;]\s+|\s+[-\u2013]\s+/).map(x => x.trim().replace(/[,.]$/, '').trim());
+    s = s.replace(/,\s*(?=(explains|states|says|shows|knows|mentions|names|identifies|describes|uses|writes|adds|compares|tells|keeps|gives|notes|because|since|takes|subtracts|combines|calculates|works|finds|converts|multiplies|divides|counts|removes|leaves|equals|means|matches|lists|repeats|orders|rounds|solves|answers|represents|totals|so|then|therefore)\b)/gi, '. ');
+    /* …and the same for a comma followed by a number or a fraction. The writer bundles
+       the whole method into one point - "3/4 is 15/20 and 4/5 is 16/20, so 4/5 is bigger,
+       4/5 is 0.8 and 3/4 is 0.75, so 4/5 is bigger" - and no verb follows the comma, so
+       the rule above walks past it. A pupil who knows the answer but not the whole
+       two-step method then scores nothing at all. */
+    s = s.replace(/,\s*(?=(?:so|then)?\s*(?:\d|[a-z]?\d+\s*\/\s*\d+))/gi, '. ');
+    const parts = s.split(/[.;]\s+|\s+[-\u2013]\s+/).map(x => x.trim().replace(/^(so|then|therefore|and)\s+/i, '').replace(/[,.]$/, '').trim());
     for (const p of parts) {
       if (p.length < 12) continue;              /* too short to be a real point on its own */
       if (/[,.]\s+and\s+/i.test(p) && p.length > 60) {
