@@ -1,30 +1,16 @@
-Mark points a pupil can be half-way on, and results the teacher can actually read
+The card test was reading a hidden card
 
-Three things came out of running the 30-pupil sim against the new card.
+Every content assertion in eval/card-eval.js passed while the card was invisible.
+The test drew straight into #results, which lives inside #classPanel - and that
+panel stays hidden until a teacher clicks into a class. innerText falls back to
+textContent on a non-rendered element, so "the evidence is on the card" and "the
+card is 0x0 with no offsetParent" were both true at once.
 
-1. A question with ONE mark point cannot produce an amber - the pupil either hit it or
-   they did not - so a whole class came back all green and all red with nothing in
-   between, and the card had nothing to say about anyone. On the run that exposed it the
-   writer had ignored "2 or 3 points" and returned 2/1/1. If the first draft is thin we
-   now ask once more, against the questions we already have, and keep the better draft.
+It now opens the class and the check through the teacher's own clicks, then
+measures the layout instead of trusting it: the evidence block has real height
+(711x203), every line is at least 11px, and nothing overflows or is clipped. The
+preview is written to eval/card-preview.png for a person to look at, because no
+assertion in here can tell you whether it reads well.
 
-2. The writer bundles two ideas into one string and drops the capital after the comma,
-   so "explains that the denominators must be the same,explains that the numerators must
-   be the same" arrived as a single point - which cannot be half hit, which is the whole
-   reason the marking counts points at all. splitPoints now breaks on any full stop,
-   semicolon or spaced dash, on the ", the pupil" join, and on a comma followed by the
-   verbs the writer reaches for when it bundles.
-
-3. /api/results demanded a class key, and a class made from a teacher account has none -
-   so the endpoint refused the teacher who owned the class and every read-back came back
-   empty. Three failing checks in the sim were that one bug. A class made without an
-   account still needs its key.
-
-30 pupils, 3 questions, real AI on every turn: 18/30 graded to the band a teacher would
-give, and the safety checks clean - no pupil two bands out, nobody who clearly understood
-was failed, nobody who gave nothing was passed. That is honest, not good: the marking
-still disagrees with a teacher about 4 times in 10. What changed is that the remaining
-disagreements are now next-door bands rather than a green pupil marked red.
-
-eval/marks-eval.js checks the points themselves, because they are printed on the card and
-so are read by a teacher: 28 of 31 came back as single clean lines.
+23 checks, 0 failures - including clicking "you decide" and finding the change in
+the store with the marking's own answer kept beside it.

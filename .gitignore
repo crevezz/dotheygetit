@@ -20,3 +20,4 @@ push.err
 
 # generated brand assets - rebuild with: node brand/make.js
 brand/out/
+eval/card-preview.png

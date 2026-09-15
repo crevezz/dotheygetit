@@ -149,17 +149,41 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1200);
+  /* The app boots itself: /api/me, then the class list. Drawing before that lands makes
+     for a racy test - and the first version of this test read a page that was about to
+     hide the dashboard out from under it, which is how it "passed" with an invisible
+     card. Wait for the app to be ready, then say whether the teacher is really logged in. */
+  await page.waitForFunction(() => {
+    const d = document.querySelector('#dash');
+    return !!d && !d.classList.contains('hidden');
+  }, { timeout: 10000 }).catch(() => {});
+  const loggedIn = await page.evaluate(() => {
+    const d = document.querySelector('#dash');
+    return { visible: !!d && !d.classList.contains('hidden'), whoami: (document.querySelector('#whoami') || {}).textContent || '' };
+  });
+  ok('the browser is logged in as the teacher that owns the class', loggedIn.visible, JSON.stringify(loggedIn) + ' cookie=' + teacher.slice(0, 24));
 
-  const drawn = await page.evaluate(async (id) => {
-    const r = await fetch('/api/session?id=' + encodeURIComponent(id));
-    const j = await r.json();
-    if (!j || !j.check) return { ok: false, why: JSON.stringify(j).slice(0, 120) };
-    drawResults(j.check, j.check.students || []);
-    return { ok: true, students: (j.check.students || []).length };
-  }, checkId);
-  ok('the card drew from the real stored session', drawn.ok && drawn.students === 3, JSON.stringify(drawn));
+  /* Open the class the way a teacher does, then open the check. The first version of this
+     test drew straight into #results, which lives inside #classPanel - and that panel is
+     hidden until you click into a class, so the whole card was measured while invisible.
+     It "passed" because innerText falls back to textContent on a non-rendered element,
+     which is exactly the sort of green that means nothing. */
+  const opened = await page.evaluate(async (args) => {
+    const rows = Array.from(document.querySelectorAll('#classList .classrow'));
+    const row = rows.find(r => r.dataset.id === args.classId);
+    if (!row) return { ok: false, why: 'class row not in the list: ' + rows.length + ' rows' };
+    row.click();
+    await new Promise(r => setTimeout(r, 600));
+    const panel = document.querySelector('#classPanel');
+    if (panel.classList.contains('hidden')) return { ok: false, why: 'clicking the class did not open the panel' };
+    await openCheck(args.checkId);
+    await new Promise(r => setTimeout(r, 400));
+    return { ok: true, rows: document.querySelectorAll('#results .sresult').length };
+  }, { classId, checkId });
+  ok('the results card opens via the teacher\'s own clicks (class, then check)', opened.ok && opened.rows === 3, JSON.stringify(opened));
 
+  /* Everything below reads the card as a teacher would see it. The layout is measured
+     rather than assumed, because a hidden card still answers every content question. */
   const card = await page.evaluate(() => {
     const box = document.querySelector('#results');
     return {
@@ -178,7 +202,7 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
   ok('the points are shown hit or missed, not just counted', card.hitlines > 0 && card.misslines > 0,
     card.hitlines + ' hit, ' + card.misslines + ' missed');
   ok('the pupil\'s own words appear beside the points they earned', card.quotes >= 1, card.quotes + ' quotes on the card');
-  ok('the card says how much of the standard was shown', /What they had to show/.test(card.text) && /\d+ of \d+/.test(card.text),
+  ok('the card says how much of the standard was shown', /what they had to show/i.test(card.text) && /\d+ of \d+/.test(card.text),
     (card.text.match(/\d+ of \d+/) || ['none'])[0]);
   ok('the class-level re-teach block renders', card.reTeach, 'lostit present: ' + card.reTeach);
   ok('the teacher can still overrule every pupil', card.buttons === 9, card.buttons + ' buttons for 3 pupils');
@@ -227,6 +251,57 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
     'teacherLevel=' + ada.teacherLevel + ' (marking said ' + ada.aiLevel + ')');
 
   ok('no javascript errors on the page', errors.length === 0, errors.join(' | '));
+
+  /* Take a picture as well as reading the DOM. The assertions above would all pass if the
+     evidence were rendered in 6px white text behind the footer. This is the part of the
+     test that has to be looked at by a person. */
+  /* I cannot look at the picture, so measure the layout instead of trusting it: text that
+     fits, nothing clipped, nothing smaller than a teacher can read. The preview file is
+     there for a person to look at, and this is what runs every time. */
+  const layout = await page.evaluate(() => {
+    const out = { overflow: [], tiny: [], clipped: [], height: 0, notes: [] };
+    const block = document.querySelector('#results .evwrap');
+    if (block) {
+      const r = block.getBoundingClientRect();
+      out.height = Math.round(r.height);
+      out.notes.push('evidence block ' + Math.round(r.width) + 'x' + Math.round(r.height));
+      if (!r.height) {
+        const chain = [];
+        let el = block;
+        while (el && el !== document.body) {
+          chain.push((el.tagName || '') + '#' + (el.id || '') + '.' + (el.className || '') + '=' + getComputedStyle(el).display);
+          el = el.parentElement;
+        }
+        out.notes.push('ancestors: ' + chain.join(' < '));
+        const paren = block.closest('.sresult');
+        const pr = paren && paren.getBoundingClientRect();
+        out.notes.push('first row ' + (pr ? Math.round(pr.width) + 'x' + Math.round(pr.height) : 'none') +
+          ' rows=' + document.querySelectorAll('#results .evwrap').length +
+          ' resultsVisible=' + (document.querySelector('#results').offsetParent !== null) +
+          ' bodyH=' + document.body.scrollHeight);
+      }
+    }
+    document.querySelectorAll('#results .evt, #results .evsaid, #results .lostit li').forEach(el => {
+      const fs = parseFloat(getComputedStyle(el).fontSize);
+      if (fs < 11) out.tiny.push(el.className + ' ' + fs + 'px');
+      const r = el.getBoundingClientRect();
+      const parent = el.closest('.sresult, .lostit');
+      if (parent && r.right > parent.getBoundingClientRect().right + 2) out.overflow.push(el.className + ' overflows by ' + Math.round(r.right - parent.getBoundingClientRect().right) + 'px');
+      if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflow === 'hidden') out.clipped.push(el.className);
+    });
+    return out;
+  });
+  ok('the evidence block has real height (it is not collapsed)', layout.height > 40, JSON.stringify(layout.notes));
+  ok('every line of evidence is text a teacher can read (>= 11px)', layout.tiny.length === 0, layout.tiny.join(', '));
+  ok('nothing overflows or is clipped out of the card', layout.overflow.length === 0 && layout.clipped.length === 0,
+    layout.overflow.concat(layout.clipped).join(' | '));
+
+  await page.setViewportSize({ width: 1180, height: 1400 });
+  const shot = path.join(__dirname, 'card-preview.png');
+  try {
+    await page.screenshot({ path: shot, fullPage: true });
+    log('  card preview written to eval/card-preview.png - look at it, do not trust the DOM');
+  } catch (e) { log('  could not photograph the card: ' + e.message); }
 
   await browser.close();
   stop();
