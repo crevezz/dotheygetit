@@ -207,6 +207,18 @@ have 8 pounds. How much more do you need?"
 const MARK_RULES = `Write 2 or 3 mark points for each question - 2 for a question with one main idea,
 3 only for a richer question. Never pad a question out to three: if two points say the
 same thing in different words, that is one point, and the pupil's mark is meaningless.
+
+FIRST, and above everything else: a point must be something the pupil could actually SAY
+in their answer to that question. If the question asks for an answer - "What is 5 + 7?" -
+one point has to BE that answer. A statement about the method ("addition is combining two
+amounts together") is NOT a point for that question, because a pupil who answers it
+correctly never says it. A point a short, correct answer cannot reach is dead weight: it
+marks every pupil down for something the question never asked. A short answer question
+still gets TWO points - the answer itself, and the working.
+For short answer questions the points ARE the answers:
+Q: "What is 5 + 7?"  Good: ["says 12", "adds the two numbers together"]
+Bad: ["explains that five and seven were added together"] - the pupil never says that.
+Q: "You eat 2 of 10 apples. How many are left?"  Good: ["says 8", "takes 2 away from 10"]
 Each point is ONE idea in ONE short sentence, twelve words or so. Never put two ideas in
 one point and never write a list inside one. If you catch yourself writing a comma followed
 by "and", that is two points - split them.
@@ -216,6 +228,27 @@ smaller", "says a fifth is bigger than a tenth".
 Bad: "uses sunlight, water and carbon dioxide to make glucose" (three ideas in one),
 "correctly states the denominator remains seven" beside "writes the answer as 5/7"
 (the same fact twice), "clear answer", "good use of vocabulary".`;
+
+/* Is a question's marking reachable at all? A question that asks for an answer has to
+   have at least one point that IS the answer, or every pupil who answers it correctly is
+   marked down for not saying something the question never asked.
+   This came off four real family answers: "What is 5 + 7?" answered "12" was marked
+   against "Addition is combining two amounts together" and "The sum is the total after
+   adding". Three of the five questions did that, so 6 of the 10 points were unreachable
+   for anybody - and all four pupils came back red, including the one who got everything
+   right. Every point on those questions was a statement about the method, and no pupil
+   answering "12" can ever say one. */
+const ASKS_FOR_ANSWER = /^(explain|why|describe|give a reason|how do you know)/i;
+const NUMBERED = /\d|\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|fifty|hundred|thousand|half|quarter|third|fifth|tenth)\b/i;
+const ANSWER_WORD = /\b(says|say|states|gives|answers|writes|shows|names|counts|gets|works out)\b/i;
+function answerable(question, pts) {
+  const q = String(question || '').trim();
+  const list = (pts || []).filter(Boolean);
+  if (!list.length) return false;
+  if (ASKS_FOR_ANSWER.test(q)) return true;   // a why/explain question is reachable by reasoning
+  if (!NUMBERED.test(q)) return true;         // no numbers in it, nothing to be unreachable about
+  return list.some(p => /\d/.test(p) || NUMBERED.test(p) || ANSWER_WORD.test(p));
+}
 
 /* Split any point that came back carrying two ideas, and drop the "The pupil ..." preface. */
 function splitPoints(list) {
@@ -234,7 +267,7 @@ function splitPoints(list) {
     /* and the same trick without the preface: "explains that X,explains that Y". The
        writer reaches for a verb list when it bundles, so split on a comma followed by
        one of those verbs. Both halves stay - which is the point. */
-    s = s.replace(/,\s*(?=(explains|states|says|shows|knows|mentions|names|identifies|describes|uses|writes|adds|compares|tells|keeps|gives|notes)\b)/gi, '. ');
+    s = s.replace(/,\s*(?=(explains|states|says|shows|knows|mentions|names|identifies|describes|uses|writes|adds|compares|tells|keeps|gives|notes|takes|subtracts|combines|calculates|works|finds|converts|multiplies|divides|counts|removes|leaves|equals|means|matches|lists|repeats|orders|rounds|solves|answers|represents|totals)\b)/gi, '. ');
     const parts = s.split(/[.;]\s+|\s+[-\u2013]\s+/).map(x => x.trim().replace(/[,.]$/, '').trim());
     for (const p of parts) {
       if (p.length < 12) continue;              /* too short to be a real point on its own */
@@ -409,15 +442,27 @@ async function marksFromAnswers(topic, marks, transcript, questions) {
   }
   const answers = turns.filter(t => t.role === 'student' && t.text).map(t => t.text);
   if (!answers.length) return null;
-  const list = points.map((p, i) => (i + 1) + '. ' + p).join('\n');
-  const sys = `Topic: "${topic}".
+  /* One answer belongs to one question, so an answer can only ever show that question's
+     points. Judging every answer against every point let a pupil's answer to Q4 be quoted
+     on the card as the evidence for a point on Q3 - which reads, to a teacher, as a mark
+     that made itself up. Where the counts line up, the marker is handed only that
+     question's points. Where the examiner dug (more answers than questions) they cannot be
+     paired, so it falls back to the whole list.
+     The numbering stays global so a point keeps its identity. */
+  const offset = [];
+  let run = 0;
+  for (const m of marks) { offset.push(run); run += (m || []).filter(Boolean).length; }
+  const paired = answers.length === marks.length;
+  const sysFor = (lo, hi) => `Topic: "${topic}".
 
 A pupil had to show these things to count as understanding it:
-${list}
+${points.map((p, i) => ({ n: i + 1, p })).filter(x => x.n - 1 >= lo && x.n - 1 < hi).map(x => x.n + '. ' + x.p).join('\n')}
 
 You get ONE answer the pupil gave. Say which of those numbered points that answer actually
 shows. Be strict about the meaning and generous about the wording: clumsy, badly spelled
 English that shows the idea DOES count. Words that sound right but show nothing DO NOT.
+A correct answer on its own shows the point that names that answer: a pupil who writes
+"12" to "what is 5 + 7?" has shown the point "says 12".
 
 A pupil is allowed to show the same point more than once, so only judge this one answer.
 
@@ -429,10 +474,14 @@ Return ONLY JSON: {"shown":[1,3]}`;
      earned - so the teacher can agree or disagree from the evidence instead of from the
      colour. The words are quoted, never summarised. */
   const hit = new Map();
-  for (const a of answers) {
+  for (let k = 0; k < answers.length; k++) {
+    const a = answers[k];
+    const lo = paired ? offset[k] : 0;
+    const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
+    if (paired && !(hi > lo)) continue;
     try {
       const raw = await llm([
-        { role: 'system', content: sys },
+        { role: 'system', content: sysFor(lo, hi) },
         { role: 'user', content: 'The pupil answered: ' + a }
       ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
       const o = parseJson(raw);
@@ -856,16 +905,21 @@ const server = http.createServer(async (req, res) => {
          what a class of 30 did on a run where the writer ignored "2 or 3 points".
          One more ask, against the questions we already have, and keep the better of the
          two attempts. Cheap, and it only fires when the first draft was thin. */
-      const thin = marks.filter(m => m.length < 2).length;
-      if (thin) {
+      const dead = a => qs.filter((q, i) => !answerable(q, a[i] || [])).length;
+      const score = a => a.filter(m => m.length >= 2).length;
+      /* Ask again, against the questions we already have, and keep the better draft. It
+         fires when a question came back with fewer than 2 points (a single point cannot
+         produce an amber), and when a question that asks for an answer has no point that
+         IS the answer. Two attempts at most. */
+      for (let attempt = 0; attempt < 2 && (marks.filter(m => m.length < 2).length || dead(marks)); attempt++) {
         try {
           const retry = await llm([{ role: 'system', content: markWriterSystem(topic, qs) }],
             { json: true, temperature: 0.4 });
           const o2 = parseJson(retry);
           if (o2 && Array.isArray(o2.marks)) {
             const alt = qs.map((q, i) => splitPoints(Array.isArray(o2.marks[i]) ? o2.marks[i] : []));
-            const score = a => a.filter(m => m.length >= 2).length;
-            if (score(alt) > score(marks)) marks = alt;
+            const better = dead(alt) < dead(marks) || (dead(alt) === dead(marks) && score(alt) > score(marks));
+            if (better) marks = alt;
           }
         } catch (e) { logError('/api/generate marks retry', e.message); }
       }
