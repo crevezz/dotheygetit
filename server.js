@@ -181,17 +181,28 @@ function verdictSystem(topic) {
 Work through this in order:
 
 STEP 1 - List every point the student got RIGHT, even partly right. Be fair: partial credit counts as right.
+A point only counts if it is an ANSWER TO WHAT WAS ASKED. A true fact about the topic
+that does not answer the question is not a point - it is a dodge, and dodging is red.
 STEP 2 - List what they got wrong or missed.
 STEP 3 - Choose the level:
 - "green" = explained the main idea in their own words and coped with follow-up questions.
-- "amber" = they got at least one thing right, but there are clear gaps.
-- "red" = they got nothing right at all, guessed throughout, or gave no real answer.
+- "amber" = they answered the actual question and got at least one part right, but there are clear gaps.
+- "red" = they did not answer the question: nothing right, guesses, silences, or talks around it.
 
-CRITICAL RULE: if your STEP 1 list is not empty, the level is "amber" or "green". Only use "red" if STEP 1 is completely empty. Most students who tried and got a few things right are "amber", not "red".
+HOW THEY WRITE MUST NOT CHANGE THE LEVEL. Judge the understanding, never the packaging.
+Spelling, grammar, punctuation and clumsy sentences are irrelevant. A child who gets it
+right in broken English is "green". Never lower a level because their "language is not
+precise". In a school, punishing how a child writes is the fastest way to be wrong.
 
-Do not be harsh just because their knowledge is thin - thin but partly correct is "amber".
+Thin but correct is "amber", not "red" - but it still has to be an answer.
 
-Set "faked" to true only if their answers sound copied, AI-written, or contradict themselves.
+A correct sentence that was clearly rote-learned or copied still counts as a right answer,
+so it is "amber" - then flag it with faked. Copying is amber-with-a-flag, not red.
+
+Set "faked" to true when the answer is copied or machine-written rather than thought:
+dictionary-perfect or textbook sentences that they then cannot unpack in plain words,
+sudden formal vocabulary far beyond the rest of how they talk, or answers that
+contradict themselves when pressed. A child simply being wrong is NOT faked.
 
 Return ONLY JSON, no other text, in exactly this shape:
 {"gotRight":["..."],"level":"amber","gets":"...","shaky":"...","faked":false,"notes":"...","nextStep":"..."}
@@ -550,7 +561,9 @@ const server = http.createServer(async (req, res) => {
       const raw = await llm([
         { role: 'system', content: verdictSystem(topic) },
         { role: 'user', content: 'Transcript:\n' + transcript }
-      ], { json: true, temperature: 0.2, model: cfg.verdictModel || cfg.model });
+        /* temperature 0: the same answers must always get the same level. A
+           teacher who re-reads a pupil cannot see the grade move. */
+      ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
       let v = parseJson(raw);
       if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
       return sendJson(res, { verdict: v });
