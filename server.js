@@ -9,6 +9,10 @@ const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
 const DATA = path.join(ROOT, 'data.json');
 const CLOSING = 'Great — that is everything I needed. Thank you for thinking it through!';
+/* The greeting lands in the transcript the teacher reads, so it stays in the same plain
+   register as the questions. "Let's find out how well you understand this" is a form
+   being filled in; a person asking would just say what they want. */
+const GREET = 'Hi! A few quick questions. Just say what you think - your own words are best.\n\n';
 
 // ------------------------------------------------------------------- config
 function loadConfig() {
@@ -156,6 +160,45 @@ looking at something, and they are never needed: a question about a diagram can 
 asked in words. (Words like graph, chart, map and table are fine as ideas - "what does a bar
 chart show you?" - just never as "look at the chart".)`;
 
+/* The question comes before everything else. If the child cannot read it once and know
+   what they are being asked, nothing downstream matters - not the marking, not the card.
+   A post office manager (numerate, not a teacher) could not get through
+   "Imagine you have a pizza cut into eight equal slices. If you eat three slices, what
+   fraction of the pizza is left?" without going back over it. If an adult has to read it
+   twice, a ten-year-old has already guessed. Three questions from one real check are in
+   the WRONG -> RIGHT list below, so the bar is the same one the teacher is asking for. */
+const PLAIN_WORDS = `Write it the way you would SAY it to a ten-year-old, out loud, in one breath.
+
+Every question must pass all of these:
+- ONE question mark. Never two questions joined into one.
+- 18 words at most, and most should be under 12. No single sentence over 14 words.
+- ONE job. If it needs two steps, two sums, or two things worked out, that is two
+  questions - so drop one. A quick check asks one thing at a time.
+- Numbers as digits, not words: "5 + 7", not "five and seven". Never spell a number out
+  unless it is part of a phrase like "two quarters".
+- No scene-setting. No "Imagine you have...", "Suppose that...", "Consider a...". Give
+  the facts flat and let them get on with it.
+- Plain words for the idea, and no long words to sound clever. Use the term the class
+  used, once, with a plain gloss beside it: "the bottom number (the denominator)".
+- An "explain" question is fine, but it must name the thing to explain in everyday words
+  and still be short.
+
+Read it back once, at normal speed. Could a ten-year-old answer it straight off without
+asking what you mean? If not, write it again, shorter.
+
+WRONG -> RIGHT
+"Imagine you have a pizza cut into eight equal slices. If you eat three slices, what
+fraction of the pizza is left?" -> "You eat 3 slices of a pizza cut into 8. What fraction
+is left?"
+"Explain why two quarters of a pizza is the same amount as half a pizza." -> "Why is 2
+quarters the same as a half?"
+"If you are saving up for a game that costs twenty pounds and you have already saved
+eight pounds, how many more pounds do you need to save?" -> "A game costs 20 pounds. You
+have 8 pounds. How much more do you need?"
+"What is the answer when you add five and seven?" -> "What is 5 + 7?"
+"Explain the reasoning behind the procedure you use when the denominators match." ->
+"Why do you only add the top numbers?"`;
+
 /* One idea per mark point. The model kept bundling several ideas into a single point
    ("uses sunlight, water and carbon dioxide to make glucose"), and it even emitted two
    points as one comma-joined string. A bundled point cannot be half-hit, so a pupil who
@@ -200,6 +243,8 @@ function questionWriterSystem(topic, count) {
 Topic: "${topic}".
 
 Write ${count} short, open questions that find out whether a student really understands this topic.
+
+${PLAIN_WORDS}
 
 ${NO_IMAGES}
 
@@ -249,6 +294,8 @@ If no, do not write a question — the app will ask the teacher's question inste
 
 Keep it to ONE short, friendly sentence.
 
+${PLAIN_WORDS}
+
 ${NO_IMAGES}
 
 Return ONLY JSON, no other text: {"followup":false,"question":""}
@@ -258,6 +305,8 @@ Return ONLY JSON, no other text: {"followup":false,"question":""}
 function askSystem(topic) {
   return `You are "Check", a friendly examiner. Topic: "${topic}".
 Ask ONE short, open question to find out what the student understands.
+
+${PLAIN_WORDS}
 
 ${NO_IMAGES}
 
@@ -328,9 +377,20 @@ async function levelFromQuestions(topic, transcript) {
    however the prompt was worded. Now the teacher's mark points are the standard: we ask only
    "did this answer show point 1? point 2?" and then add up.
    All the points = green. Some of them = amber. None = red. */
-async function marksFromAnswers(topic, marks, transcript) {
+/* Trim an answer to something that fits beside a mark point, without cutting a word in
+   half. Whatever comes out is the pupil's own words, never a paraphrase of them - the
+   whole point of showing it is that the teacher can check the claim for themselves. */
+function clip(s, n) {
+  const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > n - 30 ? cut.slice(0, sp) : cut).replace(/[,;:.!?]+$/, '') + '...';
+}
+
+async function marksFromAnswers(topic, marks, transcript, questions) {
   const points = [].concat.apply([], marks).filter(Boolean);
-  if (!points.length) return '';
+  if (!points.length) return null;
   const turns = [];
   for (const line of transcript.split('\n')) {
     const m = line.match(/^(Student|Examiner):\s*(.*)$/);
@@ -338,7 +398,7 @@ async function marksFromAnswers(topic, marks, transcript) {
     else if (turns.length) turns[turns.length - 1].text += ' ' + line.trim();
   }
   const answers = turns.filter(t => t.role === 'student' && t.text).map(t => t.text);
-  if (!answers.length) return '';
+  if (!answers.length) return null;
   const list = points.map((p, i) => (i + 1) + '. ' + p).join('\n');
   const sys = `Topic: "${topic}".
 
@@ -354,7 +414,11 @@ A pupil is allowed to show the same point more than once, so only judge this one
 ${NO_IMAGES}
 
 Return ONLY JSON: {"shown":[1,3]}`;
-  const hit = new Set();
+  /* Which answer showed each point, not merely whether it was shown somewhere. Keeping
+     the answer is what lets the card print the child's own words under the point they
+     earned - so the teacher can agree or disagree from the evidence instead of from the
+     colour. The words are quoted, never summarised. */
+  const hit = new Map();
   for (const a of answers) {
     try {
       const raw = await llm([
@@ -364,35 +428,44 @@ Return ONLY JSON: {"shown":[1,3]}`;
       const o = parseJson(raw);
       if (o && Array.isArray(o.shown)) o.shown.forEach(n => {
         const i = Number(n) - 1;
-        if (i >= 0 && i < points.length) hit.add(i);
+        if (i >= 0 && i < points.length && !hit.has(i)) hit.set(i, a);
       });
     } catch (e) { logError('/api/verdict marks', e.message); }
   }
   /* Combine per QUESTION, not across the lot. Pooling every question's points into one
      list meant a pupil had to hit seven of eight to be green, which no real conversation
-     manages - so even the strongest pupils came out amber. */
-  const levelOf = (ps, base) => {
-    const n = ps.length;
-    if (!n) return '';
-    const got = ps.filter((_, k) => hit.has(base + k)).length;
-    if (got === n || (n >= 3 && got >= n - 1)) return 'green';
-    return got >= 1 ? 'amber' : 'red';
-  };
-  const order = ['green', 'amber', 'red'];
-  const perQ = [];
+     manages - so even the strongest pupils came out amber.
+     Three points: all three, or two of three, is green - a missing third is not a failed
+     pupil. Two points: both. Same arithmetic as before; it is just reported now. */
+  const evidence = [];
   let base = 0;
-  for (const m of marks) {
-    const ps = (m || []).filter(Boolean);
-    const lv = levelOf(ps, base);
-    if (lv) perQ.push(lv);
+  for (let qi = 0; qi < marks.length; qi++) {
+    const ps = (marks[qi] || []).filter(Boolean);
+    if (!ps.length) continue;
+    const got = ps.filter((_, k) => hit.has(base + k)).length;
+    const level = (got === ps.length || (ps.length >= 3 && got >= ps.length - 1)) ? 'green'
+      : got >= 1 ? 'amber' : 'red';
+    evidence.push({
+      q: String((questions && questions[qi]) || '').trim(),
+      level, got, total: ps.length,
+      points: ps.map((t, k) => ({
+        t: String(t),
+        hit: hit.has(base + k),
+        said: hit.has(base + k) ? clip(hit.get(base + k), 180) : ''
+      }))
+    });
     base += ps.length;
   }
-  if (!perQ.length) return '';
+  if (!evidence.length) return null;
   /* the level they reached on the most questions; a tie goes to the better one, so one
      weak answer cannot pull down a pupil who understood the rest */
+  const order = ['green', 'amber', 'red'];
   const tally = {};
-  perQ.forEach(l => { tally[l] = (tally[l] || 0) + 1; });
-  return order.slice().sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || order.indexOf(a) - order.indexOf(b))[0];
+  evidence.forEach(e => { tally[e.level] = (tally[e.level] || 0) + 1; });
+  return {
+    level: order.slice().sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || order.indexOf(a) - order.indexOf(b))[0],
+    evidence
+  };
 }
 
 function verdictSystem(topic) {
@@ -797,14 +870,14 @@ const server = http.createServer(async (req, res) => {
         const raw = await llm([{ role: 'system', content: askSystem(topic) }, ...history], { json: true, temperature: 0.6 });
         const obj = parseJson(raw);
         let q = ((obj && obj.question) || raw || '').replace(/\[done\]/gi, '').trim() || 'Tell me what you know about this.';
-        if (asked === 0) q = "Hi! Let's find out how well you understand this.\n\n" + q;
+        if (asked === 0) q = GREET + q;
         return sendJson(res, { reply: q, done: false, covered: covered + 1, digs });
       }
 
       // First turn: greet and ask the teacher's first question, word for word.
       if (asked === 0) {
         return sendJson(res, {
-          reply: "Hi! Let's find out how well you understand this.\n\n" + questions[0],
+          reply: GREET + questions[0],
           done: false, covered: 1, digs: 0
         });
       }
@@ -831,13 +904,18 @@ const server = http.createServer(async (req, res) => {
       if (!topic || !transcript) return sendErr(res, 'Missing topic or transcript.');
 
       /* the teacher's mark points for this check - sent direct, or looked up from
-         the class code the pupil came in on */
+         the class code the pupil came in on. The questions come too, because a mark
+         point on its own does not tell the teacher which question it belonged to. */
       let marks = Array.isArray(b.marks) ? b.marks : [];
-      if (!marks.length && b.code) {
+      let questions = Array.isArray(b.questions) ? b.questions.map(q => String(q || '').trim()).filter(Boolean) : [];
+      if ((!marks.length || !questions.length) && b.code) {
         const cls = store.classes.find(x => x.code === String(b.code).trim().toLowerCase());
         const past = cls ? store.sessions.filter(s => s.classId === cls.id) : [];
         const sess = past.sort((x, y) => y.createdAt - x.createdAt)[0];
-        if (sess && Array.isArray(sess.marks)) marks = sess.marks;
+        if (sess) {
+          if (!marks.length && Array.isArray(sess.marks)) marks = sess.marks;
+          if (!questions.length && Array.isArray(sess.questions)) questions = sess.questions;
+        }
       }
       const raw = await llm([
         { role: 'system', content: verdictSystem(topic) },
@@ -848,14 +926,22 @@ const server = http.createServer(async (req, res) => {
       let v = parseJson(raw);
       if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
 
-      /* the level comes from grading each question separately; everything else
-         (gets / shaky / next step) still comes from the read above */
+      /* the level comes from grading each question separately, and so does the evidence
+         behind it; everything else (gets / shaky / next step) still comes from the read
+         above. The evidence rides inside the verdict so it is stored with the pupil and
+         the teacher can see, point by point, what the level was built from. */
       try {
-        const perQ = marks.length
-          ? await marksFromAnswers(topic, marks, transcript)
-          : await levelFromQuestions(topic, transcript);
-        if (perQ) v.level = perQ;
-        if (marks.length) v.marked = true;
+        const graded = marks.length
+          ? await marksFromAnswers(topic, marks, transcript, questions)
+          : null;
+        if (graded) {
+          v.level = graded.level;
+          v.evidence = graded.evidence;
+          v.marked = true;
+        } else if (!marks.length) {
+          const perQ = await levelFromQuestions(topic, transcript);
+          if (perQ) v.level = perQ;
+        }
       } catch (e) { logError('/api/verdict grading', e.message); }
       return sendJson(res, { verdict: v });
     }

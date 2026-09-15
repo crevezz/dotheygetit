@@ -15,6 +15,36 @@
   --radius:18px;
 }
 *{box-sizing:border-box}
+/* --------------------------------------------------- evidence: what the mark was built from
+   The teacher already wrote the standard (the mark points). This shows each one hit or
+   missed, with the pupil's own words under it, so the colour on the card can be checked
+   rather than trusted. */
+.evwrap { margin-top:10px; padding:9px 11px; border:1px solid var(--line); border-radius:11px; background:var(--surface2); }
+.evhead { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.evhead b { color:var(--text); letter-spacing:0; font-size:13px; }
+.evq { margin-top:9px; }
+.evq + .evq { border-top:1px dashed var(--line); padding-top:8px; }
+.evqt { font-size:12px; font-weight:700; color:var(--text); opacity:.75; margin-bottom:5px; }
+.evlist { list-style:none; margin:0; padding:0; display:grid; gap:5px; }
+.evlist li { display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; font-size:13px; line-height:1.4; }
+.evmark { flex:0 0 auto; font-size:10px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; padding:2px 6px; border-radius:5px; }
+.evlist li.hit .evmark { background:rgba(61,220,132,.16); color:var(--green); }
+.evlist li.miss .evmark { background:rgba(255,107,107,.14); color:var(--red); }
+.evlist li.hit .evt { color:var(--text); }
+.evlist li.miss .evt { color:var(--muted); }
+.evsaid { flex-basis:100%; margin:1px 0 0 33px; font-size:12px; font-style:italic; color:var(--muted); }
+.evlist li.hit .evsaid { color:var(--green); opacity:.9; }
+
+/* the class read together: a point most of them missed is a teaching gap, not 30 pupils */
+.lostit { border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:12px;
+          padding:12px 14px; margin:14px 0 4px; background:var(--surface2); }
+.lostit .tk { font-size:11px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:var(--amber); }
+.lostit .tv { font-size:13px; color:var(--muted); margin-left:8px; }
+.lostit ul { list-style:none; margin:10px 0 0; padding:0; display:grid; gap:6px; }
+.lostit li { display:flex; align-items:baseline; gap:9px; font-size:14px; line-height:1.45; }
+.lostn { flex:0 0 auto; font-size:12px; font-weight:800; color:var(--amber); }
+.lostnote { margin-top:9px; font-size:12px; color:var(--muted); }
+
 .ovrow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:9px; border-top:1px dashed var(--line); }
 .ovlab { font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-right:2px; }
 .ovbtn { font:inherit; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; }

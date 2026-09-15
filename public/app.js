@@ -564,13 +564,30 @@ function drawResults(s, students) {
     const tip = st.teacherLevel ? 'You set this mark.' : lv === 'green' ? 'Really understands it.'
               : lv === 'amber' ? 'Partly knows it, with clear gaps.'
               : 'Got little right — needs help.';
+    /* The mark points ARE the evidence. The teacher set them, so seeing hit or missed
+       against the pupil's own words is a claim they can check - which is the difference
+       between a card that tells them something and a card that just has a colour on it. */
+    const ev = Array.isArray(v.evidence) ? v.evidence : [];
+    const gotAll = ev.reduce((n, e) => n + e.got, 0);
+    const ofAll = ev.reduce((n, e) => n + e.total, 0);
     return `<div class="sresult lv-${esc(lv)}" data-ailevel="${esc(v.level || '')}">
       <div class="head"><span class="name">${esc(st.name)}</span><span class="tag lv-${esc(lv)}" data-tip="${esc(tip)}">${esc(lv)}</span></div>
       ${v.notes ? `<div class="notes">${esc(v.notes)}</div>` : ''}
+      ${ev.length ? `<div class="evwrap">
+        <div class="evhead" data-tip="Your own mark points, one line each - what they showed and what they did not. The words in quotes are exactly what the pupil typed.">What they had to show <b>${gotAll} of ${ofAll}</b></div>
+        ${ev.map(e => `<div class="evq">
+          ${e.q ? `<div class="evqt">${esc(e.q)}</div>` : ''}
+          <ul class="evlist">${e.points.map(p => `<li class="${p.hit ? 'hit' : 'miss'}">
+            <span class="evmark" data-tip="${p.hit ? 'Their answer showed this.' : 'Nothing they said showed this.'}">${p.hit ? 'yes' : 'no'}</span>
+            <span class="evt">${esc(p.t)}</span>
+            ${p.said ? `<span class="evsaid">"${esc(p.said)}"</span>` : ''}
+          </li>`).join('')}</ul>
+        </div>`).join('')}
+      </div>` : ''}
       <div class="detail">
-        ${v.gets ? `<div><span class="k" data-tip="What they truly understand.">Gets</span>${esc(v.gets)}</div>` : ''}
-        ${v.shaky ? `<div><span class="k" data-tip="Where they are weak.">Shaky</span>${esc(v.shaky)}</div>` : ''}
-        ${v.nextStep ? `<div class="nextstep"><span class="k" data-tip="One thing to do with them next.">Next</span>${esc(v.nextStep)}</div>` : ''}
+        ${!ev.length && v.gets ? `<div><span class="k" data-tip="What they truly understand.">Gets</span>${esc(v.gets)}</div>` : ''}
+        ${!ev.length && v.shaky ? `<div><span class="k" data-tip="Where they are weak.">Shaky</span>${esc(v.shaky)}</div>` : ''}
+        ${v.nextStep ? `<div class="nextstep"><span class="k" data-tip="Where this pupil is now - yours to act on.">Next</span>${esc(v.nextStep)}</div>` : ''}
         ${v.faked ? `<div class="warn" data-tip="Their answers sounded copied or AI-written.">Possible bluffing</div>` : ''}
       </div>
       <div class="ovrow">
@@ -584,6 +601,21 @@ function drawResults(s, students) {
   }).join('');
 
   const needHelp = L.amber + L.red;
+
+  /* Read the class together. A mark point that most of them missed is usually how it was
+     taught, not thirty separate pupils being weak - and that is the one thing a colour
+     per child can never show. Only worth saying when it is a real pattern. */
+  const withEv = students.filter(st => ((st.verdict || {}).evidence || []).length).length;
+  const missTally = {};
+  students.forEach(st => ((st.verdict || {}).evidence || []).forEach(e => e.points.forEach(p => {
+    if (p.hit) return;
+    if (!missTally[p.t]) missTally[p.t] = { t: p.t, n: 0 };
+    missTally[p.t].n++;
+  })));
+  const worst = Object.keys(missTally).map(k => missTally[k])
+    .sort((a, b) => b.n - a.n)
+    .filter(w => withEv >= 3 && w.n >= 2)
+    .slice(0, 3);
 
   /* the point of the whole thing: not colours per child, but one list of who to
      go back to and what to do with them. Read together, the same gap shows up
@@ -610,6 +642,11 @@ function drawResults(s, students) {
          <div class="stat red" data-tip="Got little right — needs help."><b>${L.red}</b><span>struggling</span></div>
        </div>
        <p class="summary"><b>${students.length}</b> finished · <b>${needHelp}</b> need${needHelp === 1 ? 's' : ''} a hand</p>
+       ${worst.length ? `<div class="lostit">
+         <div class="tline"><span class="tk">Re-teach</span><span class="tv">what the class mostly missed</span></div>
+         <ul>${worst.map(w => `<li><span class="lostn">${w.n} of ${withEv}</span>${esc(w.t)}</li>`).join('')}</ul>
+         <div class="lostnote">Read across the class, a point most of them missed is usually how it was taught - not a room full of pupils who were not listening.</div>
+       </div>` : ''}
        ${todo.length ? `<div class="tomorrow">
          <div class="tline"><span class="tk">Tomorrow</span><span class="tv">${todo.length} to go back to — and what to do with them</span></div>
          <ul>${todo.map(t => `<li><i class="dot2 lv-${esc(t.lv)}"></i><b>${esc(t.name)}</b>${t.next ? '<span class="tnext">' + esc(t.next) + '</span>' : ''}</li>`).join('')}</ul>
@@ -849,7 +886,7 @@ async function finish() {
   $('#btnSend').disabled = true;
   $('#chatMsg').textContent = '';
   try {
-    const j = await post('/api/verdict', { topic: chat.topic, transcript, code: chat.code });
+    const j = await post('/api/verdict', { topic: chat.topic, transcript, code: chat.code, questions: chat.questions, marks: chat.marks || [] });
     await post('/api/result', { code: chat.code, name: chat.name, transcript, verdict: j.verdict });
   } catch (e) {
     setMsg($('#chatMsg'), 'Could not send to your teacher. Tell them before you close this.');
