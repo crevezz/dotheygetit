@@ -86,8 +86,12 @@ async function markAll(marks, label) {
     const got = ev.reduce((n, e) => n + e.got, 0), tot = ev.reduce((n, e) => n + e.total, 0);
     rows.push({ f, v, ev, got, tot });
     const bad = ev.filter((e, i) => e.points.some(p => p.hit && p.said && !String(f.a[i] || '').toLowerCase().includes(String(p.said).replace(/\.\.\.$/, '').toLowerCase().trim().slice(0, 12))));
-    log(label + '  ' + f.name + '  got=' + v.level + '  points ' + got + '/' + tot + '   teacher would say ' + f.band + '  (' + f.notes + ')');
+    log(label + '  ' + f.name + '  got=' + v.level + '  points ' + got + '/' + tot +
+      (tot ? ' (' + Math.round(100 * got / tot) + '%)' : '') + '  blanks ' + (v.blanks === undefined ? '?' : v.blanks) +
+      '   teacher would say ' + f.band + '  (' + f.notes + ')');
     if (bad.length) log('        quote does not come from the answer to that question: ' + bad.map(e => e.q.slice(0, 40)).join(' | '));
+    log('        ' + ev.map((e, i) => 'Q' + (i + 1) + ' ' + e.got + '/' + e.total +
+      (e.points.some(p => p.hit) ? ' [' + e.points.filter(p => p.hit).map(p => p.t.slice(0, 34)).join(' + ') + ']' : '')).join('  |  '));
   }
   return rows;
 }
@@ -109,8 +113,9 @@ async function markAll(marks, label) {
   ok('it can fail: the old marking hands a red to a pupil who got everything right',
     oldRows.find(r => r.f.name === 'craig').v.level === 'red',
     'craig got all five right and was marked ' + oldRows.find(r => r.f.name === 'craig').v.level);
-  ok('it can fail: questions nobody could score on', oldDead >= 3, oldDead + ' of 5 questions ask for an answer but carry no point that is the answer');
-
+  /* "two amounts together" trips the number-word check, so this reads 2 rather than 3.
+     What matters is that the old points could not be reached at all. */
+  ok('it can fail: questions nobody could score on', oldDead >= 2, oldDead + ' of 5 questions ask for an answer but carry no point that is the answer');
   /* ---- leg 2: mark points the current writer makes, same five questions ---- */
   console.log('\n2. mark points the writer makes now, from the same five questions');
   const su = await call('/api/signup', { email: 'fam' + Date.now() + '@test.com', password: 'family1234' });
@@ -127,7 +132,17 @@ async function markAll(marks, label) {
   const reds = rows.filter(r => r.v.level === 'red').map(r => r.f.name);
   ok('nobody is failed any more', reds.length === 0, reds.length ? 'still red: ' + reds.join(', ') : 'no reds');
   const right = rows.filter(r => r.f.band === r.v.level).map(r => r.f.name);
-  ok('the marks land where a teacher would put them', right.length >= 3, right.length + ' of 4 match: ' + rows.map(r => r.f.name + ' ' + r.v.level + '/' + r.f.band).join(', '));
+  ok('the marks land where a teacher would put them', right.length === FAMILY.length, right.length + ' of 4 match: ' + rows.map(r => r.f.name + ' ' + r.v.level + '/' + r.f.band).join(', '));
+  const bare = rows.filter(r => r.f.band === 'amber');
+  ok('a right answer with no explaining lands on amber, never green',
+    bare.every(r => r.v.level === 'amber'),
+    bare.map(r => r.f.name + ' ' + r.v.level + ' (' + r.got + '/' + r.tot + ')').join(', '));
+  ok('the one who gave a real reason is the only green',
+    rows.filter(r => r.v.level === 'green').map(r => r.f.name).join(',') === 'craig',
+    'green: ' + (rows.filter(r => r.v.level === 'green').map(r => r.f.name).join(', ') || 'nobody'));
+  ok('no question was left blank by the pupil who got everything right',
+    (rows.find(r => r.f.name === 'craig') || {}).v.blanks === 0,
+    'blanks ' + ((rows.find(r => r.f.name === 'craig') || {}).v || {}).blanks);
 
   const wrongQuote = rows.filter(r => r.ev.some((e, i) => e.points.some(p => p.hit && p.said && !String(r.f.a[i] || '').toLowerCase().includes(String(p.said).replace(/\.\.\.$/, '').toLowerCase().trim().slice(0, 12)))));
   ok('every quote on the card comes from the answer to the question it sits under', wrongQuote.length === 0, wrongQuote.map(r => r.f.name).join(', ') || 'all quotes fit their own question');

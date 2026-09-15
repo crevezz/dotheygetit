@@ -219,6 +219,16 @@ For short answer questions the points ARE the answers:
 Q: "What is 5 + 7?"  Good: ["says 12", "adds the two numbers together"]
 Bad: ["explains that five and seven were added together"] - the pupil never says that.
 Q: "You eat 2 of 10 apples. How many are left?"  Good: ["says 8", "takes 2 away from 10"]
+WORK THE ANSWER OUT YOURSELF FIRST, then write the point that gives THAT answer. A point
+carrying the wrong answer is worse than no point at all: it marks the pupils who are right
+down for being right, and hands credit to the ones who are wrong.
+Q: "A pizza of eight slices has three eaten. What fraction is left?"
+Good: ["says five eighths", "works out eight take away three"]   Bad: ["says three eighths"]
+For a question that asks WHY - "explain why two quarters is the same as a half" - there is
+no number to give, so its points are the reasons. One of them must be the claim itself, in
+the words a pupil would likely use, so that a muddled but real attempt can reach it. A pupil
+who gets there in clumsy words has shown the idea; never write a point that needs tidy
+wording to be reachable.
 Each point is ONE idea in ONE short sentence, twelve words or so. Never put two ideas in
 one point and never write a list inside one. If you catch yourself writing a comma followed
 by "and", that is two points - split them.
@@ -267,7 +277,7 @@ function splitPoints(list) {
     /* and the same trick without the preface: "explains that X,explains that Y". The
        writer reaches for a verb list when it bundles, so split on a comma followed by
        one of those verbs. Both halves stay - which is the point. */
-    s = s.replace(/,\s*(?=(explains|states|says|shows|knows|mentions|names|identifies|describes|uses|writes|adds|compares|tells|keeps|gives|notes|takes|subtracts|combines|calculates|works|finds|converts|multiplies|divides|counts|removes|leaves|equals|means|matches|lists|repeats|orders|rounds|solves|answers|represents|totals)\b)/gi, '. ');
+    s = s.replace(/,\s*(?=(explains|states|says|shows|knows|mentions|names|identifies|describes|uses|writes|adds|compares|tells|keeps|gives|notes|because|since|takes|subtracts|combines|calculates|works|finds|converts|multiplies|divides|counts|removes|leaves|equals|means|matches|lists|repeats|orders|rounds|solves|answers|represents|totals)\b)/gi, '. ');
     const parts = s.split(/[.;]\s+|\s+[-\u2013]\s+/).map(x => x.trim().replace(/[,.]$/, '').trim());
     for (const p of parts) {
       if (p.length < 12) continue;              /* too short to be a real point on its own */
@@ -277,7 +287,19 @@ function splitPoints(list) {
       } else out.push(p);
     }
   }
-  return out.slice(0, 3);
+  /* The writer sometimes gives the same point twice in different words' clothing
+     ("is five eighths" twice on one question). The rules forbid it, and on the card it
+     reads as padding - worse, it doubles a point the pupil cannot reach twice, which
+     quietly lowers everyone's score. Identical points are collapsed.
+     Compared on letters and digits only, so casing and punctuation cannot smuggle a
+     duplicate through. */
+  const seen = new Set();
+  return out.filter(p => {
+    const k = p.toLowerCase().replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim();
+    if (!k || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, 3);
 }
 
 function questionWriterSystem(topic, count) {
@@ -463,6 +485,9 @@ shows. Be strict about the meaning and generous about the wording: clumsy, badly
 English that shows the idea DOES count. Words that sound right but show nothing DO NOT.
 A correct answer on its own shows the point that names that answer: a pupil who writes
 "12" to "what is 5 + 7?" has shown the point "says 12".
+A muddled attempt at the idea counts. Judge what the pupil meant, not how they said it - a
+garbled sentence that reaches for the right idea has shown it, and a tidy sentence that
+merely restates the question has not.
 
 A pupil is allowed to show the same point more than once, so only judge this one answer.
 
@@ -491,22 +516,30 @@ Return ONLY JSON: {"shown":[1,3]}`;
       });
     } catch (e) { logError('/api/verdict marks', e.message); }
   }
-  /* Combine per QUESTION, not across the lot. Pooling every question's points into one
-     list meant a pupil had to hit seven of eight to be green, which no real conversation
-     manages - so even the strongest pupils came out amber.
-     Three points: all three, or two of three, is green - a missing third is not a failed
-     pupil. Two points: both. Same arithmetic as before; it is just reported now. */
+  /* The BAND comes from the pooled points, not from how the questions happened to vote.
+     Voting question by question broke on single-point questions: a question carrying one
+     point can only be green or red - it can never be amber - so a bare correct answer
+     ("12" to "what is 5 + 7?") made that question green, and three of those outvoted
+     everything else and read as a secure pupil on 3 of 7. The pooled total is the number
+     the card already prints, and it cannot be skewed by how many points a question got.
+     The per-question grade is still worked out - to SHOW the teacher where the points
+     came from - but it no longer decides the band.
+     One guard, because a pool alone has its own hole: a pupil can score everything on one
+     question and be blank on the rest. A blank question means they cannot be called
+     secure, so any zero caps the band at amber. */
   const evidence = [];
-  let base = 0;
+  let base = 0, hitPool = 0, allPool = 0, blanks = 0;
   for (let qi = 0; qi < marks.length; qi++) {
     const ps = (marks[qi] || []).filter(Boolean);
     if (!ps.length) continue;
     const got = ps.filter((_, k) => hit.has(base + k)).length;
-    const level = (got === ps.length || (ps.length >= 3 && got >= ps.length - 1)) ? 'green'
-      : got >= 1 ? 'amber' : 'red';
+    if (!got) blanks++;
+    hitPool += got;
+    allPool += ps.length;
     evidence.push({
       q: String((questions && questions[qi]) || '').trim(),
-      level, got, total: ps.length,
+      level: got === ps.length ? 'green' : got >= 1 ? 'amber' : 'red',
+      got, total: ps.length,
       points: ps.map((t, k) => ({
         t: String(t),
         hit: hit.has(base + k),
@@ -516,15 +549,14 @@ Return ONLY JSON: {"shown":[1,3]}`;
     base += ps.length;
   }
   if (!evidence.length) return null;
-  /* the level they reached on the most questions; a tie goes to the better one, so one
-     weak answer cannot pull down a pupil who understood the rest */
-  const order = ['green', 'amber', 'red'];
-  const tally = {};
-  evidence.forEach(e => { tally[e.level] = (tally[e.level] || 0) + 1; });
-  return {
-    level: order.slice().sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || order.indexOf(a) - order.indexOf(b))[0],
-    evidence
-  };
+  /* With two points a question - the answer and the working - a pupil who is right but
+     cannot explain sits at about half the points, and half must read amber. Green is for
+     the pupil who answered AND showed some working somewhere: all five answers plus one
+     real reason is six of ten. */
+  const share = allPool ? hitPool / allPool : 0;
+  let level = share >= 0.6 ? 'green' : share >= 0.3 ? 'amber' : 'red';
+  if (blanks && level === 'green') level = 'amber';
+  return { level, hit: hitPool, total: allPool, blanks, evidence };
 }
 
 function verdictSystem(topic) {
@@ -923,6 +955,30 @@ const server = http.createServer(async (req, res) => {
           }
         } catch (e) { logError('/api/generate marks retry', e.message); }
       }
+      /* A question left with ONE point is the whole bug in miniature: a bare correct answer
+         hits it, so the question hands out a free point and the pooled band reads green for
+         a pupil who never explained anything. Every question is topped up to two points -
+         the answer, and the working - in a single call, and only for the questions that
+         came back thin. Doing it here rather than re-rolling the lot keeps the points a
+         teacher has already read. */
+      const thin = qs.map((q, i) => ({ q, i, have: marks[i] || [] })).filter(x => x.have.length < 2);
+      if (thin.length) {
+        try {
+          const list = thin.map((x, n) => (n + 1) + '. ' + x.q + '\n   already marked: ' + (x.have[0] || '(nothing yet)')).join('\n');
+          const raw = await llm([
+            { role: 'system', content: `You are finishing off the mark points for a short school quiz on "${topic}".
+Each question below already has one point. Every question needs TWO: the ANSWER itself, and the WORKING (what the pupil did to get it). Write the ONE missing point for each question - whichever of the two is not already there. Keep it short, in plain words, and make sure a pupil who answers that question correctly could actually say it.
+` + list + `
+Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` }
+          ], { json: true, temperature: 0.4 });
+          const o3 = parseJson(raw);
+          const extra = o3 && Array.isArray(o3.points) ? o3.points : [];
+          thin.forEach((x, n) => {
+            const p = splitPoints([extra[n] == null ? '' : extra[n]]).filter(Boolean);
+            if (p.length) marks[x.i] = marks[x.i].concat(p.slice(0, 1));
+          });
+        } catch (e) { logError('/api/generate marks top-up', e.message); }
+      }
       return sendJson(res, { questions: qs, marks });
     }
 
@@ -1021,6 +1077,9 @@ const server = http.createServer(async (req, res) => {
           v.level = graded.level;
           v.evidence = graded.evidence;
           v.marked = true;
+          v.pointsHit = graded.hit;
+          v.pointsTotal = graded.total;
+          v.blanks = graded.blanks;
         } else if (!marks.length) {
           const perQ = await levelFromQuestions(topic, transcript);
           if (perQ) v.level = perQ;
