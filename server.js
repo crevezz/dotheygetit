@@ -204,6 +204,64 @@ ${NO_IMAGES}
 Return ONLY JSON: {"question":"..."}`;
 }
 
+/* Grade ONE answer on its own, then combine in code.
+   Asking a single model call to weigh up a whole conversation proved
+   unreliable: one class came back with no greens, the next with no reds.
+   Adjectives could not place the threshold, so the combining is arithmetic
+   now instead of another paragraph of prompt - and a pupil's level no longer
+   depends on how many questions happened to be asked. */
+function pairSystem(topic) {
+  return `Topic: "${topic}". You are grading ONE pupil's answer to ONE question. Nothing else.
+
+${NO_IMAGES}
+
+Return ONLY JSON: {"level":"green","why":"..."}
+
+- "green" = got the main idea right and showed they know why. Clumsy writing, wrong spelling
+  and rough grammar are irrelevant - a pupil who understands in their own words is "green".
+- "amber" = right idea with a real gap, or only partly there.
+- "red" = gave no answer, guessed, or did not address the question asked.
+
+A correct sentence that was clearly copied or rote-learned is "amber", not "red".`;
+}
+
+async function levelFromQuestions(topic, transcript) {
+  /* The transcript is a flat list of "Student:" / "Examiner:" turns, and the
+     text of a turn can run over several lines. Walk it properly - an earlier
+     version of this paired the turns one out of step and fed the pupil's own
+     previous answer in as the question, so a whole class came back red. */
+  const turns = [];
+  for (const line of transcript.split('\n')) {
+    const m = line.match(/^(Student|Examiner):\s*(.*)$/);
+    if (m) turns.push({ role: m[1].toLowerCase(), text: m[2].trim() });
+    else if (turns.length) turns[turns.length - 1].text += ' ' + line.trim();
+  }
+  /* Grade each answer against the TOPIC, not against whichever question came
+     before it: the examiner's follow-ups and the teacher's questions are not
+     the same thing, and a pupil being asked something new is not a pupil
+     failing to answer the old one. */
+  const answers = turns.filter(t => t.role === 'student' && t.text).map(t => t.text);
+  if (!answers.length) return '';
+  const levels = [];
+  for (const a of answers) {
+    try {
+      const raw = await llm([
+        { role: 'system', content: pairSystem(topic) },
+        { role: 'user', content: 'The pupil answered: ' + a }
+      ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
+      const o = parseJson(raw);
+      if (o && o.level) levels.push(String(o.level).toLowerCase());
+    } catch (e) { logError('/api/verdict per-question', e.message); }
+  }
+  if (!levels.length) return '';
+  const order = ['green', 'amber', 'red'];
+  const tally = {};
+  levels.forEach(l => { tally[l] = (tally[l] || 0) + 1; });
+  /* the level they reached most often; a tie goes to the better one, so one
+     bad answer cannot pull down a pupil who understood the rest */
+  return order.slice().sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || order.indexOf(a) - order.indexOf(b))[0];
+}
+
 function verdictSystem(topic) {
   return `You are an examiner grading a short exam. Topic: "${topic}".
 
@@ -625,6 +683,13 @@ const server = http.createServer(async (req, res) => {
       ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
       let v = parseJson(raw);
       if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+
+      /* the level comes from grading each question separately; everything else
+         (gets / shaky / next step) still comes from the read above */
+      try {
+        const perQ = await levelFromQuestions(topic, transcript);
+        if (perQ) v.level = perQ;
+      } catch (e) { logError('/api/verdict per-question', e.message); }
       return sendJson(res, { verdict: v });
     }
 
