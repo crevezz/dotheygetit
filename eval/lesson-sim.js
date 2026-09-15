@@ -31,13 +31,69 @@ const NAMES = ['Amira', 'Jack', 'Callum', 'Sofia', 'Noah', 'Layla', 'Rhys', 'Isl
   'Tyler', 'Freya', 'Kai', 'Megan', 'Idris', 'Elsie', 'Ravi', 'Nia', 'Dylan', 'Ava',
   'Jonah', 'Priya', 'Leon', 'Maya', 'Charlie', 'Zara', 'Bilal', 'Erin', 'Max', 'Iris'];
 
-const ANSWERS = [
-  ['4/5 because if you put them both over 20 you get 15/20 and 16/20', 'Make the bottoms the same, 24, so 16/24 and 15/24', 'A fifth is bigger than a tenth because the bottom tells you how many pieces you cut it into'],
-  ['4/5 cos 5 is bigger', 'I would times them', 'I would say they are wrong'],
-  ['I dont know', 'dunno', 'idk'],
-  ['You have to find a common denominator and then compare the numerators', 'The lowest common multiple of 3 and 8 is 24', 'Ten pieces is smaller than five pieces because you cut the whole into more bits'],
-  ['4/5', 'times it', 'because 10 is more than 5'],
-  ['I think 4/5 is bigger but I am not sure how to show it properly', 'I would try to make them the same bottom but I get stuck', 'I would tell them to draw it']
+/* Ten pupils, ten standards, from "could teach it" down to "said nothing".
+   Each one has a band a teacher would give. Three children share each profile,
+   so 30 pupils = every standard represented, and we can check whether the
+   grades actually track the quality of the answer. */
+const PROFILES = [
+  {
+    band: 'green', who: 'could teach it',
+    a: ['4/5. Fifteenths of twenty: 3/4 is 15/20 and 4/5 is 16/20, so 4/5 is one twentieth bigger.',
+      'Find the lowest common multiple of the bottoms, 24, so 16/24 against 15/24. So 2/3 is bigger.',
+      'A tenth is smaller than a fifth. The bottom is how many pieces you cut the whole into, so more pieces means each one is smaller.']
+  },
+  {
+    band: 'green', who: 'right, clumsy writing',
+    a: ['4/5 is bigger. I done it by doing 4x5 and 5x4 to get 20 then times the tops.',
+      'Same as before, make the botums the same, I think 24 works for 3 and 8.',
+      'I would tell them that is rong and show them with the peices of a cake.'] 
+  },
+  {
+    band: 'green', who: 'gets there after a wobble',
+    a: ['3/4 cos 4 is bigger than 5, no wait that is backwards. It has to be 4/5, I need to make the bottoms the same to check.',
+      'Make them both something they share, then look at the tops.',
+      'You cut it into ten and you cut it into five. The ten pieces are smaller, so a fifth is bigger.'] 
+  },
+  {
+    band: 'amber', who: 'right idea, one real gap',
+    a: ['4/5 because 5 is bigger than 4.',
+      'I would times them together.',
+      'I would say they are wrong but I could not show them why properly.'] 
+  },
+  {
+    band: 'amber', who: 'right answer, no method',
+    a: ['4/5. I done it on a calculator, 3 divide 4 and 4 divide 5.',
+      'I would use the calculator again.',
+      'I know it is wrong but I would just tell them the answer.'] 
+  },
+  {
+    band: 'amber', who: 'thin but correct',
+    a: ['4/5 I think, because the bits are bigger.',
+      'I would make them the same but I dont know the number.',
+      'The bottom is how many bits you cut it into.'] 
+  },
+  {
+    band: 'amber', who: 'rote, cannot unpack it',
+    a: ['You convert both fractions to a common denominator and compare the resulting numerators.',
+      'You would determine the least common multiple of the denominators, which is 24.',
+      'They are incorrect because a larger denominator denotes a smaller unit fraction.'] 
+  },
+  {
+    band: 'red', who: 'confidently wrong',
+    a: ['3/4 because 3 and 4 are smaller numbers.',
+      'Whatever the biggest numbers are is the biggest one.',
+      'I would say ten is more than five so they are right.'] 
+  },
+  {
+    band: 'red', who: 'gave nothing',
+    a: ['dunno', 'idk miss', 'I dont know'] 
+  },
+  {
+    band: 'red', who: 'chatty, off the question',
+    a: ['I like maths when it is not fractions. My brother is better at it than me.',
+      'Do we get to go out at break after this?',
+      'Once I got a certificate in assembly for good reading.'] 
+  }
 ];
 
 const PROBLEMS = [];
@@ -112,7 +168,8 @@ async function pool(items, limit, fn) {
   log('\ndriving ' + PUPILS + ' pupils through ' + QUESTIONS.length + ' questions...');
   const T0 = Date.now();
   const results = await pool(NAMES.slice(0, PUPILS), CONCURRENCY, async (name, i) => {
-    const answers = ANSWERS[i % ANSWERS.length];
+    const prof = PROFILES[i % PROFILES.length];
+    const answers = prof.a;
     const history = [];
     let turns = 0, badReply = 0, failed = 0;
     for (let q = 0; q < QUESTIONS.length; q++) {
@@ -129,7 +186,9 @@ async function pool(items, limit, fn) {
     const v = await post('/api/verdict', { topic: TOPIC, transcript });
     const verdict = v.body && v.body.verdict;
     const saved = await post('/api/result', { code, name, transcript, verdict });
-    return { name, turns, badReply, failed, gotVerdict: !!verdict, level: verdict && verdict.level, saved: saved.status === 200 };
+    return { name, turns, badReply, failed, gotVerdict: !!verdict, level: verdict && verdict.level,
+      saved: saved.status === 200, band: prof.band, who: prof.who,
+      note: verdict && verdict.gets, next: verdict && verdict.nextStep };
   });
   const secs = (Date.now() - T0) / 1000;
 
@@ -188,10 +247,44 @@ async function pool(items, limit, fn) {
   ok('another teacher cannot export this class', stolen.status === 403 || stolen.status === 404 || stolen.status === 400,
     stolen.status + '');
 
+  // ---- does the grade track the answer
+  log('\n--- did the grade match the pupil ---');
+  const order = ['green', 'amber', 'red'];
+  const seenByProfile = {};
+  for (const r of results) {
+    const k = r.who;
+    if (!seenByProfile[k]) seenByProfile[k] = { band: r.band, got: [], names: [], notes: [] };
+    seenByProfile[k].got.push(r.level);
+    seenByProfile[k].names.push(r.name);
+    seenByProfile[k].notes.push(r.note);
+  }
+  const hits = results.filter(r => r.level === r.band).length;
+  const bad = results.filter(r => Math.abs(order.indexOf(r.level) - order.indexOf(r.band)) >= 2);
+  for (const [who, p] of Object.entries(seenByProfile)) {
+    const tally = p.got.reduce((a, l) => (a[l] = (a[l] || 0) + 1, a), {});
+    const allRight = p.got.every(l => l === p.band);
+    log('  ' + (allRight ? 'OK  ' : 'MISS') + ' ' + who.padEnd(28) + 'teacher: ' + p.band.padEnd(6) +
+      'ai: ' + JSON.stringify(tally));
+  }
+  log('  graded to the teacher\'s band: ' + hits + '/' + results.length +
+    '  (' + (hits / results.length * 100).toFixed(0) + '%)');
+  ok('no pupil is two bands out', bad.length === 0, bad.map(r => r.name + ' ' + r.level + ' vs ' + r.band).join(', '));
+  ok('nobody who clearly understood was failed', !results.some(r => r.band === 'green' && r.level === 'red'));
+  ok('nobody who gave nothing was passed', !results.some(r => r.band === 'red' && r.level === 'green'));
+  ok('the class got a real spread of grades', new Set(results.map(r => r.level)).size >= 2);
+
+  const misses = results.filter(r => r.level !== r.band);
+  if (misses.length) {
+    log('\n  misses:');
+    for (const m of misses.slice(0, 8)) log('    ' + m.name + ' (' + m.who + ') teacher ' +
+      m.band + ' -> ai ' + m.level + '   "' + String(m.note || '').slice(0, 70) + '"');
+    if (misses.length > 8) log('    ... and ' + (misses.length - 8) + ' more');
+  }
+
   log('\n' + '='.repeat(64));
   log('  ' + PUPILS + ' pupils, ' + QUESTIONS.length + ' questions, real AI on every turn');
   log('  wall clock          ' + secs.toFixed(1) + 's  (' + (PUPILS * QUESTIONS.length / secs).toFixed(1) + ' chat turns/sec)');
-  log('  slowest pupil       ' + null);
+  log('  graded right        ' + hits + '/' + results.length);
   log('  problems            ' + (PROBLEMS.length ? PROBLEMS.join(' | ') : 'none'));
   log('='.repeat(64));
 
