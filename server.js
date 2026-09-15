@@ -136,6 +136,19 @@ async function llm(messages, opts = {}) {
 }
 
 // ------------------------------------------------------------------- prompts
+/* Every prompt that can put a question to a pupil shares this.
+   The AI has been caught asking "what is this picture?" in a chat that has no
+   picture in it. It does not know it is reaching a child through a text box, so
+   it has to be told - every single time, in every prompt that asks anything.
+   A question a pupil cannot answer is worse than no question: they sit and
+   stare, then guess, and the teacher gets a red that means nothing. */
+const NO_IMAGES = `Everything you say appears in a plain text box on a screen. There is no
+picture, photo, diagram, graph, table, map or worksheet, and you cannot send one. The pupil
+can only read the words you type. So: never ask about anything they are meant to look at,
+never write "this picture", "the diagram", "the image" or "the graph", and never ask them to
+draw, label, copy out or point at something. If an idea would normally need a picture, put it
+into words instead.`;
+
 function questionWriterSystem(topic, count) {
   return `You are helping a teacher write a quick understanding check.
 
@@ -143,11 +156,15 @@ Topic: "${topic}".
 
 Write ${count} short, open questions that find out whether a student really understands this topic.
 
+${NO_IMAGES}
+
 Rules:
 - One question each. Short and clear. Do not write answers.
 - Start easy, get harder.
 - At least one should ask them to explain or apply it in their own words.
 - No yes/no questions.
+- If the topic is naturally visual, ask about it in words: not "what can you see in this
+  diagram of the water cycle?" but "what happens to rain after it lands?".
 
 Return ONLY JSON: {"questions":["...","..."]}`;
 }
@@ -165,6 +182,8 @@ If no, do not write a question — the app will ask the teacher's question inste
 
 Keep it to ONE short, friendly sentence.
 
+${NO_IMAGES}
+
 Return ONLY JSON, no other text: {"followup":false,"question":""}
 - Set "followup" to true and put your single follow-up question in "question" ONLY when you are asking a follow-up.${allowDig ? '' : '\n- You have already used your one follow-up, so "followup" MUST be false.'}`;
 }
@@ -172,6 +191,9 @@ Return ONLY JSON, no other text: {"followup":false,"question":""}
 function askSystem(topic) {
   return `You are "Check", a friendly examiner. Topic: "${topic}".
 Ask ONE short, open question to find out what the student understands.
+
+${NO_IMAGES}
+
 Return ONLY JSON: {"question":"..."}`;
 }
 
