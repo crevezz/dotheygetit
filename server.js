@@ -147,7 +147,14 @@ picture, photo, diagram, graph, table, map or worksheet, and you cannot send one
 can only read the words you type. So: never ask about anything they are meant to look at,
 never write "this picture", "the diagram", "the image" or "the graph", and never ask them to
 draw, label, copy out or point at something. If an idea would normally need a picture, put it
-into words instead.`;
+into words instead.
+
+Never write any of these words: picture, photo, image, diagram, figure, illustration,
+worksheet, slide, poster, "look at the", "shown below", "what can you see", "on the board",
+"on the screen", "draw a", "label the", "colour in", "point to". They all assume the pupil is
+looking at something, and they are never needed: a question about a diagram can always be
+asked in words. (Words like graph, chart, map and table are fine as ideas - "what does a bar
+chart show you?" - just never as "look at the chart".)`;
 
 function questionWriterSystem(topic, count) {
   return `You are helping a teacher write a quick understanding check.
