@@ -173,7 +173,38 @@ Rules:
 - If the topic is naturally visual, ask about it in words: not "what can you see in this
   diagram of the water cycle?" but "what happens to rain after it lands?".
 
-Return ONLY JSON: {"questions":["...","..."]}`;
+Return ONLY JSON, exactly this shape:
+{"questions":["...","..."],"marks":[["...","..."],["...","..."]]}
+
+"marks" is a parallel list: marks[0] holds the mark points for questions[0], and so on.
+Each question gets 2 or 3 mark points - the specific things an answer has to actually show
+to count as real understanding of it. The teacher marks against these, so they must be about
+the maths or the science and NOT about how it is written.
+Good: "says the bottoms have to match first", "compares the tops", "explains that more
+pieces means each piece is smaller".
+Bad: "clear answer", "good vocabulary", "shows understanding".`;
+}
+
+/* The teacher has written or edited the questions. These are the mark points for THEM.
+   Without this the marks were drafted against whatever questions the AI would have
+   written itself, so a class was being marked against the wrong question. */
+function markWriterSystem(topic, questions) {
+  const list = questions.map((q, i) => (i + 1) + '. ' + q).join('\n');
+  return `Topic: "${topic}".
+
+A teacher wrote these questions to find out whether a pupil really understands it:
+${list}
+
+For EACH question, write the 2 or 3 mark points - the specific things an answer has to
+actually show to count as real understanding of it. The work is marked against these, so
+they must be about the maths or the science, and never about how it is written.
+Good: "says the bottoms have to match first", "explains that more pieces means each piece
+is smaller". Bad: "clear answer", "shows understanding", "good vocabulary".
+
+${NO_IMAGES}
+
+Return ONLY JSON, one list per question, in the same order as the questions:
+{"marks":[["...","..."],["...","..."]]}`;
 }
 
 function followupSystem(topic, nextQ, allowDig) {
@@ -259,6 +290,79 @@ async function levelFromQuestions(topic, transcript) {
   levels.forEach(l => { tally[l] = (tally[l] || 0) + 1; });
   /* the level they reached most often; a tie goes to the better one, so one
      bad answer cannot pull down a pupil who understood the rest */
+  return order.slice().sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || order.indexOf(a) - order.indexOf(b))[0];
+}
+
+/* Mark by COUNTING, not by opinion.
+   The old way asked the model "how well did this child understand?" - a question with no
+   fixed answer, which is why it swung between a class of no greens and a class of no reds
+   however the prompt was worded. Now the teacher's mark points are the standard: we ask only
+   "did this answer show point 1? point 2?" and then add up.
+   All the points = green. Some of them = amber. None = red. */
+async function marksFromAnswers(topic, marks, transcript) {
+  const points = [].concat.apply([], marks).filter(Boolean);
+  if (!points.length) return '';
+  const turns = [];
+  for (const line of transcript.split('\n')) {
+    const m = line.match(/^(Student|Examiner):\s*(.*)$/);
+    if (m) turns.push({ role: m[1].toLowerCase(), text: m[2].trim() });
+    else if (turns.length) turns[turns.length - 1].text += ' ' + line.trim();
+  }
+  const answers = turns.filter(t => t.role === 'student' && t.text).map(t => t.text);
+  if (!answers.length) return '';
+  const list = points.map((p, i) => (i + 1) + '. ' + p).join('\n');
+  const sys = `Topic: "${topic}".
+
+A pupil had to show these things to count as understanding it:
+${list}
+
+You get ONE answer the pupil gave. Say which of those numbered points that answer actually
+shows. Be strict about the meaning and generous about the wording: clumsy, badly spelled
+English that shows the idea DOES count. Words that sound right but show nothing DO NOT.
+
+A pupil is allowed to show the same point more than once, so only judge this one answer.
+
+${NO_IMAGES}
+
+Return ONLY JSON: {"shown":[1,3]}`;
+  const hit = new Set();
+  for (const a of answers) {
+    try {
+      const raw = await llm([
+        { role: 'system', content: sys },
+        { role: 'user', content: 'The pupil answered: ' + a }
+      ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
+      const o = parseJson(raw);
+      if (o && Array.isArray(o.shown)) o.shown.forEach(n => {
+        const i = Number(n) - 1;
+        if (i >= 0 && i < points.length) hit.add(i);
+      });
+    } catch (e) { logError('/api/verdict marks', e.message); }
+  }
+  /* Combine per QUESTION, not across the lot. Pooling every question's points into one
+     list meant a pupil had to hit seven of eight to be green, which no real conversation
+     manages - so even the strongest pupils came out amber. */
+  const levelOf = (ps, base) => {
+    const n = ps.length;
+    if (!n) return '';
+    const got = ps.filter((_, k) => hit.has(base + k)).length;
+    if (got === n || (n >= 3 && got >= n - 1)) return 'green';
+    return got >= 1 ? 'amber' : 'red';
+  };
+  const order = ['green', 'amber', 'red'];
+  const perQ = [];
+  let base = 0;
+  for (const m of marks) {
+    const ps = (m || []).filter(Boolean);
+    const lv = levelOf(ps, base);
+    if (lv) perQ.push(lv);
+    base += ps.length;
+  }
+  if (!perQ.length) return '';
+  /* the level they reached on the most questions; a tie goes to the better one, so one
+     weak answer cannot pull down a pupil who understood the rest */
+  const tally = {};
+  perQ.forEach(l => { tally[l] = (tally[l] || 0) + 1; });
   return order.slice().sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || order.indexOf(a) - order.indexOf(b))[0];
 }
 
@@ -584,7 +688,9 @@ const server = http.createServer(async (req, res) => {
       if (!topic) return sendErr(res, 'A topic is required.');
       const questions = Array.isArray(b.questions) ? b.questions.map(q => String(q || '').trim()).filter(Boolean) : [];
       if (!questions.length) return sendErr(res, 'Add at least one question.');
-      const s = { id: rid(4), classId: c.id, teacherId: t.id, topic, questions, students: [], createdAt: Date.now() };
+      const marks = Array.isArray(b.marks) ? b.marks.map(a => Array.isArray(a)
+        ? a.map(m => String(m || '').trim()).filter(Boolean).slice(0, 3) : []) : [];
+      const s = { id: rid(4), classId: c.id, teacherId: t.id, topic, questions, marks, students: [], createdAt: Date.now() };
       store.sessions.push(s);
       saveStore();
       return sendJson(res, { check: { id: s.id, topic: s.topic, createdAt: s.createdAt, students: 0 } });
@@ -608,12 +714,32 @@ const server = http.createServer(async (req, res) => {
       const topic = String(b.topic || '').trim();
       if (!topic) return sendErr(res, 'Please type a topic first.');
       const count = Math.max(3, Math.min(8, Number(b.count) || cfg.maxQuestions));
-      const raw = await llm([{ role: 'system', content: questionWriterSystem(topic, count) }], { json: true, temperature: 0.7 });
-      const obj = parseJson(raw);
+      /* The mark points make this a nested JSON shape, and the model mangles it now and
+         then. One retry costs a fraction of a second and saves the teacher an error
+         message - and silently losing the marks would fall back to guessing. */
+      let obj = null;
+      /* if the teacher has already written or edited the questions, mark those */
+      const asked = Array.isArray(b.questions) ? b.questions.map(q => String(q || '').trim()).filter(Boolean) : [];
+      for (let attempt = 0; attempt < 2 && !obj; attempt++) {
+        const sys = asked.length ? markWriterSystem(topic, asked) : questionWriterSystem(topic, count);
+        const raw = await llm([{ role: 'system', content: sys }],
+          { json: true, temperature: attempt ? 0.4 : 0.7 });
+        const o = parseJson(raw);
+        if (asked.length) {
+          if (o && Array.isArray(o.marks) && o.marks.length) obj = { questions: asked, marks: o.marks };
+        } else if (o && Array.isArray(o.questions) && o.questions.length) obj = o;
+        if (!obj) logError('/api/generate', 'unreadable JSON, retrying');
+      }
       let qs = obj && Array.isArray(obj.questions) ? obj.questions : [];
       qs = qs.map(q => String(q || '').trim()).filter(Boolean).slice(0, count);
       if (!qs.length) return sendErr(res, 'Could not generate questions. Try a clearer topic.');
-      return sendJson(res, { questions: qs });
+      /* marks[i] are the mark points for questions[i]. The teacher can edit them, and
+         from then on every pupil is marked against the teacher's standard - not the
+         model's opinion of the day. */
+      const rawMarks = obj && Array.isArray(obj.marks) ? obj.marks : [];
+      const marks = qs.map((q, i) => (Array.isArray(rawMarks[i]) ? rawMarks[i] : [])
+        .map(m => String(m || '').trim()).filter(Boolean).slice(0, 3));
+      return sendJson(res, { questions: qs, marks });
     }
 
     // ---- student chat
@@ -675,6 +801,16 @@ const server = http.createServer(async (req, res) => {
       const topic = String(b.topic || '').trim();
       const transcript = String(b.transcript || '').trim();
       if (!topic || !transcript) return sendErr(res, 'Missing topic or transcript.');
+
+      /* the teacher's mark points for this check - sent direct, or looked up from
+         the class code the pupil came in on */
+      let marks = Array.isArray(b.marks) ? b.marks : [];
+      if (!marks.length && b.code) {
+        const cls = store.classes.find(x => x.code === String(b.code).trim().toLowerCase());
+        const past = cls ? store.sessions.filter(s => s.classId === cls.id) : [];
+        const sess = past.sort((x, y) => y.createdAt - x.createdAt)[0];
+        if (sess && Array.isArray(sess.marks)) marks = sess.marks;
+      }
       const raw = await llm([
         { role: 'system', content: verdictSystem(topic) },
         { role: 'user', content: 'Transcript:\n' + transcript }
@@ -687,9 +823,12 @@ const server = http.createServer(async (req, res) => {
       /* the level comes from grading each question separately; everything else
          (gets / shaky / next step) still comes from the read above */
       try {
-        const perQ = await levelFromQuestions(topic, transcript);
+        const perQ = marks.length
+          ? await marksFromAnswers(topic, marks, transcript)
+          : await levelFromQuestions(topic, transcript);
         if (perQ) v.level = perQ;
-      } catch (e) { logError('/api/verdict per-question', e.message); }
+        if (marks.length) v.marked = true;
+      } catch (e) { logError('/api/verdict grading', e.message); }
       return sendJson(res, { verdict: v });
     }
 

@@ -368,6 +368,7 @@ $('#btnGenerate').addEventListener('click', async () => {
   try {
     const j = await post('/api/generate', { topic });
     generated = j.questions;
+    generated.marks = j.marks || [];
     renderQuestions();
     $('#qwrap').classList.remove('hidden');
     $('#btnCreateCheck').classList.remove('hidden');
@@ -416,7 +417,7 @@ $('#btnCreateCheck').addEventListener('click', async () => {
   if (!activeClass) return setMsg($('#checkMsg'), 'Pick a class first.');
   $('#btnCreateCheck').disabled = true;
   try {
-    const j = await post('/api/session', { classId: activeClass.id, topic: $('#topic').value.trim(), questions });
+    const j = await post('/api/session', { classId: activeClass.id, topic: $('#topic').value.trim(), questions, marks: generated.marks || [] });
     activeCheckId = j.check.id;
     $('#qwrap').classList.add('hidden');
     $('#btnCreateCheck').classList.add('hidden');
@@ -816,7 +817,7 @@ async function finish() {
   $('#btnSend').disabled = true;
   $('#chatMsg').textContent = '';
   try {
-    const j = await post('/api/verdict', { topic: chat.topic, transcript });
+    const j = await post('/api/verdict', { topic: chat.topic, transcript, code: chat.code });
     await post('/api/result', { code: chat.code, name: chat.name, transcript, verdict: j.verdict });
   } catch (e) {
     setMsg($('#chatMsg'), 'Could not send to your teacher. Tell them before you close this.');

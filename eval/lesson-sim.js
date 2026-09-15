@@ -160,7 +160,14 @@ async function pool(items, limit, fn) {
   const roster = await post('/api/roster', { classId, names: NAMES.slice(0, PUPILS) }, teacher);
   ok('roster of ' + PUPILS + ' saved', roster.status === 200, roster.status + ' ' + JSON.stringify(roster.body));
 
-  const check = await post('/api/session', { classId, topic: TOPIC, questions: QUESTIONS }, teacher);
+  /* the mark points - the AI drafts them, the teacher approves them, and from then on
+     every pupil is marked against the teacher's standard */
+  const gen = await post('/api/generate', { topic: TOPIC, questions: QUESTIONS }, teacher);
+  const MARKS = (gen.body && gen.body.marks) || [];
+  ok('every question carries mark points', MARKS.length === QUESTIONS.length && MARKS.every(a => a.length >= 2),
+    MARKS.map(a => a.length).join('/') + ' ' + JSON.stringify(MARKS));
+
+  const check = await post('/api/session', { classId, topic: TOPIC, questions: QUESTIONS, marks: MARKS }, teacher);
   const checkId = check.body && check.body.check && check.body.check.id;
   ok('check created', !!checkId, JSON.stringify(check.body));
 
@@ -183,7 +190,7 @@ async function pool(items, limit, fn) {
       if (r.body && r.body.done) break;
     }
     const transcript = history.map(x => (x.role === 'user' ? 'Student: ' : 'Examiner: ') + x.content).join('\n');
-    const v = await post('/api/verdict', { topic: TOPIC, transcript });
+    const v = await post('/api/verdict', { topic: TOPIC, transcript, marks: MARKS });
     const verdict = v.body && v.body.verdict;
     const saved = await post('/api/result', { code, name, transcript, verdict });
     return { name, turns, badReply, failed, gotVerdict: !!verdict, level: verdict && verdict.level,
