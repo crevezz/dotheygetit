@@ -47,12 +47,19 @@
 
 .ovrow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:9px; border-top:1px dashed var(--line); }
 .ovlab { font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-right:2px; }
-.ovbtn { font:inherit; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; }
+.ovbtn { font:inherit; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:6px 12px; min-height:30px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; }
 .ovbtn:hover { color:var(--text); border-color:var(--muted); }
+.ovbtn:active { transform:translateY(1px); }
+.ovbtn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+/* A mark that is set has to look set, and a mark that is not still has to look pressable -
+   the row is the one place the teacher overrules the machine, so no state may be a guess. */
 .ovbtn.on { color:#0b1020; border-color:transparent; }
 .ovbtn.on[data-lv="green"] { background:var(--green); }
 .ovbtn.on[data-lv="amber"] { background:var(--amber); }
 .ovbtn.on[data-lv="red"] { background:var(--red); }
+.ovbtn[data-lv="green"]:not(.on):hover { border-color:var(--green); color:var(--green); }
+.ovbtn[data-lv="amber"]:not(.on):hover { border-color:var(--amber); color:var(--amber); }
+.ovbtn[data-lv="red"]:not(.on):hover { border-color:var(--red); color:var(--red); }
 .ovnote { font-size:11px; font-weight:700; color:var(--accent); }
 @media print { .ovrow, .ovbtn, .ovlab, .ovnote { display:none !important; } }
 body{

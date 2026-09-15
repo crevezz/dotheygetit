@@ -520,14 +520,20 @@ function drawResults(s, students) {
       if (!b) return;
       e.preventDefault();
       e.stopPropagation();
-      const wasOn = b.classList.contains('on');
-      const lv = wasOn ? '' : b.dataset.lv;
-      const r = await post('/api/override', { sessionId: b.dataset.sid, name: b.dataset.name, level: lv });
-      if (!r || !r.ok) return toast('Could not save that');
+      /* Clicking a mark always SETS that mark. It used to toggle off when the button was
+         already lit - so the one button a teacher could not press was the one already
+         showing: they click green on a green pupil, it sends an empty level, the server
+         clears the override, the row redraws green, and the button looks dead while amber
+         and red work fine. Setting is idempotent now, the button lights on press rather
+         than on reply, and the note says plainly which state you are in. */
+      const lv = b.dataset.lv;
       const row = b.closest('.sresult');
+      b.classList.add('on');
+      const r = await post('/api/override', { sessionId: b.dataset.sid, name: b.dataset.name, level: lv });
+      if (!r || !r.ok) { b.classList.remove('on'); return toast('Could not save that'); }
       const final = r.level || '';
       if (row) {
-        row.querySelectorAll('.ovbtn').forEach(x => x.classList.toggle('on', x.dataset.lv === final));
+        row.querySelectorAll('.ovbtn').forEach(x => x.classList.toggle('on', x.dataset.lv === (final || r.aiLevel)));
         const tag = row.querySelector('.tag');
         if (tag) {
           const l = final || (row.dataset.ailevel || '');
@@ -604,7 +610,7 @@ function drawResults(s, students) {
       <div class="ovrow">
         <span class="ovlab" data-tip="The teacher has the final say. Anything you change here is remembered, and it helps the marking learn.">You decide</span>
         ${['green', 'amber', 'red'].map(x =>
-          `<button class="ovbtn${lv === x ? ' on' : ''}" data-sid="${esc(s.id)}" data-name="${esc(st.name)}" data-lv="${x}">${x}</button>`).join('')}
+          `<button type="button" class="ovbtn${lv === x ? ' on' : ''}" aria-pressed="${lv === x}" data-sid="${esc(s.id)}" data-name="${esc(st.name)}" data-lv="${x}">${x}</button>`).join('')}
         ${st.teacherLevel ? `<span class="ovnote" data-tip="The marking said ${esc(st.aiLevel || '?')}. You changed it.">you changed this</span>` : ''}
       </div>
       ${st.transcript ? `<details class="transcript"><summary data-tip="Read the conversation word for word.">See their answers</summary><div class="tlog">${tlog(st.transcript)}</div></details>` : ''}
