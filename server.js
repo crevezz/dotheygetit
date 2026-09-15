@@ -238,6 +238,11 @@ Good: "makes the bottoms the same so they can be compared", "the answer is 4/5".
 Bad: "finds a common denominator to compare them", "converts the fractions to decimals"
 (this one only rewards a pupil who can already recite the method).
 If in doubt, ask: could a ten-year-old who gets this but hates writing reach this line?
+NEVER WRITE THE ANSWER TWICE. "The sum of 15 and 23 is 38" and "Correctly adds 15 and 23"
+are the same fact in two sentences - that is ONE point, not two, and it wastes half the
+question. The second point is always the WORKING: how they got there. For "What is
+105 + 7?" the two points are "says 112" and "adds the two numbers together". A pupil who
+just types "112" has shown the first and not the second, and that is the honest mark.
 Each point is ONE idea in ONE short sentence, twelve words or so. Never put two ideas in
 one point and never write a list inside one. If you catch yourself writing a comma followed
 by "and", that is two points - split them.
@@ -468,6 +473,23 @@ function clip(s, n) {
   return (sp > n - 30 ? cut.slice(0, sp) : cut).replace(/[,;:.!?]+$/, '') + '...';
 }
 
+/* Every number in a line of text, digits or words, so a point can be compared with the
+   question and with what the pupil typed without the model getting a vote. */
+const WORD_NUM = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
+  nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+  sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30,
+  forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100,
+  thousand: 1000, million: 1000000, half: 0.5, quarter: 0.25, third: 0.333, tenth: 0.1,
+  fifth: 0.2, eighth: 0.125
+};
+function nums(s) {
+  const t = String(s || '').toLowerCase();
+  const out = (t.match(/\d+(?:[.,]\d+)?/g) || []).map(n => n.replace(/,/g, ''));
+  (t.match(/[a-z]+/g) || []).forEach(w => { if (WORD_NUM[w] !== undefined) out.push(String(WORD_NUM[w])); });
+  return out;
+}
+
 async function marksFromAnswers(topic, marks, transcript, questions) {
   const points = [].concat.apply([], marks).filter(Boolean);
   if (!points.length) return null;
@@ -531,17 +553,30 @@ Return ONLY JSON: {"shown":[1,3]}`;
       });
     } catch (e) { logError('/api/verdict marks', e.message); }
   }
-  /* The BAND comes from the pooled points, not from how the questions happened to vote.
-     Voting question by question broke on single-point questions: a question carrying one
-     point can only be green or red - it can never be amber - so a bare correct answer
-     ("12" to "what is 5 + 7?") made that question green, and three of those outvoted
-     everything else and read as a secure pupil on 3 of 7. The pooled total is the number
-     the card already prints, and it cannot be skewed by how many points a question got.
-     The per-question grade is still worked out - to SHOW the teacher where the points
-     came from - but it no longer decides the band.
-     One guard, because a pool alone has its own hole: a pupil can score everything on one
-     question and be blank on the rest. A blank question means they cannot be called
-     secure, so any zero caps the band at amber. */
+  /* A safety net under the marker, for the one case it keeps getting wrong. The teacher
+     writes "The sum of 15 and 23 is 38" and a pupil who is right answers "38". The model
+     reads the point as a sentence the pupil has to SAY, decides "38" is not that sentence,
+     and marks it no - so a child who got every sum right comes back on 5 of 10. They
+     missed nothing; the marking did.
+     So: a point that names a number the QUESTION itself never asked is the answer to that
+     question. If the pupil typed that number, they showed it, whatever words the teacher
+     wrapped round it. Deterministic, and it cannot over-credit: a wrong answer carries the
+     wrong number, or none. */
+  for (let k = 0; k < answers.length; k++) {
+    const a = answers[k];
+    const lo = paired ? offset[k] : 0;
+    const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
+    const asked = nums(paired ? questions[k] : questions.join(' '));
+    for (let j = lo; j < hi; j++) {
+      if (hit.has(j)) continue;
+      const spare = nums(points[j]).filter(n => !asked.includes(n));
+      if (spare.length && spare.some(n => nums(a).includes(n))) hit.set(j, a);
+    }
+  }
+  /* The BAND comes from the QUESTIONS the pupil showed something on, not from the pooled
+     points. Both earlier rules failed the same way: per-question voting let a one-point
+     question read green, and the pooled share parked a pupil on 36% - a number no teacher
+     can call amber or red. Points are still counted, and still shown, as detail. */
   const evidence = [];
   let base = 0, hitPool = 0, allPool = 0, blanks = 0;
   for (let qi = 0; qi < marks.length; qi++) {
