@@ -258,7 +258,12 @@ Return ONLY JSON, no other text, in exactly this shape:
 - gets: one short phrase of what they truly understand.
 - shaky: one short phrase of where they are weak (or "" if none).
 - notes: one short sentence a busy teacher can read at a glance.
-- nextStep: ONE short, specific thing the teacher should do next for this student.
+- nextStep: a SHORT read on where this pupil is now - NOT an instruction. The teacher is the
+  professional; you are telling them what you noticed, not what to do. Good: "Ready for
+  multi-step word problems." / "Knows the method but not why it works - worth going back to."
+  / "Confident on the basics, shaky the moment it is written as a problem." Never open with
+  a command: no "Introduce...", "Ask them to...", "Show them...", "Use...", "Give them...".
+  Describe the pupil's position and let the teacher decide what to do about it.
 
 Be fair but honest. Partial understanding is "amber", not "red".`;
 }
