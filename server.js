@@ -691,6 +691,27 @@ async function marksFromAnswers(topic, marks, transcript, questions) {
   const offset = [];
   let run = 0;
   for (const m of marks) { offset.push(run); run += (m || []).filter(Boolean).length; }
+  /* The examiner digs on a weak answer, so a transcript can hold MORE answers than the
+     check has questions - and then counting cannot pair them, the nets switch off, and a
+     pupil who answered every question came back 0 of 10 with "nothing" against each one.
+     The questions are known, so find each one in the transcript and take the answer that
+     follows it. A follow-up is not on the list, so it is passed over. */
+  if (answers.length !== marks.length && Array.isArray(questions) && questions.length === marks.length) {
+    const found = [];
+    let at = 0;
+    for (const q of questions) {
+      const want = String(q || '').trim();
+      const idx = turns.findIndex((t, i) => i >= at && t.role === 'examiner' && t.text === want);
+      if (idx < 0) { found.length = 0; break; }
+      const a = turns[idx + 1];
+      found.push(a && a.role === 'student' ? a.text : '');
+      at = idx + 2;
+    }
+    if (found.length === questions.length) {
+      answers.length = 0;
+      found.forEach(x => answers.push(x));
+    }
+  }
   const paired = answers.length === marks.length;
   const sysFor = (lo, hi) => `Topic: "${topic}".
 
