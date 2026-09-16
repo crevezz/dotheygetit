@@ -223,7 +223,11 @@ FIRST, and above everything else: a point must be something the pupil could actu
 in their answer to that question. If the question asks for a fact or a word, one point has
 to BE that fact or word. A point a short, correct answer cannot reach is dead weight: it
 marks every pupil down for something the question never asked. A short answer question
-still gets TWO points - the answer itself, and the working or the reason.
+still gets TWO points - the answer itself, and the working or the reason. BUT a question
+that asks for a single letter, a single word, a spelling, a name or a date has NO working
+to give: it has ONE point, and that point is the answer. Write just the one. "Knows the
+word 'apple'" beside "knows the first letter" is not a second point - it is a way of
+marking a child down for answering a one-word question in one word.
 WORK OUT THE RIGHT ANSWER YOURSELF FIRST, then write the point that gives THAT answer. A
 point carrying the wrong answer is worse than no point at all: it marks the pupils who are
 right down for being right, and hands credit to the ones who are wrong.
@@ -300,6 +304,30 @@ function plainSum(q) {
   if (/why|explain|how do you know|how can you tell|same as|because|reason/.test(t)) return false;
   return /\d\s*(?:[-+\/×]|plus|minus|times|add|subtract|take away|multiplied by|multiply|divided by)\s*\d/.test(t);
 }
+/* A question whose answer is one letter, one word or one spelling. There is no working
+   to show on these, so they have ONE point - the answer - and a pupil who is right can
+   always reach it. Without this the writer adds a second point ("knows the word 'apple'"
+   beside "knows the first letter") and a child who answers every question correctly comes
+   back on 5 of 10. */
+function shortFact(q) {
+  const t = String(q || '').toLowerCase();
+  if (/why|explain|how do you know|how can you tell|because|reason/.test(t)) return false;
+  return /first letter|last letter|what letter|spell the word|how do you spell|starts with|ends with/.test(t);
+}
+/* The right answer to a short-fact question, worked out from the question itself so a
+   correct answer is never left uncredited. */
+function shortAnswer(q) {
+  const t = String(q || '');
+  const m = t.match(/['"\u2018\u2019\u201c\u201d]([A-Za-z]+)['"\u2018\u2019\u201c\u201d]/);
+  const w = m ? m[1].toLowerCase() : null;
+  const lt = t.toLowerCase();
+  if (w && /first letter/.test(lt)) return [w[0]];
+  if (w && /last letter/.test(lt)) return [w[w.length - 1]];
+  if (w && /spell the word/.test(lt)) return [w, w.split('').join('-')];
+  return null;
+}
+const normAns = a => String(a || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
 /* The number a simple question works out to, computed in code. Used to credit a bare
    correct answer even when the mark points only describe the operation, not the result. */
 function arith(q) {
@@ -737,6 +765,21 @@ Return ONLY JSON: {"shown":[1,3]}`;
       const m = bare.find(a => spare.some(n => nums(a).includes(n)));
       if (m) hit.set(lo + k, m);
     }
+  }
+  /* Short-fact net. "What is the first letter in 'apple'?" and "Spell the word 'cat'."
+     The right answer is worked out from the question itself, so a pupil who gives it is
+     credited on every point that question has - they answered what was asked, in the
+     shortest way it can be answered, and that is not a reason to mark them down. */
+  for (let qi = 0; qi < marks.length; qi++) {
+    const ps = (marks[qi] || []).filter(Boolean);
+    if (!ps.length) continue;
+    const lo = offset[qi];
+    const want = shortAnswer((questions && questions[qi]) || '');
+    if (!want) continue;
+    const wantN = want.map(normAns).filter(Boolean);
+    const mine = answers.find(a => wantN.includes(normAns(a)));
+    if (!mine) continue;
+    for (let k = 0; k < ps.length; k++) if (!hit.has(lo + k)) hit.set(lo + k, mine);
   }
   /* Result net: work the answer out in code. If the question is a simple sum and the child
      gave that number as a bare answer, credit the question's answer point - even when the
@@ -1239,7 +1282,7 @@ const server = http.createServer(async (req, res) => {
          fires when a question came back with fewer than 2 points (a single point cannot
          produce an amber), and when a question that asks for an answer has no point that
          IS the answer. Two attempts at most. */
-      for (let attempt = 0; attempt < 2 && (marks.filter((m, i) => m.length < (qs[i] && plainSum(qs[i]) ? 1 : 2)).length || dead(marks)); attempt++) {
+      for (let attempt = 0; attempt < 2 && (marks.filter((m, i) => m.length < (qs[i] && (plainSum(qs[i]) || shortFact(qs[i])) ? 1 : 2)).length || dead(marks)); attempt++) {
         try {
           const retry = await llm([{ role: 'system', content: markWriterSystem(topic, qs) }],
             { json: true, temperature: 0.4 });
@@ -1257,7 +1300,7 @@ const server = http.createServer(async (req, res) => {
          the answer, and the working - in a single call, and only for the questions that
          came back thin. Doing it here rather than re-rolling the lot keeps the points a
          teacher has already read. */
-      const thin = qs.map((q, i) => ({ q, i, have: marks[i] || [] })).filter(x => x.have.length < 2);
+      const thin = qs.map((q, i) => ({ q, i, have: marks[i] || [] })).filter(x => x.have.length < 2 && !shortFact(x.q));
       if (thin.length) {
         try {
           const list = thin.map((x, n) => (n + 1) + '. ' + x.q + '\n   already marked: ' + (x.have[0] || '(nothing yet)')).join('\n');
