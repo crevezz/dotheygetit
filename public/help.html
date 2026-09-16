@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Get It? — how it works, in nine short videos</title>
-<meta name="description" content="Seven short videos: create your account, set up a class, write the questions, how pupils join, read your results, spot the pattern."/>
+<meta name="description" content="Nine short videos: create your account, set up a class, write the questions, how pupils join, read your results, spot the pattern."/>
 <link rel="stylesheet" href="/styles.css"/>
 <style>
   .hero{padding:34px 0 8px}
@@ -188,7 +188,7 @@ v.addEventListener('ended', () => {
 });
 v.addEventListener('loadedmetadata', () => { v.playbackRate = parseFloat(speed.value) || 1; });
 
-/* deep link: /help#04-how-pupils-join */
+/* deep link: /help#05-how-pupils-join */
 const want = (location.hash || '').replace('#', '');
 const start = CHAPTERS.findIndex(c => c.id === want);
 play(start >= 0 ? start : 0, false);

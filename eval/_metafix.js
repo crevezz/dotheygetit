@@ -1,0 +1,12 @@
+const fs = require('fs');
+const p = 'public/help.html';
+let s = fs.readFileSync(p, 'utf8');
+const before = s;
+s = s.replace('#04-how-pupils-join', '#05-how-pupils-join');
+s = s.replace('content="Seven short videos:', 'content="Nine short videos:');
+fs.writeFileSync(p, s);
+console.log('changed: ' + (s !== before));
+const meta = (s.match(/<meta name="description" content="([^"]+)"/) || [])[1];
+console.log('description now: ' + meta);
+console.log('stray 04 link: ' + /04-how-pupils-join/.test(s));
+console.log('stray seven:   ' + /Seven short videos/.test(s));
