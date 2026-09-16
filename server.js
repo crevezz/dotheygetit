@@ -224,6 +224,11 @@ carrying the wrong answer is worse than no point at all: it marks the pupils who
 down for being right, and hands credit to the ones who are wrong.
 Q: "A pizza of eight slices has three eaten. What fraction is left?"
 Good: ["says five eighths", "works out eight take away three"]   Bad: ["says three eighths"]
+A question that just asks for the result of a sum - "What is 15 + 8?", "30 - 12" - has ONE
+point: the answer, in the words a pupil would say ("the answer is 23"). Do NOT add "adds the
+two numbers together" or "subtracts 12 from 30" as a second point. There is no method the
+pupil can show on a sum - the number IS the answer - and the extra point can only mark them
+down for answering a sum correctly, which is the one thing a teacher will not forgive.
 For a question that asks WHY - "explain why two quarters is the same as a half" - there is
 no number to give, so its points are the reasons. One of them must be the claim itself, in
 the words a pupil would likely use, so that a muddled but real attempt can reach it. A pupil
@@ -289,6 +294,15 @@ function answerable(question, pts) {
 }
 
 /* Split any point that came back carrying two ideas, and drop the "The pupil ..." preface. */
+/* A question that asks only for the result of a sum. It has no method to show, so it gets
+   one mark point - the answer - and is exempt from the two-point rule below. A question
+   that asks why, or how you know, is never one of these. */
+function plainSum(q) {
+  const t = String(q || '').toLowerCase();
+  if (/why|explain|how do you know|how can you tell|same as|because|reason/.test(t)) return false;
+  return /\d\s*(?:[-+\/]|plus|minus|times|add|subtract|take away)\s*\d/.test(t);
+}
+
 function splitPoints(list) {
   const out = [];
   for (const raw of list) {
@@ -1157,7 +1171,7 @@ const server = http.createServer(async (req, res) => {
          fires when a question came back with fewer than 2 points (a single point cannot
          produce an amber), and when a question that asks for an answer has no point that
          IS the answer. Two attempts at most. */
-      for (let attempt = 0; attempt < 2 && (marks.filter(m => m.length < 2).length || dead(marks)); attempt++) {
+      for (let attempt = 0; attempt < 2 && (marks.filter((m, i) => m.length < (qs[i] && plainSum(qs[i]) ? 1 : 2)).length || dead(marks)); attempt++) {
         try {
           const retry = await llm([{ role: 'system', content: markWriterSystem(topic, qs) }],
             { json: true, temperature: 0.4 });
