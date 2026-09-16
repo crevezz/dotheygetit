@@ -2,12 +2,11 @@
 const fs = require('fs');
 const path = require('path');
 const src = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
-const pick = name => { const i = src.indexOf('const ' + name + ' ='); const o = src.indexOf('`', i); const c = src.indexOf('`', o + 1); return src.slice(i, c + 1) + ';'; };
-const fn = src.slice(src.indexOf('function questionWriterSystem'), src.indexOf('function markWriterSystem'));
+const block = src.slice(src.indexOf('const NO_IMAGES ='), src.indexOf('function followupSystem'));
 const KEY = fs.readFileSync(path.join(__dirname, '..', 'key.txt'), 'utf8').trim();
 
 const sandbox = {};
-new Function('exports', pick('NO_IMAGES') + '\n' + pick('PLAIN_WORDS') + '\n' + pick('MARK_RULES') + '\n' + fn + '\nexports.q = questionWriterSystem;')(sandbox);
+new Function('exports', block + '\nexports.q = questionWriterSystem;')(sandbox);
 
 (async () => {
   const topic = process.argv[2] || 'level 1 spelling';
