@@ -7,7 +7,11 @@ const qrcode = require('qrcode');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
-const DATA = path.join(ROOT, 'data.json');
+/* Where the store lives. On a paid host you mount a disk and point DATA_DIR at it, so a deploy
+   no longer wipes every class and answer. Unset, this is exactly what it always was. */
+const DATA_DIR = process.env.DATA_DIR || ROOT;
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
+const DATA = path.join(DATA_DIR, 'data.json');
 const CLOSING = 'Great — that is everything I needed. Thank you for thinking it through!';
 /* The greeting lands in the transcript the teacher reads, so it stays in the same plain
    register as the questions. "Let's find out how well you understand this" is a form
