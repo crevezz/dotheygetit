@@ -12,7 +12,7 @@
       "id": "01-what-get-it-is",
       "title": "What Get It? is",
       "sub": "The bit behind it",
-      "text": "I built this because of the drive home.\nYou teach the lesson. It feels like it landed.\nThen three weeks later, something tells you it did not. And it is usually the children who would never put their hand up.\nAsking them in front of the class does not work. They are the last people who will admit it.\nMarking the books does not tell you either. A right answer can be copied.\nSo Get It asks them properly. One to one, in their own words.\nAnd it shows you the gaps while you can still fix them.\nThat is the whole idea. There is nothing else in it."
+      "text": "I built this because of the drive home.\nYou teach the lesson. It feels like it landed. Then three weeks later, something tells you it did not.\nAsking them in front of the class does not work. Marking the books does not tell you either - a right answer can be copied.\nSo Get It asks them properly. One to one, in their own words. And it shows you the gaps while you can still fix them."
     },
     {
       "n": 2,
@@ -54,21 +54,21 @@
       "id": "07-change-a-colour",
       "title": "Change a colour yourself",
       "sub": "You decide, not the AI",
-      "text": "The AI reads answers. Sometimes it reads them wrong.\nSo you can change any colour, by hand.\nSay it called a pupil red, and you know she is part way there. Click amber. That is now her colour, and it is the one that counts. The AI's own read stays beside it, so you can see where you disagreed.\nThe words are deliberately not a challenge to you. It is a tool to help you, and you are the one who knows the child.\nYour change is remembered, so it does not flip back on the next lesson."
+      "text": "The AI reads answers. Sometimes it reads them wrong.\nSo you can change any colour, by hand.\nSay it called a pupil red, and you know she is part way there. Click amber. That is her colour now, and it is the one that counts. The AI's own read stays beside it, so you can see where you disagreed.\nYour change is remembered, so it does not flip back next lesson."
     },
     {
       "n": 8,
       "id": "08-spot-the-pattern",
       "title": "Spot the pattern",
       "sub": "The record builds itself",
-      "text": "Go back to the class.\nEvery pupil has a line of dots, and every check adds one more.\nOne red is a bad day. Two of those together is a pattern, and you can see it in about three seconds. Not three weeks later, on the drive home.\nSo is a child who was green in September and amber in November.\nAnyone who has finished is greyed out, so you can see at a glance who you are still waiting on.\nYou are not guessing who is struggling any more. You are looking at it, while you can still do something about it."
+      "text": "Go back to the class.\nEvery pupil has a line of dots, and every check adds one more.\nOne red is a bad day. Two of those together is a pattern, and you can see it in about three seconds. Not three weeks later, on the drive home.\nAnyone who has finished is greyed out, so you can see who you are still waiting on.\nYou are not guessing who is struggling any more. You are looking at it, while you can still do something about it."
     },
     {
       "n": 9,
       "id": "09-your-data",
       "title": "Your data, and theirs",
       "sub": "In plain English",
-      "text": "A word about data, because it matters.\nThere is a privacy page in plain English. What is kept. Who sees it. What is not done with it. No ads, no tracking, nothing sold, nothing public.\nIt is worth a read before you use this with a class. Your school's policy comes first, and if it does not allow pupil answers to go to an outside service, do not use it for that.\nYou can export a class as a spreadsheet whenever you want it. You can delete a check, with every answer in it. And you can delete a class and everything under it.\nLast thing. This is a teaching aid, not an assessment. The AI can be wrong. Your professional judgement is the one that counts."
+      "text": "A word about data, because it matters.\nThere is a privacy page in plain English. What is kept. Who sees it. What is not done with it. No ads, no tracking, nothing sold.\nYour school's policy comes first. If it does not allow pupil answers to go to an outside service, do not use it for that.\nYou can export a class as a spreadsheet. You can delete a check, with every answer in it. Or delete a class and everything under it.\nLast thing. This is a teaching aid, not an assessment. The AI can be wrong. Your judgement is the one that counts."
     }
   ]
 }

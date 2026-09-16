@@ -31,7 +31,9 @@ fs.mkdirSync(BUILD, { recursive: true });
 
 const plan = JSON.parse(fs.readFileSync(path.join(HERE, 'narration.json'), 'utf8'));
 const chaptersFile = path.join(HERE, 'chapters.json');
-let CHAPTERS = JSON.parse(fs.readFileSync(chaptersFile, 'utf8'));
+let CHAPTERS = null;
+try { CHAPTERS = JSON.parse(fs.readFileSync(chaptersFile, 'utf8')); }
+catch { CHAPTERS = null; }   /* --scan writes it; nothing else runs before that */
 
 /* ------------------------------------------------------------------ probing */
 function probe(file) {
@@ -56,14 +58,21 @@ function blackRuns(file) {
 
 /* ------------------------------------------------------- --scan (recompute) */
 if (process.argv.includes('--scan')) {
-  const raw = path.join(OUT, 'raw.webm'), why = path.join(OUT, 'why.webm');
-  const dur = { raw: probe(raw).duration, why: probe(why).duration };
-  const srcs = { raw: blackRuns(raw), why: blackRuns(why) };
-  const cards = []
-    .concat(srcs.raw.map(r => ({ src: 'raw', ...r })))
-    .concat(srcs.why.map(r => ({ src: 'why', ...r })))
-    .sort((a, b) => (a.src === b.src ? a.start - b.start : a.src === 'raw' ? -1 : 1));
-  const ends = { raw: dur.raw, why: dur.why };
+  /* only the takes that are actually on disk - a chapter list can be built from record.js
+     alone, and a missing take must not be able to crash the scan */
+  const takes = ['raw', 'why'].filter(k => fs.existsSync(path.join(OUT, k + '.webm')));
+  if (!takes.length) { console.error('nothing to scan - no *.webm in ' + OUT); process.exit(1); }
+  const dur = {}, srcs = {}, ends = {};
+  for (const k of takes) {
+    const f = path.join(OUT, k + '.webm');
+    dur[k] = probe(f).duration;
+    srcs[k] = blackRuns(f);
+    ends[k] = dur[k];
+    console.log('  ' + k + ': ' + (dur[k] || '?') + 's, ' + srcs[k].length + ' chapter cards');
+  }
+  const cards = [];
+  takes.forEach(k => srcs[k].forEach(r => cards.push({ src: k, ...r })));
+  cards.sort((a, b) => (a.src === b.src ? a.start - b.start : takes.indexOf(a.src) - takes.indexOf(b.src)));
   const out = [];
   cards.forEach((c, i) => {
     const next = cards[i + 1];
@@ -77,8 +86,7 @@ if (process.argv.includes('--scan')) {
   });
   CHAPTERS = {
     _note: 'Exact chapter boundaries found by blackdetect on the raw takes - do not hand-edit. Regenerate with `node build.js --scan`.',
-    raw: { file: 'out/raw.webm', duration: dur.raw },
-    why: { file: 'out/why.webm', duration: dur.why },
+    takes: takes.reduce((o, k) => (o[k] = { file: 'out/' + k + '.webm', duration: dur[k] }, o), {}),
     chapters: out
   };
   fs.writeFileSync(chaptersFile, JSON.stringify(CHAPTERS, null, 2) + '\n');
@@ -88,10 +96,14 @@ if (process.argv.includes('--scan')) {
 }
 
 /* -------------------------------------------------------------------- build */
-const files = { raw: path.join(OUT, 'raw.webm'), why: path.join(OUT, 'why.webm') };
-for (const [k, f] of Object.entries(files)) {
-  if (!fs.existsSync(f)) { console.error('missing ' + f); process.exit(1); }
+if (!CHAPTERS) { console.error('no chapters.json - run: node build.js --scan'); process.exit(1); }
+/* only the takes the chapter list actually uses need to be on disk */
+for (const k of new Set((CHAPTERS.chapters || []).map(c => c.src))) {
+  const f = path.join(OUT, k + '.webm');
+  if (!fs.existsSync(f)) { console.error('missing ' + f + ' (needed by chapters.json)'); process.exit(1); }
 }
+const files = {};
+for (const c of CHAPTERS.chapters || []) files[c.src] = path.join(OUT, c.src + '.webm');
 console.log('building ' + plan.chapters.length + ' tutorials\n');
 console.log('  ch  chapter                    voice   speed   length');
 
