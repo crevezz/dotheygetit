@@ -9,52 +9,66 @@
   "chapters": [
     {
       "n": 1,
-      "id": "01-create-account",
-      "title": "Create your account",
-      "sub": "Takes about a minute",
-      "text": "Teachers. This is Get It.\nIt answers one question. Did they actually understand the lesson?\nStart by making an account. Email. Password. That is it.\nNo card. No countdown.\nYour classes are saved to the account. So they follow you to any computer in the school.\nNothing to install. Nothing for IT to set up. And no new system for anyone else to learn.\nOnce you are in, you are ready to make your first check."
+      "id": "01-what-get-it-is",
+      "title": "What Get It? is",
+      "sub": "The bit behind it",
+      "text": "I built this because of the drive home.\nYou teach the lesson. It feels like it landed.\nThen three weeks later, something tells you it did not. And it is usually the children who would never put their hand up.\nAsking them in front of the class does not work. They are the last people who will admit it.\nMarking the books does not tell you either. A right answer can be copied.\nSo Get It asks them properly. One to one, in their own words.\nAnd it shows you the gaps while you can still fix them.\nThat is the whole idea. There is nothing else in it."
     },
     {
       "n": 2,
-      "id": "02-set-up-your-class",
-      "text": "Give the class a name, and Get It gives you a join code.\nThat code never changes. So pin it up on the wall, and use it all year.\nNow paste your class list. Straight from SIMS or Arbor. One name per line.\nYou only do this once.\nFrom then on, every pupil picks their own name from the list. No typing.\nNo spelling mistakes. No wrong names. And nobody slipping in as somebody else.\nThey can do it on a laptop. A tablet. Or a phone.",
-      "title": "Set up your class",
-      "sub": "One code, lasts all year"
+      "id": "02-create-your-account",
+      "title": "Create your account",
+      "sub": "Takes about a minute",
+      "text": "Start by making an account. Email, password, that is it.\nNo card. No countdown.\nYour classes are saved to the account, so they follow you to any computer in the school.\nNothing to install. Nothing for IT to set up. And no new system for anyone else to learn.\nIt is a teaching aid, so it will not ask you for anything you are not already doing.\nOnce you are in, you are ready for your first check."
     },
     {
       "n": 3,
-      "id": "03-write-the-questions",
-      "text": "Now, the bit that used to take your Sunday evening.\nType what you just taught. Press generate. And the AI writes the questions for you.\nLook at them. Rewrite one if you do not like the wording.\nDelete any you would not ask in class. Add your own if you have a better one.\nIt takes seconds. And nothing is set in stone.\nThen press create check. That check is live for that class, and it waits there until they are ready.\nNext lesson, do the same thing again. Every check you make stays in this list, so nothing gets lost.",
-      "title": "Write the questions",
-      "sub": "You type the topic. That is it."
+      "id": "03-set-up-your-class",
+      "title": "Set up your class",
+      "sub": "One code, lasts all year",
+      "text": "Give the class a name, and Get It gives you a join code.\nThat code never changes. Pin it up on the wall and use it all year. There is a QR code too, if they are on tablets.\nNow paste your class list, straight from SIMS or Arbor. One name per line. You only do this once.\nFrom then on, every pupil picks their own name from the list. No typing. No spelling mistakes. And nobody slipping in as somebody else.\nThey can do it on a laptop, a tablet, or a phone."
     },
     {
       "n": 4,
-      "id": "04-how-pupils-join",
-      "text": "This is the one to play on the whiteboard.\nPupils open the link, the code fills itself in, and there are no accounts and no logins for them.\nThey pick their name from your list. And they are in.\nOne at a time. Or the whole class at once. It does not matter.\nThen, the interesting part.\nIt does not give them a quiz to tick boxes on. Because a tick does not tell you anything.\nIt asks them to explain it. In their own words.\nNot a yes or no. Not a guess.\nThen it reads that answer, and digs deeper. Asking why. And what happens if.\nIt keeps going until it finds real understanding. Or finds the gap.\nWhen it is done, it says thank you. Their answers go straight to you. And they never see a mark.",
-      "title": "How pupils join",
-      "sub": "Play this one on the whiteboard"
+      "id": "04-write-the-questions",
+      "title": "Write the questions",
+      "sub": "You type the topic. That is it.",
+      "text": "Now the bit that used to take your Sunday evening.\nType what you just taught. Press generate, and the questions are written for you.\nThen read them properly. Rewrite one if you do not like the wording. Delete any you would not ask in class. Add your own if you have a better one.\nIt takes seconds, and nothing is set in stone.\nThe questions are the check, so make them yours.\nThen press create check. It is live for that class, waiting until they are ready.\nNext lesson, do the same again. Every check stays in the list, so nothing gets lost."
     },
     {
       "n": 5,
-      "id": "05-read-your-results",
-      "text": "Back on the teacher tab, open the check.\nHere is the whole class, in one look.\nGreen got it. Amber is shaky. Red did not get it yet.\nThen each pupil, in their own words. What they got right. What they are still unsure about. And what to do about it next.\nYou did not mark any of this.\nYou did not have to read thirty sets of answers to find the three that matter. And you did not have to work out afterwards who to go back to.",
-      "title": "Read your results",
-      "sub": "Who got it, who did not"
+      "id": "05-how-pupils-join",
+      "title": "How pupils join",
+      "sub": "Play this one on the whiteboard",
+      "text": "This is the one to play on the whiteboard.\nPupils open the link, put in the code, and pick their name from your list. There are no accounts and no logins for them.\nThey tick one box: that their answers go to you, and to an AI that helps you read them. That box explains itself, and there is a privacy page if anyone wants the detail.\nThen the interesting part.\nIt does not give them a quiz to tick boxes on. A tick tells you nothing.\nIt asks them to explain it, in their own words. Then it reads that answer and digs deeper. Asking why. Asking what happens if.\nIt keeps going until it finds real understanding, or finds the gap.\nWhen it is done, it thanks them. Their answers come straight to you. They never see a mark."
     },
     {
       "n": 6,
-      "id": "06-spot-the-pattern",
-      "text": "Go back to the class.\nEvery pupil has a line of dots. And every check adds one more.\nOne red is a bad day.\nTwo of those together is a pattern. And you can see it in about three seconds. Not three weeks later, on the drive home.\nSo is a child who was green in September, and amber in November.\nYou are not guessing who is struggling any more. You are looking at it. While you can still do something about it.",
-      "title": "Spot the pattern",
-      "sub": "The record builds itself"
+      "id": "06-read-your-results",
+      "title": "Read your results",
+      "sub": "Who got it, who did not",
+      "text": "Back on the teacher tab, open the check.\nHere is the whole class in one look. Green got it. Amber is shaky. Red did not get it yet.\nYou did not mark any of this. You did not read thirty sets of answers to find the three that matter.\nUnder each pupil is the evidence. Every point they were meant to show, and their own words beside it. So you can check the claim yourself instead of taking its word for it.\nClick a name and the card folds down to one line, which is handy when you are looking at the whole class.\nAnd it says so on the screen: this is guidance, not a grade. The judgement is yours."
     },
     {
       "n": 7,
-      "id": "07-why-i-built-this",
-      "text": "I built this because of the drive home.\nYou teach the lesson. And it feels like it landed.\nThen, three weeks later, something tells you it did not.\nUsually it is the children who would never put their hand up.\nAsking them in front of the class does not work. Because the ones who are lost are the last people who will say so.\nMarking the books does not tell you either. A right answer can be copied.\nSo. I stopped asking.\nGet It asks them properly. One to one. And it shows you the gaps while you can still fix them.\nThat is the whole idea. There is nothing else in it.",
-      "title": "Why I built this",
-      "sub": "The bit behind it"
+      "id": "07-change-a-colour",
+      "title": "Change a colour yourself",
+      "sub": "You decide, not the AI",
+      "text": "The AI reads answers. Sometimes it reads them wrong.\nSo you can change any colour, by hand.\nSay it called a pupil red, and you know she is part way there. Click amber. That is now her colour, and it is the one that counts. The AI's own read stays beside it, so you can see where you disagreed.\nThe words are deliberately not a challenge to you. It is a tool to help you, and you are the one who knows the child.\nYour change is remembered, so it does not flip back on the next lesson."
+    },
+    {
+      "n": 8,
+      "id": "08-spot-the-pattern",
+      "title": "Spot the pattern",
+      "sub": "The record builds itself",
+      "text": "Go back to the class.\nEvery pupil has a line of dots, and every check adds one more.\nOne red is a bad day. Two of those together is a pattern, and you can see it in about three seconds. Not three weeks later, on the drive home.\nSo is a child who was green in September and amber in November.\nAnyone who has finished is greyed out, so you can see at a glance who you are still waiting on.\nYou are not guessing who is struggling any more. You are looking at it, while you can still do something about it."
+    },
+    {
+      "n": 9,
+      "id": "09-your-data",
+      "title": "Your data, and theirs",
+      "sub": "In plain English",
+      "text": "A word about data, because it matters.\nThere is a privacy page in plain English. What is kept. Who sees it. What is not done with it. No ads, no tracking, nothing sold, nothing public.\nIt is worth a read before you use this with a class. Your school's policy comes first, and if it does not allow pupil answers to go to an outside service, do not use it for that.\nYou can export a class as a spreadsheet whenever you want it. You can delete a check, with every answer in it. And you can delete a class and everything under it.\nLast thing. This is a teaching aid, not an assessment. The AI can be wrong. Your professional judgement is the one that counts."
     }
   ]
 }

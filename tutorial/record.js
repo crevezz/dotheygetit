@@ -290,6 +290,9 @@ async function main() {
 
     const page = await context.newPage();
     const video = page.video();
+    /* a confirm() box must be accepted, or the take stalls on it */
+    page.on('dialog', d => { try { d.accept(); } catch {} });
+    context.on('page', p => p.on('dialog', d => { try { d.accept(); } catch {} }));
     T0 = Date.now();
     mark('start');
 
@@ -319,29 +322,39 @@ async function main() {
     await page.mouse.move(640, 400, { steps: 8 });
     await sleep(400);
 
-    /* =========================== CH 1 — Create your account ================= */
-    await chapter(page, 1, 'Create your account', 'Takes about a minute');
-    await caption(page, 'Get It? — see who really learned it', 2600);
-    await focus(page, '#signinCard', { block: 'center', hold: 3200 });
+        /* ============ CH 1 — What Get It? is ==================== */
+    await chapter(page, 1, 'What Get It? is', 'The bit behind it');
+    await focus(page, '#signinCard', { block: 'center', hold: 2600 });
+    await caption(page, 'Teachers — this is Get It?', 2600);
+    await glideTo(page, 'header nav', { block: 'center', hold: 900 });
+    await caption(page, 'It answers one question: did they actually get it?', 3200);
+    await glideTo(page, '#tab-student', { block: 'center', hold: 700 });
+    await caption(page, 'One to one, in their own words. Not a tick box.', 3200);
+    await glideTo(page, '#signinCard', { block: 'center', hold: 1400 });
+    await caption(page, 'And it takes a minute to set up.', 2400);
+
+    /* =========================== CH 2 — Create your account ================= */
+    await chapter(page, 2, 'Create your account', 'Takes about a minute');
+    await focus(page, '#signinCard', { block: 'center', hold: 1400 });
     await caption(page, 'Your classes live on your account, not on this computer', 3200);
     await glideTo(page, '#authEmail', { block: 'center', hold: 500 });
     await typeIn(page, '#authEmail', 'ms.reed@oakfield.school', 34);
-    await sleep(1600);
+    await sleep(1400);
     await caption(page, 'Any computer in the school, and it is all still there', 2800);
     await typeIn(page, '#authPass', 'teach123', 55);
-    await sleep(1400);
+    await sleep(1200);
     await glideClick(page, '#btnSignup');
     await page.locator('#dash').waitFor({ state: 'visible' });
-    await sleep(1400);
+    await sleep(1300);
     await caption(page, 'No installs. Nothing for IT to set up.', 2400);
-    await focus(page, '#classList', { block: 'center', hold: 2600 });
+    await focus(page, '#classList', { block: 'center', hold: 2200 });
     await caption(page, 'Right. Let us set up a class.', 2200);
 
-    /* =========================== CH 2 — Set up your class ================== */
-    await chapter(page, 2, 'Set up your class', 'One code, lasts all year');
-    await caption(page, 'Give the class a name', 1800);
+    /* =========================== CH 3 — Set up your class ================== */
+    await chapter(page, 3, 'Set up your class', 'One code, lasts all year');
+    await caption(page, 'Give the class a name', 1700);
     await typeIn(page, '#newClassName', 'Year 8 Maths', 44);
-    await sleep(900);
+    await sleep(800);
     await glideClick(page, '#btnAddClass');
     await page.locator('.classrow').first().waitFor({ state: 'visible' });
     await sleep(900);
@@ -353,7 +366,14 @@ async function main() {
     console.log('  Class code:', code);
 
     await focus(page, '#classCode', { block: 'center', hold: 1200 });
-    await caption(page, 'Students join with this code: ' + code, 2600);
+    await caption(page, 'Pupils join with this code: ' + code, 2600);
+    await glideClick(page, '#btnQr');
+    await page.locator('#qrWrap').waitFor({ state: 'visible' }).catch(() => {});
+    await sleep(1100);
+    await focus(page, '#qrImg', { block: 'center', hold: 2200 });
+    await caption(page, 'Or scan it. Good for tablets.', 2300);
+    await glideClick(page, '#btnQrClose');
+    await sleep(700);
     await glideTo(page, '#btnCopyLink', { block: 'center', hold: 900 });
     await caption(page, 'It never changes — pin it up, use it all year', 2400);
 
@@ -363,35 +383,59 @@ async function main() {
     await page.locator('#rosterEdit').waitFor({ state: 'visible' });
     await focus(page, '#rosterText', { block: 'center', hold: 700 });
     await typeIn(page, '#rosterText', ROSTER.join('\n'), 5, 'center');
-    await sleep(1000);
+    await sleep(900);
     await glideClick(page, '#btnRosterSave');
     await page.locator('#rosterView .prow').first().waitFor({ state: 'visible', timeout: 20000 });
-    await focus(page, '#rosterView', { block: 'center', hold: 1400 });
+    await focus(page, '#rosterView', { block: 'center', hold: 1300 });
     await check(page, 'class list saved', '#rosterView');
-    await caption(page, 'Pupils now pick their name from a list. No typos.', 2600);
+    await caption(page, 'Pupils then pick their name from a list. No typos.', 2600);
 
-    /* =========================== CH 3 — Write the questions ================ */
-    await chapter(page, 3, 'Write the questions', 'You type the topic. That is it.');
+    /* =========================== CH 4 — Write the questions ================ */
+    await chapter(page, 4, 'Write the questions', 'You type the topic. That is it.');
     await caption(page, 'Type what you just taught', 1900);
     await typeIn(page, '#topic', TOPIC, 46);
-    await sleep(1100);
+    await sleep(1000);
     await glideClick(page, '#btnGenerate');
     await page.locator('#qwrap').waitFor({ state: 'visible', timeout: 30000 });
     await caption(page, 'The AI writes the questions for you', 2300);
-    await sleep(700);
-    await focus(page, '#qwrap', { block: 'center', hold: 1200 });
+    await sleep(600);
+    await focus(page, '#qwrap', { block: 'center', hold: 1000 });
     await check(page, 'questions generated', '#qwrap');
+
+    /* rewrite one - the wording is yours to change */
+    await glideTo(page, '#qlist .qrow >> nth=0', { block: 'center', hold: 400 });
+    await page.locator('#qlist .qinput').first().click();
+    await sleep(400);
+    await page.keyboard.press('Control+A');
+    await page.keyboard.type('What does the bottom number of a fraction tell you?', { delay: 28 });
+    await sleep(1100);
+    await caption(page, 'Rewrite any of them, in your own words', 2500);
+    await focus(page, '#qlist .qrow >> nth=0', { block: 'center', hold: 1400 });
+
+    /* delete one */
     const qn = await page.locator('#qlist .qrow').count();
-    for (let i = 0; i < qn; i++) {
-      await glideTo(page, `#qlist .qrow >> nth=${i}`, { block: 'nearest', hold: 150 });
-      await page.waitForTimeout(1150);
+    if (qn > 2) {
+      await glideClick(page, `#qlist .qdel >> nth=${qn - 1}`);
+      await sleep(900);
+      await caption(page, 'Delete any you would not ask in class', 2400);
     }
+
+    /* add one of your own */
+    await glideClick(page, '#btnAddQ');
+    await sleep(700);
+    await page.locator('#qlist .qinput').last().click();
+    await sleep(300);
+    await page.keyboard.type('Which is bigger, 3/4 or 2/3? How do you know?', { delay: 26 });
+    await sleep(900);
+    const qn2 = await page.locator('#qlist .qrow').count();
+    await focus(page, `#qlist .qrow >> nth=${qn2 - 1}`, { block: 'center', hold: 1300 });
+    await caption(page, 'Or add one of your own. Nothing is set in stone.', 2700);
+
     await focus(page, '#qwrap', { block: 'center', hold: 400 });
-    await caption(page, 'Read them, rewrite them, delete any you do not want', 2300);
     await glideClick(page, '#btnCreateCheck');
     await page.locator('#checkList .checkcard').first().waitFor({ state: 'visible' });
     await focus(page, '#checkList .checkcard', { block: 'center', hold: 1200 });
-    await caption(page, 'Make the check live. It is ready for that class.', 2300);
+    await caption(page, 'Make the check live. It waits until they are ready.', 2400);
 
     /* silent: give the class some history, so the class list has a running record */
     try {
@@ -407,54 +451,80 @@ async function main() {
     await focus(page, '#topic', { block: 'center', hold: 500 });
     await page.locator('#topic').fill('');
     await typeIn(page, '#topic', 'adding fractions', 44);
-    await sleep(800);
+    await sleep(700);
     await glideClick(page, '#btnGenerate');
     await page.locator('#btnCreateCheck').waitFor({ state: 'visible' });
-    await sleep(1200);
+    await sleep(1100);
     await glideClick(page, '#btnCreateCheck');
     await page.locator('#checkList .checkcard').nth(1).waitFor({ state: 'visible' });
-    await focus(page, '#checkList', { block: 'center', hold: 1000 });
-    await caption(page, 'Next lesson, same thing. Every check stacks up in one place.', 2400);
+    await focus(page, '#checkList', { block: 'center', hold: 900 });
+    await caption(page, 'Next lesson, same thing. Every check stacks up in one place.', 2500);
 
-    /* =========================== CH 4 — How pupils join ==================== */
-    await chapter(page, 4, 'How pupils join', 'Play this one on the whiteboard');
+    /* =========================== CH 5 — How pupils join ==================== */
+    await chapter(page, 5, 'How pupils join', 'Play this one on the whiteboard');
     await glideClick(page, '#tab-student');
-    await focus(page, '#joinCard', { block: 'start', hold: 900 });
+    await focus(page, '#joinCard', { block: 'start', hold: 800 });
     await caption(page, 'Open the link. No accounts, no logins for pupils.', 2400);
     await typeIn(page, '#joinCode', code, 80);
-    await sleep(700);
+    await sleep(600);
     await glideClick(page, '#btnJoin');
     await page.locator('#studentName').waitFor({ state: 'visible' });
-    await sleep(900);
-    await focus(page, '#nameArea', { block: 'center', hold: 1100 });
+    await sleep(800);
+    await focus(page, '#nameArea', { block: 'center', hold: 1000 });
     await caption(page, 'Pick your name from the list. No spelling it out.', 2500);
-    await page.locator('#studentName').selectOption({ label: 'Maya Khan' });
-    await sleep(1300);
-    await glideClick(page, '#btnJoin');
+    await page.evaluate(() => {
+      const el = document.getElementById('studentName');
+      if (!el) return;
+      if (el.tagName === 'SELECT') {
+        const o = [...el.options].find(o => o.value && o.value !== '__other');
+        if (o) el.value = o.value;
+      } else { el.value = 'Maya Khan'; }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await sleep(600);
+    console.log('  name now picked:', JSON.stringify(await page.evaluate(() => { const el = document.getElementById('studentName'); return el ? { tag: el.tagName, value: el.value } : null; })));
+    await sleep(900);
+
+    /* the new consent tick */
+    await focus(page, '.consent', { block: 'center', hold: 900 }).catch(() => {});
+    await caption(page, 'They tick one box: answers go to the teacher, and to an AI that reads them', 3600);
+    await page.locator('#consent').check();
+    await sleep(900);
+
+    await sleep(500);
+    await page.locator('#btnJoin').click();
+    await sleep(2400);
+    const jdbg = await page.evaluate(() => {
+      const t = id => { const el = document.getElementById(id); return el ? (el.textContent || '').trim().slice(0, 90) : null; };
+      const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+      return { msg: t('joinMsg'), nm: v('studentName'), consentChecked: !!(document.getElementById('consent') || {}).checked, cardClass: (document.getElementById('checkCard') || { className: null }).className };
+    });
+    console.log('  join debug:', JSON.stringify(jdbg));
     await page.locator('#checkCard').waitFor({ state: 'visible' });
     await page.locator('#answer').waitFor({ state: 'visible' });
     await focus(page, '#checkTopic', { block: 'start', hold: 600 });
-    await sleep(1400);
+    await sleep(1200);
     await caption(page, 'Then it asks them to explain it, in their own words', 2500);
     for (let i = 0; i < ANSWERS.length; i++) {
       await typeIn(page, '#answer', ANSWERS[i], 16, 'end');
-      await sleep(500);
+      await sleep(450);
       await glideClick(page, '#btnSend', { block: 'end', hold: 250 });
-      await sleep(1700);
+      await sleep(1600);
       if (i < ANSWERS.length - 1) {
         await focus(page, '#answer', { block: 'end', hold: 300 });
         await check(page, 'answer box in shot', '#answer');
         if (i === 0) await caption(page, 'It reads the answer, then digs deeper', 2200);
       } else {
-        await page.waitForTimeout(1100);
-        await focus(page, '.endline', { block: 'center', hold: 1000 }).catch(() => {});
+        await page.waitForTimeout(1000);
+        await focus(page, '.endline', { block: 'center', hold: 900 }).catch(() => {});
         await check(page, 'all-done line', '.endline');
-        await caption(page, 'All done. Straight to the teacher.', 2400);
+        await caption(page, 'All done. Straight to you. They never see a mark.', 2800);
       }
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(600);
     }
     await page.locator('#answer:disabled').waitFor({ state: 'attached', timeout: 20000 }).catch(() => {});
-    await sleep(1600);
+    await sleep(1500);
 
     /* silent: the rest of the class, so the results screen shows a real spread */
     try {
@@ -465,48 +535,108 @@ async function main() {
       ]) await post('/api/result', Object.assign({ code }, r));
     } catch (e) { console.log('  (seed skipped:', e.message + ')'); }
 
-    /* =========================== CH 5 — Read your results =================== */
-    await chapter(page, 5, 'Read your results', 'Who got it, who did not');
+    /* =========================== CH 6 — Read your results =================== */
+    await chapter(page, 6, 'Read your results', 'Who got it, who did not');
     await glideClick(page, '#tab-teacher');
-    await sleep(1100);
-    await focus(page, '#checkList', { block: 'center', hold: 900 });
-    await caption(page, 'Every check you have made, newest first', 2400);
+    await sleep(1000);
+    await focus(page, '#checkList', { block: 'center', hold: 800 });
+    await caption(page, 'Every check you have made, newest first', 2200);
     await glideClick(page, '#checkList .checkcard');
     await page.locator('#results .sresult').first().waitFor({ state: 'visible', timeout: 20000 });
-    await sleep(1300);
-    await focus(page, '#results .stat-row', { block: 'center', hold: 1600 });
+    await sleep(1200);
+    await focus(page, '#results .stat-row', { block: 'center', hold: 1500 });
     await check(page, 'results summary', '#results .stat-row');
     await glideTo(page, '#results .stat.green', { block: 'nearest', hold: 300 });
-    await caption(page, '🟢 gets it · 🟡 shaky · 🔴 did not get it yet', 2900);
-    await glideTo(page, '#results .sresult', { block: 'center', hold: 600 });
-    await caption(page, 'And what each of them actually said', 2400);
+    await caption(page, '🟢 gets it · 🟡 shaky · 🔴 did not get it yet', 2800);
+    await focus(page, '#results .cover', { block: 'center', hold: 1600 }).catch(() => {});
+    await caption(page, 'Guidance, not a grade. You decide what it means.', 3000);
+    await glideTo(page, '#results .sresult', { block: 'center', hold: 500 });
+    await caption(page, 'Under each one: the evidence, in their own words', 2700);
     const sn = await page.locator('#results .sresult').count();
-    for (let i = 0; i < sn; i++) {
+    for (let i = 0; i < Math.min(sn, 4); i++) {
       await glideTo(page, `#results .sresult >> nth=${i}`, { block: 'center', hold: 300 });
-      await page.waitForTimeout(1500);
+      await page.waitForTimeout(1400);
     }
-    await caption(page, '…with what to do about it, pupil by pupil', 2600);
+    await glideClick(page, '#results .sresult >> nth=0 >> .head');
+    await sleep(900);
+    await caption(page, 'Click a name to fold the card down to one line', 2700);
+    await focus(page, '#results .sresult', { block: 'center', hold: 1500 });
+    await glideClick(page, '#results .sresult >> nth=0 >> .head');
+    await sleep(700);
 
-    /* =========================== CH 6 — Spot the pattern =================== */
-    await chapter(page, 6, 'Spot the pattern', 'The record builds itself');
+    /* =========================== CH 7 — Change a colour ==================== */
+    await chapter(page, 7, 'Change a colour yourself', 'You decide, not the AI');
+    const pri = page.locator('#results .sresult', { hasText: 'Priya Shah' }).first();
+    await pri.scrollIntoViewIfNeeded().catch(() => {});
+    await sleep(800);
+    if (await pri.count()) {
+      await focus(page, '#results .sresult:has-text("Priya Shah")', { block: 'center', hold: 1600 });
+      await caption(page, 'The AI called Priya red. I would say she is part way there.', 3300);
+      await pri.locator('.ovbtn[data-lv="amber"]').click();
+      await sleep(1400);
+      await focus(page, '#results .sresult:has-text("Priya Shah") .tag', { block: 'center', hold: 1800 });
+      await caption(page, 'Click a colour and it is yours. The AI read stays beside it.', 3400);
+      await pri.locator('.ovbtn[data-lv="red"]').click();
+      await sleep(1000);
+    }
+    await glideTo(page, '#results .sresult >> nth=1', { block: 'center', hold: 500 });
+    await caption(page, 'Your change is remembered, and it is the one that counts', 3000);
+
+    /* =========================== CH 8 — Spot the pattern =================== */
+    await chapter(page, 8, 'Spot the pattern', 'The record builds itself');
     await glideClick(page, '#btnCloseClass');
-    await sleep(1300);
+    await sleep(1200);
     await glideClick(page, '.classrow');
     await page.locator('#classPanel').waitFor({ state: 'visible' });
     await page.locator('#rosterView .prow').first().waitFor({ state: 'visible', timeout: 20000 });
-    await sleep(1500);
-    await focus(page, '#rosterView', { block: 'center', hold: 2400 });
+    await sleep(1400);
+    await focus(page, '#rosterView', { block: 'center', hold: 2200 });
     await check(page, 'running record', '#rosterView');
-    await caption(page, 'Every pupil, every check — a dot per lesson', 3000);
+    await caption(page, 'Every pupil, every check — a dot per lesson', 2900);
     await glideTo(page, '#rosterView .prow', { block: 'nearest', hold: 400 });
     await caption(page, 'One red is a bad day. Two is a pattern. You can see it.', 3200);
+    await glideTo(page, '#rosterView .prow.done', { block: 'nearest', hold: 500 }).catch(() => {});
+    await caption(page, 'And anyone who has finished is greyed out', 2500);
     await glideTo(page, '#rosterView .prow >> nth=3', { block: 'nearest', hold: 400 });
-    await page.waitForTimeout(2400);
-    await focus(page, '#checkList', { block: 'center', hold: 2200 });
+    await page.waitForTimeout(1800);
+    await focus(page, '#checkList', { block: 'center', hold: 1800 });
     await caption(page, 'Three seconds. Not three weeks, on the drive home.', 3200);
+
+    /* =========================== CH 9 — Your data, and theirs ============== */
+    await chapter(page, 9, 'Your data, and theirs', 'In plain English');
+    await glideTo(page, '#btnExport', { block: 'center', hold: 1000 });
+    await caption(page, 'Export the class as a spreadsheet whenever you want it', 2900);
+    await glideClick(page, '#btnExport');
+    await sleep(1400);
+
+    /* the privacy page, filmed in the same take */
+    await page.goto(BASE + '/privacy', { waitUntil: 'load' });
+    await sleep(1200);
+    await caption(page, 'What is kept, who sees it, and what is not done with it', 3200);
+    await page.mouse.wheel(0, 520);
+    await sleep(1700);
+    await caption(page, 'No ads, no tracking, nothing public', 2500);
+    await page.mouse.wheel(0, 520);
+    await sleep(1500);
+    await caption(page, 'Your judgement is the one that counts', 2600);
+    await page.goto(BASE, { waitUntil: 'load' });
+    await sleep(1400);
+
+    /* delete a check, and everything in it */
+    await glideTo(page, '#checkList .checkcard', { block: 'center', hold: 600 });
+    const kills = page.locator('#checkList .ckill');
+    if (await kills.count() > 1) {
+      await kills.nth(1).scrollIntoViewIfNeeded().catch(() => {});
+      await sleep(600);
+      await caption(page, 'And delete a check, with every answer in it', 2800);
+      await kills.nth(1).click();
+      await sleep(1600);
+      await caption(page, 'Gone. Nothing left behind.', 2300);
+    }
     await clearCaption(page);
-    await sleep(1100);
+    await sleep(900);
     mark('end');
+
 
     /* ================= save ================= */
     const raw = video ? await video.path() : null;

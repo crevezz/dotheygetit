@@ -1,0 +1,12 @@
+const fs = require('fs');
+const ix = fs.readFileSync('public/index.html', 'utf8');
+const aj = fs.readFileSync('public/app.js', 'utf8');
+const g = (s, re) => { const m = s.match(re); return m ? m[0].replace(/\s+/g, ' ') : '(none)'; };
+console.log('IDS:', [...ix.matchAll(/id="([a-zA-Z0-9_-]+)"/g)].map(m => m[1]).join(' '));
+console.log('CONSENT:', g(ix, /consent[\s\S]{0,200}/i));
+console.log('PRIVACY LINK:', g(ix, /<a[^>]*privacy[^>]*>[\s\S]{0,60}?<\/a>/i));
+console.log('HELP LINK:', g(ix, /<a[^>]*help[^>]*>[\s\S]{0,60}?<\/a>/i));
+console.log('EXPORT:', g(aj, /export[\s\S]{0,140}/i));
+console.log('OVBTN:', g(aj, /ovbtn[\s\S]{0,140}/));
+console.log('FOLD:', g(aj, /fold[\s\S]{0,160}/));
+console.log('COVER:', g(aj, /class="cover"[\s\S]{0,120}/));

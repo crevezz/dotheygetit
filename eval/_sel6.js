@@ -1,0 +1,10 @@
+const fs = require('fs');
+const ix = fs.readFileSync('public/index.html', 'utf8');
+const aj = fs.readFileSync('public/app.js', 'utf8');
+const g = (s, re) => { const m = s.match(re); return m ? m[0].replace(/\s+/g, ' ') : '(none)'; };
+console.log('consent label:', g(ix, /<label[^>]*consent[^>]*>/));
+console.log('cover in app.js:', g(aj, /class="cover"[\s\S]{0,80}/));
+console.log('cover container:', g(aj, /#results[\s\S]{0,120}cover/));
+console.log('results render target:', g(aj, /results'\)\.innerHTML[\s\S]{0,120}/));
+console.log('qrWrap:', g(ix, /id="qrWrap"[^>]*/), '| qrImg:', g(ix, /id="qrImg"[^>]*/));
+console.log('stat-row:', g(aj, /stat-row[\s\S]{0,80}/));
