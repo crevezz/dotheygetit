@@ -658,7 +658,7 @@ Return ONLY JSON: {"shown":[1,3]}`;
      earned - so the teacher can agree or disagree from the evidence instead of from the
      colour. The words are quoted, never summarised. */
   const hit = new Map();
-  for (let k = 0; k < answers.length; k++) {
+  for (let k = 0; paired && k < answers.length; k++) {
     const a = answers[k];
     const lo = paired ? offset[k] : 0;
     const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
@@ -706,7 +706,7 @@ Return ONLY JSON: {"shown":[1,3]}`;
      shown too. The answer point is only shown when the number is right, so a wrong answer
      marks nothing extra, and a WHY answer is never a bare number. */
   const OP_WORD = /\b(add|adds|added|subtract\w*|take\w*\s+away|plus|minus|multipl\w*|divid\w*|count\w*|remove\w*|leaves|combine\w*|total)\b/i;
-  for (let k = 0; k < answers.length; k++) {
+  for (let k = 0; paired && k < answers.length; k++) {
     const a = answers[k];
     if (!/^[\s\d\/.,+-]+$/.test(a)) continue;
     const lo = paired ? offset[k] : 0;
