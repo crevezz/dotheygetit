@@ -1064,6 +1064,7 @@ function parseJson(raw) {
 function serveStatic(req, res, p) {
   let rel = p === '/' ? 'index.html' : p;
   if (rel === '/help' || rel === '/help/') rel = 'help.html';           // the tutorials page
+  if (rel === '/privacy' || rel === '/privacy/') rel = 'privacy.html';  // the privacy notice
   const file = path.join(PUBLIC, rel);
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end('no'); }
 
