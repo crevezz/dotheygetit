@@ -785,10 +785,19 @@ let sending = false;
 
 let joinCache = null;
 
+function renderNameInput(keep) {
+  const area = $('#nameArea');
+  area.innerHTML = '<label>Your name</label><input id="studentName" placeholder="e.g. Amira K" autocomplete="off" data-tip="So your teacher knows it is you."/>';
+  if (keep) $('#studentName').value = keep;
+}
+
 function renderNamePicker(names) {
   const area = $('#nameArea');
+  const old = document.getElementById('studentName');
+  const typed = (old && old.tagName !== 'SELECT' && old.value ? old.value : '').trim();
   if (!names || !names.length) {
-    area.innerHTML = '<label>Your name</label><input id="studentName" placeholder="e.g. Amira K" autocomplete="off" data-tip="So your teacher knows it is you."/>';
+    /* nothing to pick from - a plain box, with anything they had already typed left in place */
+    renderNameInput(typed);
     return;
   }
   area.innerHTML =
@@ -799,9 +808,22 @@ function renderNamePicker(names) {
     '<option value="__other">My name is not here</option>' +
     '</select>' +
     '<input id="otherName" class="hidden" placeholder="Type your full name" style="margin-top:8px"/>';
-  $('#studentName').addEventListener('change', () => {
+  /* If they typed their name into the box before the list arrived, keep it - never wipe what a
+     pupil has just typed. A match is preselected; anything else is offered as "not here". */
+  const sel = $('#studentName');
+  if (typed) {
+    const match = names.find(n => n.trim().toLowerCase() === typed.toLowerCase());
+    if (match) sel.value = match;
+    else {
+      sel.value = '__other';
+      const other = $('#otherName');
+      other.classList.remove('hidden');
+      other.value = typed;
+    }
+  }
+  sel.addEventListener('change', () => {
     const other = $('#otherName');
-    if ($('#studentName').value === '__other') { other.classList.remove('hidden'); other.focus(); }
+    if (sel.value === '__other') { other.classList.remove('hidden'); other.focus(); }
     else other.classList.add('hidden');
   });
 }
@@ -815,21 +837,43 @@ function pickedName() {
   return (el && el.value ? el.value : '').trim();
 }
 
-$('#joinCode').addEventListener('input', () => { joinCache = null; });
+/* Look the class up as soon as the code is typed, so the name list is on screen before the
+   pupil presses Start. Two presses to get in was a needless gate - one press now. */
+let nameLookupTimer = null;
+async function lookupNames() {
+  const code = $('#joinCode').value.trim().toLowerCase();
+  if (!code) return;
+  const el = document.getElementById('studentName');
+  if (el && el.tagName === 'SELECT') return;          // list already showing
+  if (joinCache && joinCache.code === code) return;   // already looked up
+  try {
+    const j = await api('/api/join?code=' + encodeURIComponent(code));
+    if ($('#joinCode').value.trim().toLowerCase() !== code) return;  // they kept typing
+    joinCache = { code, data: j };
+    if ((j.names || []).length) renderNamePicker(j.names);
+  } catch (e) {
+    /* a wrong or not-ready code is reported when they press Start, not while typing */
+  }
+}
+$('#joinCode').addEventListener('input', () => {
+  joinCache = null;
+  const el = document.getElementById('studentName');
+  if (el && el.tagName === 'SELECT') renderNameInput('');   // code changed - drop the old list
+  clearTimeout(nameLookupTimer);
+  nameLookupTimer = setTimeout(lookupNames, 450);
+});
+$('#joinCode').addEventListener('blur', () => { clearTimeout(nameLookupTimer); lookupNames(); });
 
 $('#btnJoin').addEventListener('click', async () => {
   setMsg($('#joinMsg'), '');
-  /* Nothing is sent anywhere until the pupil has said they understand where their answers
-     go. The tick is what turns a privacy notice into agreement. */
-  const tick = document.getElementById('consent');
-  if (tick && !tick.checked) return setMsg($('#joinMsg'), 'Please tick the box above first.');
   const code = $('#joinCode').value.trim().toLowerCase();
   if (!code) return setMsg($('#joinMsg'), 'Enter the class code.');
 
   const el = document.getElementById('studentName');
   const hasPicker = !!(el && el.tagName === 'SELECT');
 
-  // First press: look the class up, and if the teacher pasted a list, show it.
+  // No name list on screen yet (they pressed Start before the list loaded): look the class up
+  // and show it. Nothing is collected yet, so this is not where the consent gate belongs.
   if (!hasPicker && !(joinCache && joinCache.code === code)) {
     $('#btnJoin').disabled = true;
     try {
@@ -837,7 +881,7 @@ $('#btnJoin').addEventListener('click', async () => {
       joinCache = { code, data: j };
       if ((j.names || []).length) {
         renderNamePicker(j.names);
-        setMsg($('#joinMsg'), 'Now pick your name, then press Start.', true);
+        setMsg($('#joinMsg'), 'Now pick your name from the list.', true);
         $('#btnJoin').disabled = false;
         return;
       }
@@ -849,8 +893,14 @@ $('#btnJoin').addEventListener('click', async () => {
     $('#btnJoin').disabled = false;
   }
 
+  /* Nothing is sent anywhere until the pupil has said they understand where their answers
+     go. The tick is what turns a privacy notice into agreement. */
+  if (hasPicker && !pickedName()) return setMsg($('#joinMsg'), 'Pick your name from the list.');
+  const tick = document.getElementById('consent');
+  if (tick && !tick.checked) return setMsg($('#joinMsg'), 'Please tick the box above first.');
+
   const name = pickedName();
-  if (!name) return setMsg($('#joinMsg'), hasPicker ? 'Pick your name from the list.' : 'Enter your name.');
+  if (!name) return setMsg($('#joinMsg'), 'Enter your name.');
 
   $('#btnJoin').disabled = true;
   try {

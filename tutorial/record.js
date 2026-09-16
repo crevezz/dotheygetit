@@ -465,42 +465,33 @@ async function main() {
     await glideClick(page, '#tab-student');
     await focus(page, '#joinCard', { block: 'start', hold: 800 });
     await caption(page, 'Open the link. No accounts, no logins for pupils.', 2400);
-    await typeIn(page, '#joinCode', code, 80);
-    await sleep(600);
-    await glideClick(page, '#btnJoin');
-    await page.locator('#studentName').waitFor({ state: 'visible' });
-    await sleep(800);
-    await focus(page, '#nameArea', { block: 'center', hold: 1000 });
-    await caption(page, 'Pick your name from the list. No spelling it out.', 2500);
-    await page.evaluate(() => {
-      const el = document.getElementById('studentName');
-      if (!el) return;
-      if (el.tagName === 'SELECT') {
-        const o = [...el.options].find(o => o.value && o.value !== '__other');
-        if (o) el.value = o.value;
-      } else { el.value = 'Maya Khan'; }
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await sleep(600);
-    console.log('  name now picked:', JSON.stringify(await page.evaluate(() => { const el = document.getElementById('studentName'); return el ? { tag: el.tagName, value: el.value } : null; })));
+        await typeIn(page, '#joinCode', code, 80);
+    await sleep(500);
+    /* the name list now arrives on its own - no press needed */
+    await page.locator('#nameArea select#studentName').waitFor({ state: 'visible', timeout: 20000 });
     await sleep(900);
+    await focus(page, '#nameArea', { block: 'center', hold: 1200 });
+    await caption(page, 'Pick your name from the list. No spelling it out.', 2600);
+    await page.locator('#studentName').selectOption({ index: 1 });
+    await sleep(700);
+    console.log('  name picked:', await page.locator('#studentName').inputValue());
 
-    /* the new consent tick */
-    await focus(page, '.consent', { block: 'center', hold: 900 }).catch(() => {});
+    /* the consent tick - the one thing a pupil must agree to before anything is sent */
+    await focus(page, '.consent', { block: 'center', hold: 1000 }).catch(() => {});
     await caption(page, 'They tick one box: answers go to the teacher, and to an AI that reads them', 3600);
     await page.locator('#consent').check();
-    await sleep(900);
+    await sleep(1000);
 
-    await sleep(500);
-    await page.locator('#btnJoin').click();
-    await sleep(2400);
+    /* ONE press. If this ever needs two again, the app has regressed. */
+    await glideClick(page, '#btnJoin');
+    await sleep(2600);
     const jdbg = await page.evaluate(() => {
       const t = id => { const el = document.getElementById(id); return el ? (el.textContent || '').trim().slice(0, 90) : null; };
       const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
       return { msg: t('joinMsg'), nm: v('studentName'), consentChecked: !!(document.getElementById('consent') || {}).checked, cardClass: (document.getElementById('checkCard') || { className: null }).className };
     });
     console.log('  join debug:', JSON.stringify(jdbg));
+    if (jdbg.msg) console.log('  !! the page said:', jdbg.msg);
     await page.locator('#checkCard').waitFor({ state: 'visible' });
     await page.locator('#answer').waitFor({ state: 'visible' });
     await focus(page, '#checkTopic', { block: 'start', hold: 600 });
@@ -620,19 +611,25 @@ async function main() {
     await sleep(1500);
     await caption(page, 'Your judgement is the one that counts', 2600);
     await page.goto(BASE, { waitUntil: 'load' });
+    await sleep(1500);
+
+    /* the page has been reloaded, so the class has to be picked again before its checks show */
+    await glideClick(page, '#classList .classrow');
     await sleep(1400);
 
-    /* delete a check, and everything in it */
-    await glideTo(page, '#checkList .checkcard', { block: 'center', hold: 600 });
-    const kills = page.locator('#checkList .ckill');
-    if (await kills.count() > 1) {
-      await kills.nth(1).scrollIntoViewIfNeeded().catch(() => {});
-      await sleep(600);
-      await caption(page, 'And delete a check, with every answer in it', 2800);
-      await kills.nth(1).click();
-      await sleep(1600);
-      await caption(page, 'Gone. Nothing left behind.', 2300);
-    }
+    /* delete a check, and everything in it - never fatal, the take has to finish */
+    try {
+      await glideTo(page, '#checkList .checkcard', { block: 'center', hold: 600 });
+      const kills = page.locator('#checkList .ckill');
+      if (await kills.count() > 1) {
+        await kills.nth(1).scrollIntoViewIfNeeded().catch(() => {});
+        await sleep(600);
+        await caption(page, 'And delete a check, with every answer in it', 2800);
+        await kills.nth(1).click();
+        await sleep(1600);
+        await caption(page, 'Gone. Nothing left behind.', 2300);
+      }
+    } catch (e) { console.log('  (delete shot skipped:', String(e.message).split('\n')[0] + ')'); }
     await clearCaption(page);
     await sleep(900);
     mark('end');
