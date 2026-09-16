@@ -377,7 +377,12 @@ function splitPoints(list) {
 function questionWriterSystem(topic, count) {
   return `You are helping a teacher write a quick understanding check.
 
-Topic: "${topic}".
+THE TOPIC IS "${topic}". Every single question must be about THIS topic and nothing else.
+Stay on the subject the teacher gave you, in their words. If the topic is spelling, reading,
+history, science or anything that is not maths, write NO sums, NO numbers and NO fractions -
+a spelling check gets spelling questions. The worked examples further down are there to show
+the STYLE of a good question, never the subject: copy how they are written, not what they are
+about. Getting the subject wrong makes the whole check useless to the teacher.
 
 Write ${count} short, open questions that find out whether a student really understands this topic.
 
@@ -406,6 +411,10 @@ ${MARK_RULES}`;
 function markWriterSystem(topic, questions) {
   const list = questions.map((q, i) => (i + 1) + '. ' + q).join('\n');
   return `Topic: "${topic}".
+
+Write the mark points for the topic "${topic}" and for THESE questions only. Any worked
+example below shows the STYLE of a good point, never the subject - do not import its maths
+into a non-maths topic.
 
 A teacher wrote these questions to find out whether a pupil really understands it:
 ${list}
