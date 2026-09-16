@@ -350,8 +350,8 @@ function renderRoster(j) {
 
   $('#rosterView').innerHTML =
     `<div class="clegend"><b>${listed.length}</b> on your list${extra.length ? ' · <b>' + extra.length + '</b> not on it' : ''} &nbsp;·&nbsp; ${j.checks} check${j.checks === 1 ? '' : 's'}</div>` +
-    all.map(p => `<div class="prow">
-        <button class="pname plink" data-name="${esc(p.name)}" data-tip="See everything this pupil has done.">${esc(p.name)}</button>
+    all.map(p => `<div class="prow${p.results.length ? ' done' : ''}">
+        <button class="pname plink" data-name="${esc(p.name)}" data-tip="${p.results.length ? 'Finished - click to see everything they did.' : 'Has not answered yet.'}">${esc(p.name)}${p.results.length ? ' <span class="pdone">done</span>' : ''}</button>
         <span class="pdots">${p.results.length ? dots(p.results) : '<span class="muted">no answers yet</span>'}</span>
       </div>`).join('');
 
@@ -819,6 +819,18 @@ $('#btnJoin').addEventListener('click', async () => {
     let j = (joinCache && joinCache.code === code) ? joinCache.data : null;
     if (!j) j = await api('/api/join?code=' + encodeURIComponent(code));
     joinCache = null;
+    /* A pupil who has already finished this check gets a done screen, not the chat - they
+       cannot answer it twice, and their first answers stand. */
+    const jj = await api('/api/join?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name)).catch(() => null);
+    if (jj && jj.done) {
+      $('#joinCard').classList.add('hidden');
+      $('#checkCard').classList.remove('hidden');
+      $('#checkTopic').textContent = (jj.check && jj.check.topic) || (j.check && j.check.topic) || '';
+      $('#chat').innerHTML = '<div class="bubble examiner">You have already finished this check - thank you! There is nothing more to do. You can close this page.</div>';
+      const stick = document.querySelector('.row.stick'); if (stick) stick.classList.add('hidden');
+      const ab = $('#answer'); if (ab) ab.disabled = true;
+      return;
+    }
     chat = {
       history: [], covered: 0, digs: 0,
       topic: j.check.topic,

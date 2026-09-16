@@ -1040,7 +1040,11 @@ const server = http.createServer(async (req, res) => {
       const names = [];
       (c.roster || []).forEach(n => { if (!names.includes(n)) names.push(n); });
       s.students.forEach(st => { if (!names.includes(st.name)) names.push(st.name); });
-      return sendJson(res, { className: c.name, check: { id: s.id, topic: s.topic, questions: s.questions || [] }, names });
+      /* If the pupil's name is given, say whether they have ALREADY finished this check, so a
+         pupil cannot sit it twice - they get a done screen instead of the chat. */
+      const who = String(url.searchParams.get('name') || '').trim().toLowerCase();
+      const done = !!who && s.students.some(st => String(st.name).trim().toLowerCase() === who);
+      return sendJson(res, { className: c.name, check: { id: s.id, topic: s.topic, questions: s.questions || [] }, names, done });
     }
 
     // ---- the class list: pupils pick their name instead of typing it
