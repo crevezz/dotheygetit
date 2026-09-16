@@ -512,6 +512,21 @@ async function openCheck(id, quiet) {
 }
 
 function drawResults(s, students) {
+  /* the 12-second redraw rebuilds every card, so the folded ones are remembered by name */
+  if (!drawResults.folded) drawResults.folded = new Set();
+  if (!drawResults._mark) {
+    drawResults._mark = true;
+    document.addEventListener('click', (e) => {
+      const head = e.target.closest && e.target.closest('.sresult > .head');
+      if (head) {
+        const name = head.querySelector('.name');
+        if (name) {
+          const n = name.textContent;
+          drawResults.folded.has(n) ? drawResults.folded.delete(n) : drawResults.folded.add(n);
+        }
+      }
+    }, true);
+  }
   /* the teacher's override. Wired once, on the document, so it survives every redraw. */
   if (!drawResults._wired) {
     drawResults._wired = true;
@@ -541,6 +556,25 @@ function drawResults(s, students) {
         }
       }
       toast(final ? 'Marked ' + final + ' — overruling the marking' : 'Back to the marking');
+    });
+
+    /* Fold a card down to the name and the colour. Thirty finished pupils is thirty long
+       cards, and the teacher wants the board - who is red - not the essays. Click the name
+       to fold, click again to open. Folded state is held on the element, so the 12-second
+       redraw keeps it. */
+    document.addEventListener('click', (e) => {
+      const head = e.target.closest && e.target.closest('.sresult > .head');
+      if (!head || (e.target.closest && e.target.closest('.ovbtn'))) return;
+      if (window.getSelection && String(window.getSelection()).length) return;
+      head.parentElement.classList.toggle('folded');
+      if (!head.parentElement.querySelector('.fnote')) {
+        const n = document.createElement('span');
+        n.className = 'fnote';
+        head.appendChild(n);
+      }
+      const n = head.querySelector('.fnote');
+      const folded = head.parentElement.classList.contains('folded');
+      n.textContent = folded ? 'show' : 'hide';
     });
   }
 
@@ -587,7 +621,7 @@ function drawResults(s, students) {
     const ev = Array.isArray(v.evidence) ? v.evidence : [];
     const gotAll = ev.reduce((n, e) => n + e.got, 0);
     const ofAll = ev.reduce((n, e) => n + e.total, 0);
-    return `<div class="sresult lv-${esc(lv)}" data-ailevel="${esc(v.level || '')}">
+    return `<div class="sresult lv-${esc(lv)}${drawResults.folded && drawResults.folded.has(String(st.name)) ? ' folded' : ''}" data-ailevel="${esc(v.level || '')}">
       <div class="head"><span class="name">${esc(st.name)}</span><span class="tag lv-${esc(lv)}" data-tip="${esc(tip)}">${esc(lv)}</span></div>
       ${v.notes ? `<div class="notes">${esc(v.notes)}</div>` : ''}
       ${ev.length ? `<div class="evwrap">
