@@ -785,6 +785,10 @@ $('#joinCode').addEventListener('input', () => { joinCache = null; });
 
 $('#btnJoin').addEventListener('click', async () => {
   setMsg($('#joinMsg'), '');
+  /* Nothing is sent anywhere until the pupil has said they understand where their answers
+     go. The tick is what turns a privacy notice into agreement. */
+  const tick = document.getElementById('consent');
+  if (tick && !tick.checked) return setMsg($('#joinMsg'), 'Please tick the box above first.');
   const code = $('#joinCode').value.trim().toLowerCase();
   if (!code) return setMsg($('#joinMsg'), 'Enter the class code.');
 

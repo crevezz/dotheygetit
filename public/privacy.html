@@ -6,15 +6,21 @@
 <title>Privacy - Understanding Check</title>
 <link rel="stylesheet" href="/styles.css"/>
 <style>
-  .priv { max-width: 720px; margin: 0 auto; padding: 24px 18px 60px; }
-  .priv h1 { font-size: 26px; margin: 0 0 4px; }
-  .priv h2 { font-size: 17px; margin: 26px 0 6px; }
-  .priv p, .priv li { line-height: 1.55; }
-  .priv .sub { color: #64748b; margin: 0 0 18px; }
-  .priv .back { display: inline-block; margin-bottom: 14px; font-size: 14px; }
-  .priv .box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; background: #f8fafc; }
-  .priv code { background: #eef2f7; padding: 1px 5px; border-radius: 5px; }
-</style>
+  .priv { max-width: 720px; margin: 0 auto; padding: 26px 20px 70px; }
+  .priv h1 { font-size: 27px; margin: 0 0 4px; }
+  .priv h2 { font-size: 17px; margin: 28px 0 6px; color: var(--accent); }
+  .priv p, .priv li { line-height: 1.6; }
+  .priv li { margin: 4px 0; }
+  .priv .sub { color: var(--muted); margin: 0 0 20px; }
+  .priv .back { display: inline-block; margin-bottom: 16px; font-size: 14px; color: var(--accent); text-decoration: none; }
+  .priv .back:hover { text-decoration: underline; }
+  .priv a { color: var(--accent); }
+  /* the box is a card of its own, in the app's own colours - a light panel on this dark
+     page left the text invisible */
+  .priv .box { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; background: var(--surface); color: var(--text); }
+  .priv .box p { margin: 0; }
+  .priv code { background: var(--surface2); color: var(--text); padding: 1px 6px; border-radius: 6px; }
+</style></style>
 </head>
 <body>
 <div class="priv">
