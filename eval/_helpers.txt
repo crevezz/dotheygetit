@@ -1,0 +1,67 @@
+
+/* Fractions written as words, so "a fifth" and "1/5" are the same thing to the checks
+   below. Both of those appear in real pupil answers and in real mark points. */
+const WORD_FRAC = {
+  half: '1/2', halves: '1/2', third: '1/3', thirds: '1/3', quarter: '1/4', quarters: '1/4',
+  fourth: '1/4', fourths: '1/4', fifth: '1/5', fifths: '1/5', sixth: '1/6', sixths: '1/6',
+  seventh: '1/7', sevenths: '1/7', eighth: '1/8', eighths: '1/8', ninth: '1/9', ninths: '1/9',
+  tenth: '1/10', tenths: '1/10', twelfth: '1/12', twelfths: '1/12',
+  twentieth: '1/20', twentieths: '1/20'
+};
+function fracs(s) {
+  const t = String(s || '').toLowerCase().replace(/\s*\/\s*/g, '/');
+  const out = [];
+  (t.match(/\d+\s*\/\s*\d+/g) || []).forEach(f => out.push(f.replace(/\s/g, '')));
+  (t.match(/[a-z]+/g) || []).forEach(w => { if (WORD_FRAC[w]) out.push(WORD_FRAC[w]); });
+  return out;
+}
+
+/* "4/5 is bigger than 3/4" means 4/5 is the answer. The first fraction in the phrase is
+   the one being called the bigger (or smaller) one; anything after "than" is what it is
+   being compared against. */
+function claim(text) {
+  const m = String(text || '').match(/([^,;.:!?]{0,24}?)\s+(?:is|are)\s+(?:the\s+)?(bigger|larger|greater|more|smaller|less|biggest|largest|smallest)\b/i);
+  if (!m) return null;
+  const f = fracs(m[1]);
+  if (!f.length) return null;
+  return { win: f[0], dir: /^(?:smaller|less|smallest)$/i.test(m[2]) ? 'less' : 'more' };
+}
+
+/* Every fraction the pupil calls bigger or smaller, in their own words. */
+function saidAs(text) {
+  const t = String(text || '').toLowerCase().replace(/\s*\/\s*/g, '/');
+  const out = [];
+  const re = /([^,;.:!?]{0,24}?)\s+(?:is|are)\s+(?:the\s+)?(bigger|larger|greater|more|smaller|less)\b/g;
+  let m;
+  while ((m = re.exec(t))) {
+    const f = fracs(m[1]);
+    if (f.length) out.push({ f: f[0], dir: /^(?:smaller|less)$/.test(m[2]) ? 'less' : 'more' });
+  }
+  return out;
+}
+
+/* Typing the question back is not an answer, however tidy it looks: every content word
+   in the answer was already in the question, and they added nothing of their own. Ratios
+   were tried first and misfired twice: "and tell you how I know" (Freyas own tweak) read
+   as their own words, and a genuine "tell them a tenth is smaller" read as the question.
+   A pupil who adds one content word of their own is not echoing. */
+const STOP_WORDS = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'it', 'its', 'this', 'that', 'these', 'those', 'and', 'or', 'but', 'so', 'if', 'then', 'than',
+  'of', 'to', 'in', 'on', 'at', 'for', 'with', 'from', 'you', 'your', 'i', 'me', 'my', 'we', 'us',
+  'our', 'he', 'she', 'they', 'them', 'can', 'could', 'would', 'should', 'do', 'does', 'did',
+  'have', 'has', 'had', 'what', 'which', 'who', 'how', 'why', 'when', 'where', 'know', 'tell',
+  'say', 'says', 'said', 'not', 'no', 'yes', 'there', 'here', 'well', 'just', 'really']);
+function echoWords(x) {
+  let t = String(x || '').toLowerCase().replace(/\s*\/\s*/g, '/');
+  /* ten and 10 are the same word to a child, and to this test */
+  t = t.replace(/\b[a-z]+\b/g, w => (WORD_NUM[w] !== undefined ? ' ' + WORD_NUM[w] + ' ' : w));
+  return t.replace(/[^a-z0-9/\s]/g, ' ').split(/\s+/).filter(Boolean);
+}
+function isEcho(answer, question) {
+  const all = echoWords(answer);
+  if (all.length < 4) return false;
+  const mine = all.filter(w => !STOP_WORDS.has(w));
+  if (!mine.length) return false;
+  const asked = new Set(echoWords(question));
+  return mine.every(w => asked.has(w));
+}

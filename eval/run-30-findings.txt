@@ -1,0 +1,110 @@
+teacher band -> marker verdict (30 pupils)
+  green green: 8   amber: 2   red: 0
+  amber green: 1   amber: 9   red: 0
+  red   green: 4   amber: 3   red: 3
+
+per band:
+  teacher green  marker: {"green":8,"amber":2}   agree 8/10
+  teacher amber  marker: {"amber":9,"green":1}   agree 9/10
+  teacher red    marker: {"amber":3,"red":3,"green":4}   agree 3/10
+
+exact agreement: 20/30
+two bands out : 4/30
+
+--- every pupil a teacher would call red ---
+  Callum  -> amber  2/7  bigger numbers win
+            note: "Nothing about comparing fractions"
+  Layla   -> red    0/7  gave nothing
+            note: "nothing"
+  Omar    -> red    0/7  chatty, off the question
+            note: "nothing about comparing fractions"
+  Freya   -> green  5/7  copies the question back
+            note: "Nothing relevant to comparing fractions"
+  Idris   -> green  5/7  fluent keywords, wrong maths
+            note: "The student understands the process of finding a common denominator to compare f"
+  Nia     -> amber  4/7  changes mind, no reasoning
+            note: "Nothing clear about comparing fractions."
+  Jonah   -> green  5/7  wrong operation, adds them
+            note: "Nothing about comparing fractions"
+  Maya    -> green  5/7  confidently backwards, sticks to it
+            note: "Nothing about comparing fractions"
+  Bilal   -> amber  2/7  circular, says nothing
+            note: "Nothing"
+  Iris    -> red    0/7  never engaged
+            note: "Nothing about comparing fractions"
+
+--- greens that lost a band ---
+  Sofia   -> amber  4/7  right, clumsy spelling
+  Grace   -> amber  4/7  draws it, no arithmetic
+
+--- green verdicts whose own note says the pupil showed nothing ---
+  Freya  (copies the question back)  note: "Nothing relevant to comparing fractions"
+  Jonah  (wrong operation, adds them)  note: "Nothing about comparing fractions"
+  Maya  (confidently backwards, sticks to it)  note: "Nothing about comparing fractions"
+  count: 3
+
+--- spurious points: hit, but the quoted words do not carry the point ---
+  Jack     Q1  point needs 3  <- "4/5 because 5 is bigger than 4."
+  Jack     Q1  point needs 3,15,16  <- "4/5 because 5 is bigger than 4."
+  Jack     Q2  point needs 3,8  <- "I would times them together."
+  Callum   Q1  point needs 5  <- "3/4 because 3 and 4 are smaller numbers."
+  Callum   Q1  point needs 5,15,16  <- "3/4 because 3 and 4 are smaller numbers."
+  Sofia    Q1  point needs 3  <- "4/5 is bigger. I done it by doing 4x5 and 5x4 to get 20 then times the tops"
+  Sofia    Q1  point needs 3,15,16  <- "4/5 is bigger. I done it by doing 4x5 and 5x4 to get 20 then times the tops"
+  Noah     Q1  point needs 15,16  <- "4/5. I done it on a calculator, 3 divide 4 and 4 divide 5."
+  Rhys     Q1  point needs 15,16  <- "3/4 cos 4 is bigger than 5, no wait that is backwards. It has to be 4/5, I "
+  Rhys     Q2  point needs 3,8  <- "Make them both something they share, then look at the tops."
+  Isla     Q1  point needs 3  <- "4/5 I think, because the bits are bigger."
+  Isla     Q1  point needs 3,15,16  <- "4/5 I think, because the bits are bigger."
+  Isla     Q2  point needs 3,8  <- "I would make them the same but I dont know the number."
+  Grace    Q1  point needs 15,16  <- "4/5. If you draw both of them as bars and split them up, the 4/5 bar has bi"
+  Tyler    Q2  point needs 3,8  <- "You would determine the least common multiple of the denominators, which is"
+  Freya    Q1  point needs 15,16  <- "Which is bigger, 3/4 or 4/5, and tell you how I know."
+  Freya    Q2  point needs 24  <- "What would you do to compare 2/3 and 5/8."
+  Kai      Q1  point needs 15,16  <- "4/5, because to get to a whole you only need another fifth, but 3/4 still n"
+  Megan    Q1  point needs 3  <- "Common denominator. So it is 4/5, I think, I know you have to make the bott"
+  Megan    Q1  point needs 3,15,16  <- "Common denominator. So it is 4/5, I think, I know you have to make the bott"
+  Megan    Q2  point needs 3,8,24  <- "Lowest common multiple. I would work it out but I cant remember how you get"
+  Idris    Q1  point needs 3  <- "Firstly we must find the lowest common denominator because the numerator de"
+  Idris    Q1  point needs 3,15,16  <- "Firstly we must find the lowest common denominator because the numerator de"
+  Idris    Q2  point needs 3,8  <- "I would use the least common multiple to make the denominators the same, an"
+  Idris    Q2  point needs 3,8,24  <- "I would use the least common multiple to make the denominators the same, an"
+  Elsie    Q1  point needs 15,16  <- "4/5. 3/4 is 0.75 and 4/5 is 0.8, so 4/5. I turned them into decimals becaus"
+  Elsie    Q2  point needs 24  <- "Turn both into decimals. 2/3 is 0.666 and 5/8 is 0.625, so 2/3 is bigger. I"
+  Ravi     Q1  point needs 3  <- "4/5 because 16 is bigger than 15."
+  Ravi     Q1  point needs 3  <- "4/5 because 16 is bigger than 15."
+  Ravi     Q2  point needs 3  <- "Put them both over 24, so 16/24 and 15/24, so 5/8 is the bigger one."
+  Ravi     Q2  point needs 3  <- "Put them both over 24, so 16/24 and 15/24, so 5/8 is the bigger one."
+  Nia      Q1  point needs 15,16  <- "4/5. No wait, 3/4. I will go with 3/4."
+  Nia      Q2  point needs 24  <- "2/3. Actually 5/8. I think 5/8."
+  Dylan    Q1  point needs 3  <- "4/5. I would tell a friend to chop both of them into twentieths, so 15/20 a"
+  Dylan    Q1  point needs 3  <- "4/5. I would tell a friend to chop both of them into twentieths, so 15/20 a"
+  Dylan    Q2  point needs 3,8  <- "Same trick, get a bottom that both of them go into. Three and eight both go"
+  Dylan    Q2  point needs 3,8  <- "Same trick, get a bottom that both of them go into. Three and eight both go"
+  Ava      Q1  point needs 3  <- "4/5, cross multiply gives 16 against 15."
+  Ava      Q1  point needs 3  <- "4/5, cross multiply gives 16 against 15."
+  Ava      Q2  point needs 8  <- "Cross multiply, 16 against 15 again, so 2/3."
+  Ava      Q2  point needs 8,24  <- "Cross multiply, 16 against 15 again, so 2/3."
+  Jonah    Q1  point needs 15,16  <- "3/4 + 4/5 = 7/9 so 4/5 is bigger because 7 and 9 are the biggest numbers."
+  Jonah    Q2  point needs 24  <- "Add them: 2/3 + 5/8 = 7/11 so 5/8 wins."
+  Priya    Q1  point needs 3  <- "4/5. 15/20 vs 16/20."
+  Priya    Q1  point needs 3  <- "4/5. 15/20 vs 16/20."
+  Priya    Q2  point needs 3,8  <- "LCM 24. 16/24 vs 15/24."
+  Leon     Q1  point needs 3  <- "4/5."
+  Leon     Q1  point needs 3,15,16  <- "4/5."
+  Leon     Q2  point needs 3,8  <- "Make them the same."
+  Maya     Q1  point needs 15,16  <- "3/4 is bigger because 4 is a smaller number than 5 on the bottom and smalle"
+  Maya     Q2  point needs 3  <- "The one with the biggest bottom is the biggest, so 5/8."
+  Maya     Q2  point needs 3,24  <- "The one with the biggest bottom is the biggest, so 5/8."
+  Charlie  Q1  point needs 3  <- "4/5 is more big. I make same bottom twenty, fifteen and sixteen, sixteen mo"
+  Charlie  Q1  point needs 3,15,16  <- "4/5 is more big. I make same bottom twenty, fifteen and sixteen, sixteen mo"
+  Charlie  Q2  point needs 3,8  <- "I find same number for three and eight, that is twenty four, then sixteen a"
+  Charlie  Q2  point needs 3,8,24  <- "I find same number for three and eight, that is twenty four, then sixteen a"
+  Zara     Q1  point needs 3  <- "4/5, obviously, 0.8 beats 0.75."
+  Zara     Q1  point needs 3,15,16  <- "4/5, obviously, 0.8 beats 0.75."
+  Bilal    Q1  point needs 3  <- "4/5 is bigger because it is the bigger fraction."
+  Bilal    Q1  point needs 3,15,16  <- "4/5 is bigger because it is the bigger fraction."
+  Erin     Q2  point needs 24  <- "Cross multiply: 2x8 is 16 and 5x3 is 15, so 2/3 is bigger."
+  Max      Q1  point needs 3  <- "4/5 because 5 is bigger than 4 and 5 is a bigger number."
+  Max      Q1  point needs 3,15,16  <- "4/5 because 5 is bigger than 4 and 5 is a bigger number."
+  Max      Q2  point needs 3,8  <- "Make them the same and then look."

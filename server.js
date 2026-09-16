@@ -300,7 +300,23 @@ function answerable(question, pts) {
 function plainSum(q) {
   const t = String(q || '').toLowerCase();
   if (/why|explain|how do you know|how can you tell|same as|because|reason/.test(t)) return false;
-  return /\d\s*(?:[-+\/]|plus|minus|times|add|subtract|take away)\s*\d/.test(t);
+  return /\d\s*(?:[-+\/×]|plus|minus|times|add|subtract|take away|multiplied by|multiply|divided by)\s*\d/.test(t);
+}
+/* The number a simple question works out to, computed in code. Used to credit a bare
+   correct answer even when the mark points only describe the operation, not the result. */
+function arith(q) {
+  const t = String(q || '').toLowerCase();
+  if (/why|explain|how do you know|how can you tell|same as|because|reason/.test(t)) return null;
+  let m;
+  if ((m = t.match(/(\d+)\s*pairs?\b/)) && /pairs?\b/.test(t)) return Number(m[1]) * 2;
+  if ((m = t.match(/groups? of (\d+)\D*?in (\d+)/))) return Number(m[2]) / Number(m[1]);
+  if ((m = t.match(/(\d+)\s*(?:multiplied by|times|multiply|×)\s*(\d+)/))) return Number(m[1]) * Number(m[2]);
+  if ((m = t.match(/(\d+)\s*(?:divided by|shared between|split between)\s*(\d+)/))) return Number(m[1]) / Number(m[2]);
+  if ((m = t.match(/(\d+)\s*(?:plus|and|add(?:ed to)?)\s*(\d+)/))) return Number(m[1]) + Number(m[2]);
+  if ((m = t.match(/(\d+)\s*(?:minus|subtract(?:ed from)?|take away|take|less)\s*(\d+)/))) return Number(m[1]) - Number(m[2]);
+  if ((m = t.match(/(\d+)\s*\+\s*(\d+)/))) return Number(m[1]) + Number(m[2]);
+  if ((m = t.match(/(\d+)\s*-\s*(\d+)/))) return Number(m[1]) - Number(m[2]);
+  return null;
 }
 
 function splitPoints(list) {
@@ -707,11 +723,33 @@ Return ONLY JSON: {"shown":[1,3]}`;
       if (m) hit.set(lo + k, m);
     }
   }
+  /* Result net: work the answer out in code. If the question is a simple sum and the child
+     gave that number as a bare answer, credit the question's answer point - even when the
+     mark points only describe the operation ("multiplies 4 by 2" / "adds 7 and 7"), which
+     carry only the operands and never the result. No pairing needed; the number is worked
+     out from the question itself, so a wrong answer is never credited. */
+  const OP_WORD = /\b(add|adds|added|subtract\w*|take\w*\s+away|plus|minus|multipl\w*|divid\w*|count\w*|remove\w*|leaves|combine\w*|total)\b/i;
+  {
+    const used = new Set([...hit.values()]);
+    for (let qi = 0; qi < marks.length; qi++) {
+      const ps = (marks[qi] || []).filter(Boolean);
+      if (!ps.length) continue;
+      const lo = offset[qi];
+      const res = arith((questions && questions[qi]) || '');
+      if (res == null || !isFinite(res)) continue;
+      const want = String(Number(res));
+      const m = bare.find(a => nums(a).includes(want) && !used.has(a)) || bare.find(a => nums(a).includes(want));
+      if (!m) continue;
+      used.add(m);
+      for (let k = 0; k < ps.length; k++) {
+        if (!hit.has(lo + k) && OP_WORD.test(ps[k])) { hit.set(lo + k, m); break; }
+      }
+    }
+  }
   /* The working point beside a sum's answer. If a question's answer point was shown by a
      bare number, the operation was done, so the working point on that SAME question is
      shown too - the same child's number, on their own question. A why-question's answer is
      never bare, so nothing is added there. */
-  const OP_WORD = /\b(add|adds|added|subtract\w*|take\w*\s+away|plus|minus|multipl\w*|divid\w*|count\w*|remove\w*|leaves|combine\w*|total)\b/i;
   for (let qi = 0; qi < marks.length; qi++) {
     const ps = (marks[qi] || []).filter(Boolean);
     if (!ps.length) continue;

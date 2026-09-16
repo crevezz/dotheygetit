@@ -1,0 +1,87 @@
+  OK   teacher signed up  <- 200 {"teacher":{"id":"2fa80f91cea9","email":"sim1789572317490@test.com","role":"teacher","name":""}}
+  OK   class created with a join code  <- code=5d8jfa
+  OK   roster of 30 saved  <- 200 {"roster":["Amira","Jack","Callum","Sofia","Noah","Layla","Rhys","Isla","Omar","Grace","Tyler","Freya","Kai","Megan","Idris","Elsie","Ravi","Nia","Dylan","Ava","Jonah","Priya","Leon","Maya","Charlie","Zara","Bilal","Erin","Max","Iris"]}
+  OK   every question carries mark points  <- 3/2/2 [["4/5 is bigger than 3/4","5 times 3 is 15 and 4 times 4 is 16","cross multiply to compare them"],["make the bottoms the same,find a number that both 3 and 8 go into","find the lowest common multiple of 3 and 8, which is 24"],["says a fifth is bigger than a tenth","explains that more pieces means each piece is smaller"]]
+  OK   check created  <- {"check":{"id":"b8d6b13d","topic":"Comparing fractions","createdAt":1789572322708,"students":0}}
+
+driving 30 pupils through 3 questions...
+
+--- what came back ---
+  OK   every pupil got a reply on every question
+  OK   no chat call failed
+  OK   no empty or error replies
+  OK   every pupil got a verdict
+  OK   every result was accepted
+  levels: {"green":13,"amber":14,"red":3}   wall clock: 20.0s
+  OK   the levels are not all identical (the AI is actually reading them)  <- {"green":13,"amber":14,"red":3}
+
+--- did it all get stored ---
+  OK   results page shows 30 pupils  <- shows 30
+  OK   every stored pupil has a verdict
+  OK   no pupil name lost or duplicated  <- 30 unique
+  OK   the check reports 30 answers  <- reports 30
+  OK   the check reports a spread of levels, not one colour  <- {"green":13,"amber":14,"red":3}
+  OK   per-pupil history has all 30  <- 30
+  OK   CSV has a header plus 30 rows  <- 31 lines
+  OK   CSV first column is the pupil name  <- "Pupil","Comparing fractions (2026-09-16
+  OK   CSV has one column per question set
+
+--- trying to break it ---
+  OK   a second submission does not overwrite the first  <- the same pupil now has 2 records for one check - a re-send double-counts
+  OK   a wrong class code is refused  <- 400
+  OK   another teacher cannot export this class  <- 400
+
+--- did the grade match the pupil ---
+  OK   shows the working, twentiethsteacher: green ai: {"green":1}  points 86%
+  OK   right answer, wrong reason  teacher: amber ai: {"amber":1}  points 43%
+  MISS bigger numbers win          teacher: red   ai: {"amber":1}  points 29%
+  MISS right, clumsy spelling      teacher: green ai: {"amber":1}  points 57%
+  OK   calculator, no method       teacher: amber ai: {"amber":1}  points 29%
+  OK   gave nothing                teacher: red   ai: {"red":1}  points 0%
+  OK   starts backwards, talks themselves backteacher: green ai: {"green":1}  points 71%
+  OK   thin, but correct           teacher: amber ai: {"amber":1}  points 57%
+  OK   chatty, off the question    teacher: red   ai: {"red":1}  points 0%
+  MISS draws it, no arithmetic     teacher: green ai: {"amber":1}  points 57%
+  OK   rote textbook wording, cannot unpack itteacher: amber ai: {"amber":1}  points 29%
+  MISS copies the question back    teacher: red   ai: {"green":1}  points 71%
+  OK   compares to the whole, 1 away from 1teacher: green ai: {"green":1}  points 86%
+  OK   knows the method name, cannot do itteacher: amber ai: {"amber":1}  points 43%
+  MISS fluent keywords, wrong mathsteacher: red   ai: {"green":1}  points 71%
+  OK   decimals, and says why      teacher: green ai: {"green":1}  points 71%
+  MISS method right, comparison slipsteacher: amber ai: {"green":1}  points 86%
+  MISS changes mind, no reasoning  teacher: red   ai: {"amber":1}  points 57%
+  OK   teaches it back with an exampleteacher: green ai: {"green":1}  points 86%
+  OK   gets two, cannot explain the last oneteacher: amber ai: {"amber":1}  points 71%
+  MISS wrong operation, adds them  teacher: red   ai: {"green":1}  points 71%
+  OK   terse but complete          teacher: green ai: {"green":1}  points 71%
+  OK   accurate, no working, one slip at the endteacher: amber ai: {"amber":1}  points 43%
+  MISS confidently backwards, sticks to itteacher: red   ai: {"green":1}  points 71%
+  OK   correct maths, still learning Englishteacher: green ai: {"green":1}  points 86%
+  OK   bright but rushing, wont explainteacher: amber ai: {"amber":1}  points 43%
+  MISS circular, says nothing      teacher: red   ai: {"amber":1}  points 29%
+  OK   cross multiplies and knows whyteacher: green ai: {"green":1}  points 100%
+  OK   right answers, fluffs the explanationteacher: amber ai: {"amber":1}  points 57%
+  OK   never engaged               teacher: red   ai: {"red":1}  points 0%
+  graded to the teacher's band: 20/30  (67%)
+  FAIL no pupil is two bands out  <- Freya green vs red, Idris green vs red, Jonah green vs red, Maya green vs red
+  OK   nobody who clearly understood was failed
+  FAIL nobody who gave nothing was passed
+  OK   the class got a real spread of grades
+
+  misses:
+    Callum (bigger numbers win) teacher red -> ai amber   "Nothing about comparing fractions"
+    Sofia (right, clumsy spelling) teacher green -> ai amber   "The student understands the core concept of finding a common denominat"
+    Grace (draws it, no arithmetic) teacher green -> ai amber   "Compares fractions using visual models and understands the relationshi"
+    Freya (copies the question back) teacher red -> ai green   "Nothing relevant to comparing fractions"
+    Idris (fluent keywords, wrong maths) teacher red -> ai green   "The student understands the process of finding a common denominator to"
+    Ravi (method right, comparison slips) teacher amber -> ai green   "The concept of finding a common denominator to compare fractions."
+    Nia (changes mind, no reasoning) teacher red -> ai amber   "Nothing clear about comparing fractions."
+    Jonah (wrong operation, adds them) teacher red -> ai green   "Nothing about comparing fractions"
+    ... and 2 more
+
+================================================================
+  30 pupils, 3 questions, real AI on every turn
+  wall clock          20.0s  (4.5 chat turns/sec)
+  graded right        20/30
+  problems            no pupil is two bands out | nobody who gave nothing was passed
+================================================================

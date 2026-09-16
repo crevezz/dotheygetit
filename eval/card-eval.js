@@ -123,10 +123,10 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
     if (!ev.length) return;
     totals++;
     const got = ev.reduce((n, e) => n + e.got, 0), of = ev.reduce((n, e) => n + e.total, 0);
-    /* green needs everything (or all but one of three), red needs nothing, amber in between */
-    const want = ev.map(e => (e.got === e.total || (e.total >= 3 && e.got >= e.total - 1)) ? 'green' : e.got >= 1 ? 'amber' : 'red');
-    const tally = {}; want.forEach(l => { tally[l] = (tally[l] || 0) + 1; });
-    const top = ['green', 'amber', 'red'].sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || ['green', 'amber', 'red'].indexOf(a) - ['green', 'amber', 'red'].indexOf(b))[0];
+    /* the app rule: green = something on every question AND one fully shown; red = nothing on any question; amber = in between. A full mark sheet is never held below green. */
+    const shownQ = ev.filter(e => e.got > 0).length;
+    const fullQ = ev.filter(e => e.got >= e.total).length;
+    const top = !shownQ ? 'red' : (shownQ === ev.length && fullQ > 0) ? 'green' : 'amber';
     if (top === v.level) consistent++;
     log('    ' + p.name + ': ' + got + ' of ' + of + ' shown -> ' + v.level + (top === v.level ? '' : '  (evidence says ' + top + ')'));
   });
