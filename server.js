@@ -684,6 +684,23 @@ Return ONLY JSON: {"shown":[1,3]}`;
       if (spare.length && spare.some(n => nums(a).includes(n))) hit.set(j, a);
     }
   }
+  /* The sibling net, for the WORKING point on a plain sum. "15 + 8" answered "23" shows
+     the answer, and the marker still refuses "adds the two numbers together" because the
+     pupil never said it. But a right number on a sum IS the operation done - the only way
+     to reach 23 is to add 15 and 8. So where the pupil's whole answer is a number and at
+     least one point on that question was shown, a working point naming the operation is
+     shown too. The answer point is only shown when the number is right, so a wrong answer
+     marks nothing extra, and a WHY answer is never a bare number. */
+  const OP_WORD = /\b(add|adds|added|subtract\w*|take\w*\s+away|plus|minus|multipl\w*|divid\w*|count\w*|remove\w*|leaves|combine\w*|total)\b/i;
+  for (let k = 0; k < answers.length; k++) {
+    const a = answers[k];
+    if (!/^[\s\d\/.,+-]+$/.test(a)) continue;
+    const lo = paired ? offset[k] : 0;
+    const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
+    let shown = false; for (let j = lo; j < hi; j++) if (hit.has(j)) { shown = true; break; }
+    if (!shown) continue;
+    for (let j = lo; j < hi; j++) { if (!hit.has(j) && OP_WORD.test(points[j])) hit.set(j, a); }
+  }
   /* A pupil who names the WRONG fraction has not shown the point that names the right
      one, and the marker does not read direction: it ticks "4/5 is bigger than 3/4" for a
      child who wrote "3/4 is bigger", and ticks "a fifth is bigger than a tenth" for a
