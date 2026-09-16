@@ -244,6 +244,13 @@ pupil. Where a question can be answered by more than one valid method - a common
 denominator, cross-multiplying, decimals, a drawing, comparing each to a whole - the
 working point must be reachable by ANY of them, so a pupil who shows the same idea another
 way still reaches it.
+That means a question with several valid methods has ONE working point, not one per
+method. NEVER write "makes the bottoms the same" and "finds a common denominator" and
+"turns them into decimals" as three points: a pupil who uses one of them has shown the
+working, and the other points mark them down for taking a different route. Write the ONE
+point so any route reaches it - "works out a way to compare them and says which is bigger"
+- and let the answer point carry the rest. Never repeat the same idea as two points: if two
+points would both be ticked by the same answer, they are ONE point, not two.
 If in doubt, ask: could a ten-year-old who gets this but hates writing reach this line?
 NEVER WRITE THE ANSWER TWICE. "The sum of 15 and 23 is 38" and "Correctly adds 15 and 23"
 are the same fact in two sentences - that is ONE point, not two, and it wastes half the
@@ -320,11 +327,19 @@ function splitPoints(list) {
      quietly lowers everyone's score. Identical points are collapsed.
      Compared on letters and digits only, so casing and punctuation cannot smuggle a
      duplicate through. */
+  const METHOD_TAGS = [[/\b(bottoms?|denominators?|lcd|lcm)\b/, 'denom'], [/\b(tops?|numerators?)\b/, 'numer'], [/\bdecimals?\b/, 'dec'], [/\bcross[\s-]?multipl\w*\b/, 'cross'], [/\b(number line|bar model|diagram|draw\w*|picture)\b/, 'vis']];
+  const tagOf = p => { const t = p.toLowerCase(); return METHOD_TAGS.filter(x => x[0].test(t)).map(x => x[1]); };
   const seen = new Set();
+  const tags = [];
   return out.filter(p => {
     const k = p.toLowerCase().replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim();
     if (!k || seen.has(k)) return false;
-    seen.add(k);
+    /* Two points that both name the same method are one idea in different words - a pupil
+       using one phrasing ticks one and misses the other, and the card reads as a
+       contradiction. Keep the first. */
+    const tg = tagOf(p);
+    if (tg.length && tg.some(t => tags.some(x => x.includes(t)))) return false;
+    seen.add(k); tags.push(tg);
     return true;
   }).slice(0, 3);
 }
