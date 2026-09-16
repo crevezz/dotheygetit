@@ -653,6 +653,10 @@ function drawResults(s, students) {
   $('#results').innerHTML =
     `<div class="card">
        <div class="srow"><h3>${esc(s.topic || '')}</h3><span class="small">updates by itself</span></div>
+       <div class="cover">
+         <b>AI guidance, not a grade.</b> This helps you see who needs help, but it can be wrong &mdash; it is not a formal assessment. Please check it before you act on it.
+         <b>Think it got someone wrong? Change their colour:</b> click green, amber or red under their name. Your change is remembered, and the marking keeps its own answer beside it so you can see you changed it.
+       </div>
        <div class="stat-row">
          <div class="stat green" data-tip="Really understands it."><b>${L.green}</b><span>get it</span></div>
          <div class="stat amber" data-tip="Partly knows it, with clear gaps."><b>${L.amber}</b><span>shaky</span></div>

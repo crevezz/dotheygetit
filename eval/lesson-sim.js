@@ -31,69 +31,132 @@ const NAMES = ['Amira', 'Jack', 'Callum', 'Sofia', 'Noah', 'Layla', 'Rhys', 'Isl
   'Tyler', 'Freya', 'Kai', 'Megan', 'Idris', 'Elsie', 'Ravi', 'Nia', 'Dylan', 'Ava',
   'Jonah', 'Priya', 'Leon', 'Maya', 'Charlie', 'Zara', 'Bilal', 'Erin', 'Max', 'Iris'];
 
-/* Ten pupils, ten standards, from "could teach it" down to "said nothing".
-   Each one has a band a teacher would give. Three children share each profile,
-   so 30 pupils = every standard represented, and we can check whether the
-   grades actually track the quality of the answer. */
+/* Thirty pupils, thirty standards - one each, no two answers alike.
+   Every band a real teacher would give is in here, and inside each band the
+   pupils fail in different ways, so the run shows whether the AI can tell
+   thirty genuinely different answers apart - and whether it can be fooled by
+   the words being right when the maths is not. */
 const PROFILES = [
-  {
-    band: 'green', who: 'could teach it',
-    a: ['4/5. Fifteenths of twenty: 3/4 is 15/20 and 4/5 is 16/20, so 4/5 is one twentieth bigger.',
-      'Find the lowest common multiple of the bottoms, 24, so 16/24 against 15/24. So 2/3 is bigger.',
-      'A tenth is smaller than a fifth. The bottom is how many pieces you cut the whole into, so more pieces means each one is smaller.']
-  },
-  {
-    band: 'green', who: 'right, clumsy writing',
-    a: ['4/5 is bigger. I done it by doing 4x5 and 5x4 to get 20 then times the tops.',
-      'Same as before, make the botums the same, I think 24 works for 3 and 8.',
-      'I would tell them that is rong and show them with the peices of a cake.'] 
-  },
-  {
-    band: 'green', who: 'gets there after a wobble',
-    a: ['3/4 cos 4 is bigger than 5, no wait that is backwards. It has to be 4/5, I need to make the bottoms the same to check.',
-      'Make them both something they share, then look at the tops.',
-      'You cut it into ten and you cut it into five. The ten pieces are smaller, so a fifth is bigger.'] 
-  },
-  {
-    band: 'amber', who: 'right idea, one real gap',
-    a: ['4/5 because 5 is bigger than 4.',
-      'I would times them together.',
-      'I would say they are wrong but I could not show them why properly.'] 
-  },
-  {
-    band: 'amber', who: 'right answer, no method',
-    a: ['4/5. I done it on a calculator, 3 divide 4 and 4 divide 5.',
-      'I would use the calculator again.',
-      'I know it is wrong but I would just tell them the answer.'] 
-  },
-  {
-    band: 'amber', who: 'thin but correct',
-    a: ['4/5 I think, because the bits are bigger.',
-      'I would make them the same but I dont know the number.',
-      'The bottom is how many bits you cut it into.'] 
-  },
-  {
-    band: 'amber', who: 'rote, cannot unpack it',
-    a: ['You convert both fractions to a common denominator and compare the resulting numerators.',
-      'You would determine the least common multiple of the denominators, which is 24.',
-      'They are incorrect because a larger denominator denotes a smaller unit fraction.'] 
-  },
-  {
-    band: 'red', who: 'confidently wrong',
-    a: ['3/4 because 3 and 4 are smaller numbers.',
-      'Whatever the biggest numbers are is the biggest one.',
-      'I would say ten is more than five so they are right.'] 
-  },
-  {
-    band: 'red', who: 'gave nothing',
-    a: ['dunno', 'idk miss', 'I dont know'] 
-  },
-  {
-    band: 'red', who: 'chatty, off the question',
-    a: ['I like maths when it is not fractions. My brother is better at it than me.',
-      'Do we get to go out at break after this?',
-      'Once I got a certificate in assembly for good reading.'] 
-  }
+  { band: 'green', who: 'shows the working, twentieths', a: [
+    '4/5. Fifteenths of twenty: 3/4 is 15/20 and 4/5 is 16/20, so 4/5 is one twentieth bigger.',
+    'Find the lowest common multiple of the bottoms, 24, so 16/24 against 15/24. So 2/3 is bigger.',
+    'A tenth is smaller than a fifth. The bottom is how many pieces you cut the whole into, so more pieces means each one is smaller.'] },
+  { band: 'amber', who: 'right answer, wrong reason', a: [
+    '4/5 because 5 is bigger than 4.',
+    'I would times them together.',
+    'I would say they are wrong but I could not show them why properly.'] },
+  { band: 'red', who: 'bigger numbers win', a: [
+    '3/4 because 3 and 4 are smaller numbers.',
+    'Whatever the biggest numbers are is the biggest one.',
+    'I would say ten is more than five so they are right.'] },
+  { band: 'green', who: 'right, clumsy spelling', a: [
+    '4/5 is bigger. I done it by doing 4x5 and 5x4 to get 20 then times the tops.',
+    'Same as before, make the botums the same, 24 works for 3 and 8.',
+    'I would tell them that is rong and show them with the peices of a cake.'] },
+  { band: 'amber', who: 'calculator, no method', a: [
+    '4/5. I done it on a calculator, 3 divide 4 and 4 divide 5.',
+    'I would use the calculator again.',
+    'I know it is wrong but I would just tell them the answer.'] },
+  { band: 'red', who: 'gave nothing', a: [
+    'dunno',
+    'idk miss',
+    'I dont know'] },
+  { band: 'green', who: 'starts backwards, talks themselves back', a: [
+    '3/4 cos 4 is bigger than 5, no wait that is backwards. It has to be 4/5, I need to make the bottoms the same to check.',
+    'Make them both something they share, then look at the tops.',
+    'You cut it into ten and you cut it into five. The ten pieces are smaller, so a fifth is bigger.'] },
+  { band: 'amber', who: 'thin, but correct', a: [
+    '4/5 I think, because the bits are bigger.',
+    'I would make them the same but I dont know the number.',
+    'The bottom is how many bits you cut it into.'] },
+  { band: 'red', who: 'chatty, off the question', a: [
+    'I like maths when it is not fractions. My brother is better at it than me.',
+    'Do we get to go out at break after this?',
+    'Once I got a certificate in assembly for good reading.'] },
+  { band: 'green', who: 'draws it, no arithmetic', a: [
+    '4/5. If you draw both of them as bars and split them up, the 4/5 bar has bigger bits so it beats 3/4.',
+    'Draw them as the same length bar, cut one into thirds and one into eighths, then you can see which shaded part is longer.',
+    'Draw a bar and cut it into ten, then cut another into five. The five pieces are fatter. Ten tiny pieces is less cake than five big ones.'] },
+  { band: 'amber', who: 'rote textbook wording, cannot unpack it', a: [
+    'You convert both fractions to a common denominator and compare the resulting numerators.',
+    'You would determine the least common multiple of the denominators, which is 24.',
+    'They are incorrect because a larger denominator denotes a smaller unit fraction.'] },
+  { band: 'red', who: 'copies the question back', a: [
+    'Which is bigger, 3/4 or 4/5, and tell you how I know.',
+    'What would you do to compare 2/3 and 5/8.',
+    'They said one tenth is bigger than one fifth because ten is bigger than five.'] },
+  { band: 'green', who: 'compares to the whole, 1 away from 1', a: [
+    '4/5, because to get to a whole you only need another fifth, but 3/4 still needs another quarter, and a quarter is bigger than a fifth, so 3/4 is further from a whole.',
+    'I would see how far each one is from a whole. 2/3 is missing 1/3 and 5/8 is missing 3/8. One third is 8/24 and three eighths is 9/24, so 2/3 is missing less, so 2/3 is bigger.',
+    'A fifth is bigger than a tenth. Think of a chocolate bar: break it into ten and the bits are skinny, break it into five and they are chunky.'] },
+  { band: 'amber', who: 'knows the method name, cannot do it', a: [
+    'Common denominator. So it is 4/5, I think, I know you have to make the bottoms the same.',
+    'Lowest common multiple. I would work it out but I cant remember how you get it.',
+    'Show them the same fractions with the same bottom, but I would need a calculator to say which.'] },
+  { band: 'red', who: 'fluent keywords, wrong maths', a: [
+    'Firstly we must find the lowest common denominator because the numerator determines the size of the fraction. Both go into 20, so really they are the same size, but 4/5 is bigger.',
+    'I would use the least common multiple to make the denominators the same, and whichever denominator is larger is the larger fraction.',
+    'The student is correct in principle because a larger denominator means more parts, so a tenth is bigger than a fifth.'] },
+  { band: 'green', who: 'decimals, and says why', a: [
+    '4/5. 3/4 is 0.75 and 4/5 is 0.8, so 4/5. I turned them into decimals because they are easier to line up on a number line.',
+    'Turn both into decimals. 2/3 is 0.666 and 5/8 is 0.625, so 2/3 is bigger. I only do that when the bottoms are awkward.',
+    'I would say the tenth is smaller. 1/10 is 0.1 and 1/5 is 0.2, and 0.2 is further along the number line.'] },
+  { band: 'amber', who: 'method right, comparison slips', a: [
+    '4/5 because 16 is bigger than 15.',
+    'Put them both over 24, so 16/24 and 15/24, so 5/8 is the bigger one.',
+    'Put them both over 10, so 1/10 and 2/10, and 2/10 is bigger so the fifth is bigger.'] },
+  { band: 'red', who: 'changes mind, no reasoning', a: [
+    '4/5. No wait, 3/4. I will go with 3/4.',
+    '2/3. Actually 5/8. I think 5/8.',
+    'They are right. No they are wrong. I dont know, whichever.'] },
+  { band: 'green', who: 'teaches it back with an example', a: [
+    '4/5. I would tell a friend to chop both of them into twentieths, so 15/20 against 16/20, and 16 is more.',
+    'Same trick, get a bottom that both of them go into. Three and eight both go into 24.',
+    'I would say they are wrong and then prove it: give them a cake, cut one into ten and one into five, and let them see which slice they would rather have.'] },
+  { band: 'amber', who: 'gets two, cannot explain the last one', a: [
+    '4/5, cross multiply gives 16 against 15.',
+    'Cross multiply, 16 against 15 again, so 2/3.',
+    'I would say nice try but I dont know how to explain it without just telling them the answer.'] },
+  { band: 'red', who: 'wrong operation, adds them', a: [
+    '3/4 + 4/5 = 7/9 so 4/5 is bigger because 7 and 9 are the biggest numbers.',
+    'Add them: 2/3 + 5/8 = 7/11 so 5/8 wins.',
+    'You add ten and five to get fifteen, so the tenth is bigger.'] },
+  { band: 'green', who: 'terse but complete', a: [
+    '4/5. 15/20 vs 16/20.',
+    'LCM 24. 16/24 vs 15/24.',
+    'Bigger bottom means smaller piece. So 1/10 is less than 1/5.'] },
+  { band: 'amber', who: 'accurate, no working, one slip at the end', a: [
+    '4/5.',
+    'Make them the same.',
+    'They are right because ten is more than five.'] },
+  { band: 'red', who: 'confidently backwards, sticks to it', a: [
+    '3/4 is bigger because 4 is a smaller number than 5 on the bottom and smaller is more.',
+    'The one with the biggest bottom is the biggest, so 5/8.',
+    'Ten beats five, so a tenth is bigger. Numbers dont lie.'] },
+  { band: 'green', who: 'correct maths, still learning English', a: [
+    '4/5 is more big. I make same bottom twenty, fifteen and sixteen, sixteen more.',
+    'I find same number for three and eight, that is twenty four, then sixteen and fifteen.',
+    'They are not right. Five pieces more big than ten pieces. Ten is more number but piece is small.'] },
+  { band: 'amber', who: 'bright but rushing, wont explain', a: [
+    '4/5, obviously, 0.8 beats 0.75.',
+    'Decimals, 0.66 against 0.625.',
+    'I would just say no. I know it is the tenth that is smaller, I just would not bother explaining.'] },
+  { band: 'red', who: 'circular, says nothing', a: [
+    '4/5 is bigger because it is the bigger fraction.',
+    'I would compare them and the bigger one is bigger.',
+    'They are wrong because they are not right.'] },
+  { band: 'green', who: 'cross multiplies and knows why', a: [
+    '4/5. You cross multiply, 3x5 is 15 and 4x4 is 16, and 16 wins so 4/5. It works because it is the same as putting both over twenty.',
+    'Cross multiply: 2x8 is 16 and 5x3 is 15, so 2/3 is bigger.',
+    'I would tell them the bottom number tells you the size of the piece, not how many you have. A tenth is a thinner slice so it is less, even though ten is a bigger number.'] },
+  { band: 'amber', who: 'right answers, fluffs the explanation', a: [
+    '4/5 because 5 is bigger than 4 and 5 is a bigger number.',
+    'Make them the same and then look.',
+    'I would say it is because the bottom is smaller so the fifth is smaller, and they got it the wrong way round.'] },
+  { band: 'red', who: 'never engaged', a: [
+    'I dont do fractions, my brother does.',
+    'Do we have to write this down.',
+    'I did not read it. Ten is bigger than five.'] }
 ];
 
 const PROBLEMS = [];

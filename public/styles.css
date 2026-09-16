@@ -458,3 +458,18 @@ select {
   .noprint { display: none !important; }
 }
 
+
+/* --------------------------------------------------- cover: say what this is
+   The tool advises, the teacher decides. This sits at the top of every results page
+   so the AI grade can never be mistaken for a formal assessment, and so the teacher
+   knows the colour is theirs to change. */
+.cover{
+  margin:12px 0 16px;padding:12px 14px;border-radius:12px;
+  background:rgba(255,200,87,.10);border:1px solid rgba(255,200,87,.35);
+  color:var(--text);font-size:13px;line-height:1.55;
+}
+.cover b{color:var(--amber)}
+.sitenote{
+  max-width:760px;margin:30px auto 44px;padding:0 18px;
+  font-size:12px;line-height:1.55;color:var(--muted);text-align:center;
+}

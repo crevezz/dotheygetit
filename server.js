@@ -235,8 +235,11 @@ point written in schoolbook language is reachable ONLY by the pupil who has memo
 phrase - the child who understands it but says it their own way scores nothing, which is
 backwards and is the one thing a teacher will not forgive. Written plainly, both reach it.
 Good: "makes the bottoms the same so they can be compared", "the answer is 4/5".
-Bad: "finds a common denominator to compare them", "converts the fractions to decimals"
-(this one only rewards a pupil who can already recite the method).
+Bad: "finds the lowest common denominator of three and four" - it names the method of ONE
+pupil. Where a question can be answered by more than one valid method - a common
+denominator, cross-multiplying, decimals, a drawing, comparing each to a whole - the
+working point must be reachable by ANY of them, so a pupil who shows the same idea another
+way still reaches it.
 If in doubt, ask: could a ten-year-old who gets this but hates writing reach this line?
 NEVER WRITE THE ANSWER TWICE. "The sum of 15 and 23 is 38" and "Correctly adds 15 and 23"
 are the same fact in two sentences - that is ONE point, not two, and it wastes half the
@@ -490,6 +493,83 @@ function nums(s) {
   return out;
 }
 
+/* Fractions written as words, so "a fifth" and "1/5" are the same thing to the checks
+   below. Both of those appear in real pupil answers and in real mark points. */
+const WORD_FRAC = {
+  half: '1/2', halves: '1/2', third: '1/3', thirds: '1/3', quarter: '1/4', quarters: '1/4',
+  fourth: '1/4', fourths: '1/4', fifth: '1/5', fifths: '1/5', sixth: '1/6', sixths: '1/6',
+  seventh: '1/7', sevenths: '1/7', eighth: '1/8', eighths: '1/8', ninth: '1/9', ninths: '1/9',
+  tenth: '1/10', tenths: '1/10', twelfth: '1/12', twelfths: '1/12',
+  twentieth: '1/20', twentieths: '1/20'
+};
+function fracs(s) {
+  const t = String(s || '').toLowerCase().replace(/\s*\/\s*/g, '/');
+  const out = [];
+  (t.match(/\d+\s*\/\s*\d+/g) || []).forEach(f => out.push(f.replace(/\s/g, '')));
+  (t.match(/[a-z]+/g) || []).forEach(w => { if (WORD_FRAC[w]) out.push(WORD_FRAC[w]); });
+  return out;
+}
+
+/* "4/5 is bigger than 3/4" means 4/5 is the answer. The first fraction in the phrase is
+   the one being called the bigger (or smaller) one; anything after "than" is what it is
+   being compared against. */
+function claim(text) {
+  const m = String(text || '').match(/([^,;.:!?]{0,24}?)\s+(?:is|are)\s+(?:the\s+)?(bigger|larger|greater|more|smaller|less|biggest|largest|smallest)\b/i);
+  if (!m) return null;
+  const f = fracs(m[1]);
+  if (!f.length) return null;
+  return { win: f[0], dir: /^(?:smaller|less|smallest)$/i.test(m[2]) ? 'less' : 'more' };
+}
+
+/* Every fraction the pupil calls bigger or smaller, in their own words. */
+function saidAs(text) {
+  const t = String(text || '').toLowerCase().replace(/\s*\/\s*/g, '/');
+  const out = [];
+  /* "X is bigger than Y" also says something about Y - that it is the SMALLER one. An
+     earlier version read only the fraction before the comparison word, so "one tenth is
+     bigger than one fifth" came back "1/5 is more", the opposite of what the pupil said,
+     and the clash check below therefore never fired on a child who had it backwards.
+     Reading the phrase after "than" as the opposite direction fixes that. */
+  const re = /([^,;.:!?]{0,24}?)\s+(?:is|are)\s+(?:the\s+)?(bigger|larger|greater|more|smaller|less)\b(?:\s+than\s+([^,;.:!?]{0,24}))?/g;
+  let m;
+  while ((m = re.exec(t))) {
+    const dir = /^(?:smaller|less)$/.test(m[2]) ? 'less' : 'more';
+    const f = fracs(m[1]);
+    if (f.length) out.push({ f: f[0], dir });
+    if (m[3]) {
+      const opp = dir === 'more' ? 'less' : 'more';
+      fracs(m[3]).forEach(x => out.push({ f: x, dir: opp }));
+    }
+  }
+  return out;
+}
+
+/* Typing the question back is not an answer, however tidy it looks: every content word
+   in the answer was already in the question, and they added nothing of their own. Ratios
+   were tried first and misfired twice: "and tell you how I know" (Freyas own tweak) read
+   as their own words, and a genuine "tell them a tenth is smaller" read as the question.
+   A pupil who adds one content word of their own is not echoing. */
+const STOP_WORDS = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'it', 'its', 'this', 'that', 'these', 'those', 'and', 'or', 'but', 'so', 'if', 'then', 'than',
+  'of', 'to', 'in', 'on', 'at', 'for', 'with', 'from', 'you', 'your', 'i', 'me', 'my', 'we', 'us',
+  'our', 'he', 'she', 'they', 'them', 'can', 'could', 'would', 'should', 'do', 'does', 'did',
+  'have', 'has', 'had', 'what', 'which', 'who', 'how', 'why', 'when', 'where', 'know', 'tell',
+  'say', 'says', 'said', 'not', 'no', 'yes', 'there', 'here', 'well', 'just', 'really']);
+function echoWords(x) {
+  let t = String(x || '').toLowerCase().replace(/\s*\/\s*/g, '/');
+  /* ten and 10 are the same word to a child, and to this test */
+  t = t.replace(/\b[a-z]+\b/g, w => (WORD_NUM[w] !== undefined ? ' ' + WORD_NUM[w] + ' ' : w));
+  return t.replace(/[^a-z0-9/\s]/g, ' ').split(/\s+/).filter(Boolean);
+}
+function isEcho(answer, question) {
+  const all = echoWords(answer);
+  if (all.length < 4) return false;
+  const mine = all.filter(w => !STOP_WORDS.has(w));
+  if (!mine.length) return false;
+  const asked = new Set(echoWords(question));
+  return mine.every(w => asked.has(w));
+}
+
 async function marksFromAnswers(topic, marks, transcript, questions) {
   const points = [].concat.apply([], marks).filter(Boolean);
   if (!points.length) return null;
@@ -524,7 +604,9 @@ A correct answer on its own shows the point that names that answer: a pupil who 
 "12" to "what is 5 + 7?" has shown the point "says 12".
 A muddled attempt at the idea counts. Judge what the pupil meant, not how they said it - a
 garbled sentence that reaches for the right idea has shown it, and a tidy sentence that
-merely restates the question has not.
+merely restates the question has not. A pupil may show a point by a different valid method
+than the one it names - decimals, a drawing, cross-multiplying. If the idea is there by any
+sound route, tick it.
 
 A pupil is allowed to show the same point more than once, so only judge this one answer.
 
@@ -541,6 +623,8 @@ Return ONLY JSON: {"shown":[1,3]}`;
     const lo = paired ? offset[k] : 0;
     const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
     if (paired && !(hi > lo)) continue;
+    /* nothing of their own to mark */
+    if (isEcho(a, paired ? questions[k] : questions.join(' '))) continue;
     try {
       const raw = await llm([
         { role: 'system', content: sysFor(lo, hi) },
@@ -566,11 +650,39 @@ Return ONLY JSON: {"shown":[1,3]}`;
     const a = answers[k];
     const lo = paired ? offset[k] : 0;
     const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
+    if (isEcho(a, paired ? questions[k] : questions.join(' '))) continue;
     const asked = nums(paired ? questions[k] : questions.join(' '));
     for (let j = lo; j < hi; j++) {
       if (hit.has(j)) continue;
       const spare = nums(points[j]).filter(n => !asked.includes(n));
       if (spare.length && spare.some(n => nums(a).includes(n))) hit.set(j, a);
+    }
+  }
+  /* A pupil who names the WRONG fraction has not shown the point that names the right
+     one, and the marker does not read direction: it ticks "4/5 is bigger than 3/4" for a
+     child who wrote "3/4 is bigger", and ticks "a fifth is bigger than a tenth" for a
+     child who wrote that a tenth is. So read the direction in code. Only fractions that
+     appear in the point count, so a pupil working with sub-parts ("a quarter is bigger
+     than a fifth") is left alone - and a contradiction voids the whole question, because
+     the pupil answered the opposite of what was asked. */
+  if (paired) {
+    for (let qi = 0; qi < marks.length; qi++) {
+      const ps = (marks[qi] || []).filter(Boolean);
+      if (!ps.length) continue;
+      const said = saidAs(answers[qi] || '');
+      if (!said.length) continue;
+      let wrong = false;
+      for (const point of ps) {
+        const c = claim(point);
+        if (!c) continue;
+        const inPoint = fracs(point);
+        for (const s of said) {
+          if (!inPoint.includes(s.f)) continue;
+          if ((s.f === c.win) !== (s.dir === c.dir)) { wrong = true; break; }
+        }
+        if (wrong) break;
+      }
+      if (wrong) for (let k = offset[qi]; k < offset[qi] + ps.length; k++) hit.delete(k);
     }
   }
   /* The BAND comes from the QUESTIONS the pupil showed something on, not from the pooled
@@ -1123,6 +1235,7 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
       ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
       let v = parseJson(raw);
       if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+      const readLevelRaw = v.level;
 
       /* the level comes from grading each question separately, and so does the evidence
          behind it; everything else (gets / shaky / next step) still comes from the read
@@ -1141,6 +1254,20 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
           v.blanks = graded.blanks;
           v.qs = graded.qs;
           v.shown = graded.shown;
+          /* Two graders write this one card: the read judged the pupil from the whole
+             transcript, the count judged them point by point. The count sets the floor
+             and the green cliff. The read may HOLD A PUPIL BACK - it spots wrong maths a
+             keyword-count cannot - and may LIFT one to green only when they answered
+             every question, so a child who left a question blank is never passed, and a
+             child who showed the idea by an unusual route is not failed for one wording. */
+          const rank = { red: 0, amber: 1, green: 2 };
+          const readLevel = ['green', 'amber', 'red'].includes(readLevelRaw) ? readLevelRaw : null;
+          if (readLevel && rank[readLevel] < rank[v.level]) v.level = readLevel;
+          else if (readLevel === 'green' && v.level === 'amber' && graded.shown === graded.qs) v.level = 'green';
+          if (/^\s*nothing\b/i.test(String(v.gets || '').trim()) && v.level !== 'red') {
+            v.level = 'red';
+            v.cappedBy = String(v.gets || '').trim().slice(0, 80);
+          }
         } else if (!marks.length) {
           const perQ = await levelFromQuestions(topic, transcript);
           if (perQ) v.level = perQ;
@@ -1387,7 +1514,8 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
         const last = verdicts[verdicts.length - 1] || {};
         return [n].concat(cells).concat([verdicts.length, last.level || '', last.shaky || '', last.nextStep || '']);
       });
-      const csv = '\uFEFF' + [head].concat(rows).map(r => r.map(quote).join(',')).join('\r\n') + '\r\n';
+      const note = ['NOTE: AI guidance only - not a formal assessment or grade. A teacher must review this before it informs any decision.', '', '', ''];
+      const csv = '\uFEFF' + [head].concat(rows).concat([note]).map(r => r.map(quote).join(',')).join('\r\n') + '\r\n';
       const fname = (c.name || 'class').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'class';
       res.writeHead(200, {
         'Content-Type': 'text/csv; charset=utf-8',
