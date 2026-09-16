@@ -1330,7 +1330,8 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
              child who showed the idea by an unusual route is not failed for one wording. */
           const rank = { red: 0, amber: 1, green: 2 };
           const readLevel = ['green', 'amber', 'red'].includes(readLevelRaw) ? readLevelRaw : null;
-          if (readLevel && rank[readLevel] < rank[v.level]) v.level = readLevel;
+          /* A pupil who showed EVERY point on EVERY question has shown the understanding the check exists to measure. The read is a view of the whole transcript and can be swayed by one clumsy sentence, so it may NOT pull a full mark sheet down - a child who answered everything right must not be amber because the examiner misliked a phrase. Above the line the read still holds a pupil back. */
+          if (readLevel && v.level !== 'green' && rank[readLevel] < rank[v.level]) v.level = readLevel;
           else if (readLevel === 'green' && v.level === 'amber' && graded.shown === graded.qs) v.level = 'green';
           if (/^\s*nothing\b/i.test(String(v.gets || '').trim()) && v.level !== 'red') {
             v.level = 'red';
