@@ -613,6 +613,14 @@ function claim(text) {
   return { win: f[0], dir: /^(?:smaller|less|smallest)$/i.test(m[2]) ? 'less' : 'more' };
 }
 
+/* 3/4 as a number, so 2/4 and 1/2 count as the same answer. */
+function fracValue(fr) {
+  const m = String(fr || '').match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (!m) return null;
+  const v = Number(m[1]) / Number(m[2]);
+  return isFinite(v) ? Math.round(v * 10000) / 10000 : null;
+}
+
 /* Every fraction the pupil calls bigger or smaller, in their own words. */
 function saidAs(text) {
   const t = String(text || '').toLowerCase().replace(/\s*\/\s*/g, '/');
@@ -752,6 +760,25 @@ Return ONLY JSON: {"shown":[1,3]}`;
      question with one answer's number ("23" quoted under "subtracts 12 from 30"). Working
      per question cannot do either: a question's points are only ever touched by an answer
      that carries that question's own number. */
+  /* A pupil who gives the WRONG fraction has not shown the point that names the right
+     one. "3/8" for "1/4 + 2/4" is not "says 3/4" - but the marker reads both as "a
+     fraction", ticks it, and a child who added the bottoms comes back green. Compare the
+     VALUES in code. Equal fractions written differently (2/4 and 1/2) still count. */
+  if (paired) {
+    for (let qi = 0; qi < marks.length; qi++) {
+      const ps = (marks[qi] || []).filter(Boolean);
+      if (!ps.length) continue;
+      const mine = (String(answers[qi] || '').match(/\d+\s*\/\s*\d+/g) || []).map(fracValue).filter(v => v != null);
+      if (mine.length !== 1) continue;
+      for (let k = 0; k < ps.length; k++) {
+        const at = offset[qi] + k;
+        if (!hit.has(at)) continue;
+        const theirs = fracs(ps[k]).map(fracValue).filter(v => v != null);
+        if (theirs.length !== 1) continue;
+        if (mine[0] !== theirs[0]) hit.delete(at);
+      }
+    }
+  }
   const bare = answers.filter(a => /^[\s\d\/.,+-]+$/.test(a));
   for (let qi = 0; qi < marks.length; qi++) {
     const ps = (marks[qi] || []).filter(Boolean);
@@ -762,7 +789,10 @@ Return ONLY JSON: {"shown":[1,3]}`;
       if (hit.has(lo + k)) continue;
       const spare = nums(ps[k]).filter(n => !asked.includes(n));
       if (!spare.length) continue;
-      const m = bare.find(a => spare.some(n => nums(a).includes(n)));
+      /* the pupil's answer must BE one number. "3/8" is two ("3" and "8"), and matching
+         it on the "3" alone ticked "says 3/4" - a child who added the bottoms came back
+         green off the back of one shared digit. */
+      const m = bare.find(a => nums(a).length === 1 && spare.includes(nums(a)[0]));
       if (m) hit.set(lo + k, m);
     }
   }
@@ -815,7 +845,9 @@ Return ONLY JSON: {"shown":[1,3]}`;
     let quote = null;
     for (let k = 0; k < ps.length; k++) {
       const h = hit.get(lo + k);
-      if (h != null && /^[\s\d\/.,+-]+$/.test(h)) { quote = h; break; }
+      if (h == null) continue;
+      const wholeFraction = echoWords(h).length <= 3 && fracs(h).length === 1;
+      if (/^[\s\d\/.,+-]+$/.test(h) || wholeFraction) { quote = h; break; }
     }
     if (!quote) continue;
     for (let k = 0; k < ps.length; k++) {
@@ -848,6 +880,49 @@ Return ONLY JSON: {"shown":[1,3]}`;
       }
       if (wrong) for (let k = offset[qi]; k < offset[qi] + ps.length; k++) hit.delete(k);
     }
+  }
+  /* Wording net. The marker reads meaning, and now and then misses a point the pupil has
+     said almost word for word - "the order does not matter in timesing" against "explains
+     the order does not matter" came back as a miss, so a pupil who had said it came back
+     amber. If every real word of the point is in the answer, they have said it. Two
+     content words at least, so a one-word point cannot be matched by accident. */
+  {
+    const LEAD = /^(explains?|says?|states?|shows?|knows?|uses?|gives?|writes?|names?|mentions?|recognises?|recognizes?|tells?)\s+/i;
+    const stem = w => w.replace(/s$/, '');
+    for (let qi = 0; qi < marks.length; qi++) {
+      const ps = (marks[qi] || []).filter(Boolean);
+      if (!ps.length) continue;
+      const lo = offset[qi];
+      const q = (questions && questions[qi]) || '';
+      for (let k = 0; k < ps.length; k++) {
+        if (hit.has(lo + k)) continue;
+        const need = echoWords(ps[k].replace(LEAD, '')).filter(w => !STOP_WORDS.has(w)).map(stem);
+        if (need.length < 2) continue;
+        for (const a of answers) {
+          if (isEcho(a, paired ? q : questions.join(' '))) continue;
+          const mine = new Set(echoWords(a).map(stem));
+          if (need.every(w => mine.has(w))) { hit.set(lo + k, a); break; }
+        }
+      }
+    }
+  }
+  /* A bare result is not a reason. On a WHY question, "its 10 either way" shows the pupil
+     knows the fact but not why it is true, and the marker ticks the reasons anyway - so a
+     pupil who explained nothing came back green. Very short, carries a number, and not one
+     word of reasoning: one point, not two. Deliberately narrow, so a pupil explaining it
+     their own way is never caught by it. */
+  for (let qi = 0; qi < marks.length; qi++) {
+    const q = (questions && questions[qi]) || '';
+    if (!/why|explain/i.test(q)) continue;
+    const a = paired ? (answers[qi] || '') : '';
+    if (!a || a.trim().split(/\s+/).length > 4) continue;
+    if (!/\d/.test(a)) continue;
+    if (/because|since|\bso\b|\bsame\b|order|swap|group|repeat|doubl|equal|both|times|mean/i.test(a)) continue;
+    const ps = (marks[qi] || []).filter(Boolean).length;
+    if (ps < 2) continue;
+    const hs = [];
+    for (let k = 0; k < ps; k++) if (hit.has(offset[qi] + k)) hs.push(offset[qi] + k);
+    if (hs.length > 1) hs.slice(1).forEach(x => hit.delete(x));
   }
   /* The BAND comes from the QUESTIONS the pupil showed something on, not from the pooled
      points. Both earlier rules failed the same way: per-question voting let a one-point
