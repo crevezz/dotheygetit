@@ -686,34 +686,45 @@ Return ONLY JSON: {"shown":[1,3]}`;
      question. If the pupil typed that number, they showed it, whatever words the teacher
      wrapped round it. Deterministic, and it cannot over-credit: a wrong answer carries the
      wrong number, or none. */
-  for (let k = 0; k < answers.length; k++) {
-    const a = answers[k];
-    const lo = paired ? offset[k] : 0;
-    const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
-    if (isEcho(a, paired ? questions[k] : questions.join(' '))) continue;
-    const asked = nums(paired ? questions[k] : questions.join(' '));
-    for (let j = lo; j < hi; j++) {
-      if (hit.has(j)) continue;
-      const spare = nums(points[j]).filter(n => !asked.includes(n));
-      if (spare.length && spare.some(n => nums(a).includes(n))) hit.set(j, a);
+  /* Both nets work QUESTION BY QUESTION, on the points that belong to each question, so
+     they need no pairing between answers and questions at all. A follow-up question the
+     examiner asks ("What is 10 + 5?") leaves more answers than questions; pairing then
+     fails, and the old nets either switched off (every sum came back "no") or swept every
+     question with one answer's number ("23" quoted under "subtracts 12 from 30"). Working
+     per question cannot do either: a question's points are only ever touched by an answer
+     that carries that question's own number. */
+  const bare = answers.filter(a => /^[\s\d\/.,+-]+$/.test(a));
+  for (let qi = 0; qi < marks.length; qi++) {
+    const ps = (marks[qi] || []).filter(Boolean);
+    if (!ps.length) continue;
+    const lo = offset[qi];
+    const asked = nums((questions && questions[qi]) || '');
+    for (let k = 0; k < ps.length; k++) {
+      if (hit.has(lo + k)) continue;
+      const spare = nums(ps[k]).filter(n => !asked.includes(n));
+      if (!spare.length) continue;
+      const m = bare.find(a => spare.some(n => nums(a).includes(n)));
+      if (m) hit.set(lo + k, m);
     }
   }
-  /* The sibling net, for the WORKING point on a plain sum. "15 + 8" answered "23" shows
-     the answer, and the marker still refuses "adds the two numbers together" because the
-     pupil never said it. But a right number on a sum IS the operation done - the only way
-     to reach 23 is to add 15 and 8. So where the pupil's whole answer is a number and at
-     least one point on that question was shown, a working point naming the operation is
-     shown too. The answer point is only shown when the number is right, so a wrong answer
-     marks nothing extra, and a WHY answer is never a bare number. */
+  /* The working point beside a sum's answer. If a question's answer point was shown by a
+     bare number, the operation was done, so the working point on that SAME question is
+     shown too - the same child's number, on their own question. A why-question's answer is
+     never bare, so nothing is added there. */
   const OP_WORD = /\b(add|adds|added|subtract\w*|take\w*\s+away|plus|minus|multipl\w*|divid\w*|count\w*|remove\w*|leaves|combine\w*|total)\b/i;
-  for (let k = 0; paired && k < answers.length; k++) {
-    const a = answers[k];
-    if (!/^[\s\d\/.,+-]+$/.test(a)) continue;
-    const lo = paired ? offset[k] : 0;
-    const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
-    let shown = false; for (let j = lo; j < hi; j++) if (hit.has(j)) { shown = true; break; }
-    if (!shown) continue;
-    for (let j = lo; j < hi; j++) { if (!hit.has(j) && OP_WORD.test(points[j])) hit.set(j, a); }
+  for (let qi = 0; qi < marks.length; qi++) {
+    const ps = (marks[qi] || []).filter(Boolean);
+    if (!ps.length) continue;
+    const lo = offset[qi];
+    let quote = null;
+    for (let k = 0; k < ps.length; k++) {
+      const h = hit.get(lo + k);
+      if (h != null && /^[\s\d\/.,+-]+$/.test(h)) { quote = h; break; }
+    }
+    if (!quote) continue;
+    for (let k = 0; k < ps.length; k++) {
+      if (!hit.has(lo + k) && OP_WORD.test(ps[k])) hit.set(lo + k, quote);
+    }
   }
   /* A pupil who names the WRONG fraction has not shown the point that names the right
      one, and the marker does not read direction: it ticks "4/5 is bigger than 3/4" for a
