@@ -229,6 +229,10 @@ no number to give, so its points are the reasons. One of them must be the claim 
 the words a pupil would likely use, so that a muddled but real attempt can reach it. A pupil
 who gets there in clumsy words has shown the idea; never write a point that needs tidy
 wording to be reachable.
+On a WHY question the points are separate REASONS. Two reasons that are the same idea in
+different words - "the pieces are the same size" and "you are combining same-sized pieces" -
+are ONE point; writing both doubles the marks against a pupil who gave that one reason. If
+you can say "in other words..." and your second point is what follows, delete it.
 WRITE EVERY POINT IN THE WORDS THE PUPIL WOULD SAY OUT LOUD, not the words from the
 textbook. This is the difference between marking the idea and marking the vocabulary. A
 point written in schoolbook language is reachable ONLY by the pupil who has memorised the
@@ -602,6 +606,13 @@ shows. Be strict about the meaning and generous about the wording: clumsy, badly
 English that shows the idea DOES count. Words that sound right but show nothing DO NOT.
 A correct answer on its own shows the point that names that answer: a pupil who writes
 "12" to "what is 5 + 7?" has shown the point "says 12".
+A correct answer ALSO shows the working or method point that produced it, even though the
+pupil never said the words: "3/4" to "what is 1/4 + 2/4?" shows "adds the top numbers" and
+"keeps the bottom number the same", because getting 3/4 IS adding the tops and keeping the
+bottom. "3/5" to "2/5 + 1/5" shows the same two points. A right answer is evidence of the
+method, so tick the method point. Only refuse a working point when the answer is wrong or
+has nothing to do with it. This does NOT apply to a WHY point - a number cannot show a
+reason, so a reason the pupil never gave stays a miss. More examples: "17" to "what is 9 + 8?" shows both "the answer is 17" and "adds 9 and 8".
 A muddled attempt at the idea counts. Judge what the pupil meant, not how they said it - a
 garbled sentence that reaches for the right idea has shown it, and a tidy sentence that
 merely restates the question has not. A pupil may show a point by a different valid method
