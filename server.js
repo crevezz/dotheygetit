@@ -1162,11 +1162,19 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- auth
+    if (p === '/api/gate' && req.method === 'GET') {
+      return sendJson(res, { inviteRequired: !!String(process.env.SIGNUP_CODE || '').trim() });
+    }
+
     if (p === '/api/signup' && req.method === 'POST') {
       const b = await readBody(req);
       const email = String(b.email || '').trim().toLowerCase();
       const pw = String(b.password || '');
       if (!email || !email.includes('@')) return sendErr(res, 'Please enter a valid email.');
+      const needCode = String(process.env.SIGNUP_CODE || '').trim();
+      if (needCode && String(b.invite || '').trim() !== needCode) {
+        return sendErr(res, 'This app is invite-only while it is being tested. Ask for the code.');
+      }
       if (pw.length < 6) return sendErr(res, 'Password must be at least 6 characters.');
       if (store.teachers.find(t => t.email === email)) return sendErr(res, 'That email is already registered. Try logging in.');
       const salt = rid(8);

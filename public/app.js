@@ -96,12 +96,20 @@ async function doAuth(path) {
   const email = $('#authEmail').value.trim();
   const password = $('#authPass').value;
   if (!email || !password) return setMsg($('#authMsg'), 'Enter your email and a password.');
+  const inv = document.getElementById('authInvite');
+  const invite = inv ? inv.value.trim() : '';
   try {
-    await post(path, { email, password });
+    await post(path, { email, password, invite });
     $('#authPass').value = '';
     await boot();
   } catch (e) { setMsg($('#authMsg'), e.message); }
 }
+
+/* invite-only gate: show the field only when the server is asking for one */
+fetch('/api/gate').then(r => r.json()).then(g => {
+  const el = document.getElementById('authInvite');
+  if (el && g && g.inviteRequired) el.style.display = '';
+}).catch(() => {});
 
 $('#btnLogout').addEventListener('click', async () => {
   try { await post('/api/logout'); } catch {}
