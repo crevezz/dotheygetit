@@ -111,6 +111,32 @@ fetch('/api/gate').then(r => r.json()).then(g => {
   if (el && g && g.inviteRequired) el.style.display = '';
 }).catch(() => {});
 
+/* --- feedback: goes straight to a private Discord channel, with the detail already attached --- */
+const fbOpen = document.getElementById('fbOpen');
+if (fbOpen) fbOpen.addEventListener('click', (e) => {
+  e.preventDefault();
+  const box = document.getElementById('fbBox');
+  box.classList.toggle('hidden');
+  if (!box.classList.contains('hidden')) document.getElementById('fbMsg').focus();
+});
+const fbSend = document.getElementById('fbSend');
+if (fbSend) fbSend.addEventListener('click', async () => {
+  const box = document.getElementById('fbBox');
+  const msg = document.getElementById('fbMsg').value.trim();
+  if (!msg) return document.getElementById('fbMsg').focus();
+  fbSend.disabled = true;
+  fbSend.textContent = 'Sending...';
+  try {
+    await post('/api/feedback', { message: msg, page: location.pathname + location.hash, ua: navigator.userAgent });
+    document.getElementById('fbMsg').value = '';
+    fbSend.textContent = 'Thank you';
+    setTimeout(() => { box.classList.add('hidden'); fbSend.textContent = 'Send it'; fbSend.disabled = false; }, 2400);
+  } catch (err) {
+    fbSend.textContent = 'That did not send - try again';
+    fbSend.disabled = false;
+  }
+});
+
 $('#btnLogout').addEventListener('click', async () => {
   try { await post('/api/logout'); } catch {}
   me = null; myClasses = []; activeClass = null;

@@ -1166,6 +1166,38 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { inviteRequired: !!String(process.env.SIGNUP_CODE || '').trim() });
     }
 
+    if (p === '/api/feedback' && req.method === 'POST') {
+      const b = await readBody(req);
+      const msg = String(b.message || '').trim().slice(0, 1200);
+      if (!msg) return sendErr(res, 'Tell me what happened first.');
+      const tok = String(process.env.DISCORD_TOKEN || '').trim();
+      const chan = String(process.env.FEEDBACK_CHANNEL || '').trim();
+      const m = (req.headers.cookie || '').match(/sid=([A-Za-z0-9]+)/);
+      const tid = m && store.tokens[m[1]];
+      const t = tid && store.teachers.find(x => x.id === tid);
+      const who = t ? t.email : 'not logged in';
+      if (tok && chan) {
+        const body = { embeds: [{
+          title: 'Feedback from the app',
+          description: msg,
+          color: 0x4f8cff,
+          fields: [
+            { name: 'Page', value: String(b.page || 'unknown').slice(0, 200), inline: true },
+            { name: 'Who', value: String(who).slice(0, 200), inline: true },
+            { name: 'Browser', value: (String(b.ua || 'unknown').slice(0, 300)) },
+          ],
+        }] };
+        try {
+          await fetch('https://discord.com/api/v10/channels/' + chan + '/messages', {
+            method: 'POST',
+            headers: { Authorization: 'Bot ' + tok, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        } catch (e) { /* never let this break the person sending it */ }
+      }
+      return sendJson(res, { ok: true });
+    }
+
     if (p === '/api/signup' && req.method === 'POST') {
       const b = await readBody(req);
       const email = String(b.email || '').trim().toLowerCase();
