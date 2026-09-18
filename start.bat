@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-title Understanding Check
+title Get It?
 
 if not exist key.txt (
   echo.
@@ -16,7 +16,7 @@ if not exist key.txt (
 )
 
 echo.
-echo   Starting Understanding Check...
+echo   Starting Get It?...
 echo   Your browser will open in a moment.
 echo.
 echo   Keep this window open while you use it.

@@ -1,4 +1,4 @@
-# Understanding Check
+# Get It?
 
 **A simple tool that finds out who *really* knows something — when AI can fake the work.**
 
