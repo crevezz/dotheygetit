@@ -363,7 +363,7 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
   z-index:120;box-shadow:0 10px 30px rgba(0,0,0,.5);
 }
 [data-tip]:hover::after{opacity:1}
-header [data-tip]::after{bottom:auto;top:calc(100% + 9px)}
+header [data-tip]::after,.tutbar [data-tip]::after{bottom:auto;top:calc(100% + 9px)}
 
 /* ------------------------------------------------------------ responsive */
 @media (max-width:640px){
