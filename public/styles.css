@@ -106,7 +106,7 @@ nav{display:flex;gap:6px;background:var(--surface);padding:4px;border-radius:12p
 .tab:hover{color:var(--text)}
 .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 18px rgba(79,140,255,.3)}
 
-main{padding:32px 0 90px}
+main.wrap{padding:32px 20px 90px}
 
 /* ----------------------------------------------------------------- cards */
 .card{
@@ -511,4 +511,11 @@ select {
 .tutbtn:hover{transform:translateY(-1px);filter:brightness(1.08)}
 .tutplay{font-size:11px;line-height:1}
 .tutnote{font-size:12px;color:var(--muted)}
+.tutdisc{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:11px;text-decoration:none;font-weight:600;font-size:13.5px;
+  color:var(--text);background:var(--surface);border:1px solid var(--line);
+  transition:transform .16s, border-color .16s;
+}
+.tutdisc:hover{transform:translateY(-1px);border-color:var(--accent)}
 @media (max-width:520px){ .tutnote{display:none} .tutbtn{width:100%;justify-content:center} }
