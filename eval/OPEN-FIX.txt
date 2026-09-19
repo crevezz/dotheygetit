@@ -1,0 +1,48 @@
+OPEN FIX - comparison questions (half done, NOT committed)
+==========================================================
+
+THE BUG
+  A pupil answers a comparison question correctly and scores 0.
+  "Which is bigger, 1/2 or 1/4? How do you know?"  ->  pupil says "1/2"
+  The mark point is worded as the CLAIM: "1/2 is bigger".
+  The marker waits for the pupil to say the word "bigger", doesn't see it,
+  ticks nothing. The number safety net cannot rescue it either, because that
+  net only fires on a number the QUESTION never asked - and this question
+  asked about 1/2. So a right answer comes back 0/2.
+
+WHAT WAS DONE
+  A deterministic rule in server.js, in marksFromAnswers (search "comparison
+  question offers two things", ~line 792, block `if (paired) { ... }`).
+  If the question offers 2+ values and the answer names EXACTLY ONE of them,
+  tick the point that names that same value.
+  - exactly one: naming both is not a choice
+  - naming the other one: a wrong pick still earns nothing
+  It sits just above the existing number safety net and is question-by-question.
+
+WHERE IT STANDS  (node eval/skip-check.js)
+  Q2 = "3/4 or 4/5?"   ->  FIXED   1/2 points -> 2/2 points
+  Q1 = "1/2 or 1/4?"   ->  STILL 0/2
+
+WHAT IS LEFT
+  Find why Q1 is not reached. Both questions are the same shape, so the rule
+  should fire on both. Suspects, in order:
+    1. the points array / offset for Q1 is empty or mis-split, so there is no
+       point left to tick by the time the rule runs
+    2. Q1's answer never gets paired to Q1 (paired / offset lookup), so the
+       `if (paired)` branch is skipped for it
+    3. the point text for Q1 is not "1/2 is bigger" in the frozen rubric, so
+       the indexOf(named[0]) match misses
+  Debug by logging `offered`, `named`, `marks[k]` and `offset[k]` inside the
+  block for each k. Do NOT guess - print the values.
+
+WHEN FIXED
+  - re-run:  node eval/skip-check.js        (expect perQ = [2/2  2/2])
+  - re-run:  node eval/benchmark.js 100     (compare to eval/bench-default.json)
+  - then commit. The change is currently sitting uncommitted in server.js on
+    purpose, so a half-fix is not pushed.
+
+RELATED
+  The prompt was also tightened in the same area (sysFor, ~line 752): the
+  marker is now told to tick the point that STATES the claim and miss the
+  points that ask WHY. That edit is in server.js too. It did not fix Q1 on its
+  own - the code rule is the real fix, and it is only half working.
