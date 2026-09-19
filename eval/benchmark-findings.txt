@@ -1,0 +1,71 @@
+BENCHMARK - first frozen run (eval/benchmark.js)
+================================================
+100 pupils x 3 tiers = 300 gradings, 102s, real AI on every turn.
+Rubric DRAFTED once, frozen to benchmark-rubric.json, reused forever after.
+Config: original models (2.5-flash-lite brain, 2.5-flash verdict) + critic (3.8-flash).
+
+  AGREEMENT        211/300  (70.3%)
+  too lenient      0     (no red pupil handed green)
+  too harsh        2     (green pupils failed)
+  two bands out    2
+  repeatability    57/60 answers graded the same every time  (95%)
+  difficulty       easy 1.07  medium 0.91  hard 0.64   <- now falls monotonically
+
+WHY THIS RUN IS TRUSTWORTHY AND THE EARLIER ONES WERE NOT
+  Every earlier run re-drafted the mark points, so no two runs tested the same
+  thing. The score bounced 66 / 61 / 62 and the bounce WAS the rubric. Freeze the
+  rubric and the number stops bouncing: change the app, re-run, it moves for one
+  reason only.
+
+LEARNING 1 - THE GRADER IS NOT NOISY, IT IS SYSTEMATICALLY WRONG IN ONE WAY
+  Repeatability is 95%: the same answer text gets the same colour nearly every
+  time. So the errors are not randomness, they are a consistent bug - which is
+  good news, because a consistent bug can be fixed.
+  The dominant error, by a mile, is: A LUCKY GUESS SCORES A POINT.
+    "1/2 I think"     -> amber  (hits "1/2 is bigger")
+    "4/5"             -> amber  (hits "4/5 is bigger")
+    "0.8 is biggest." -> amber  (hits one of three hard points)
+  A poor pupil who guesses right is marked amber - "partly there" - for the same
+  answer a poor pupil who guesses WRONG gets red for. The app cannot tell a lucky
+  guess from partial understanding. That single mechanism is most of the 89 misses.
+  THIS IS THE THING TO FIX NEXT: the answer-only point should not, on its own, lift
+  a pupil off red. Reaching amber should need the WORKING point, not the answer point.
+
+LEARNING 2 - DIFFICULTY NOW BITES
+  easy 1.07 > medium 0.91 > hard 0.64. The earlier "failure" was an artefact of the
+  broken easy rubric (it was failing correct pupils), not of the app's difficulty
+  handling. With a sound rubric the curve is exactly right.
+
+THE REAL ASSET
+  bench-default.json is a frozen failure corpus - the 89 answers the app actually
+  gets wrong, with expected vs got and the note. That is a regression suite made of
+  reality. Any change can be re-run against it: node eval/benchmark.js 100.
+
+HOW TO A/B A CHANGE
+  The rubric is shared, so two configs are compared on identical items:
+    set VERDICT_MODEL=google/gemini-2.5-flash && node eval/benchmark.js 100
+  Compare bench-<label>.json agreement, falseGreen and falseRed.
+
+==================================================================
+CHANGE: green follows the ANSWER; explanation is a separate flag
+==================================================================
+Before: bare right answer -> amber (green needed answered AND explained).
+After : bare right answer -> GREEN, plus a separate flag = did they say why.
+
+  too harsh (correct pupil failed)   0   <- was 2. The goal: no right answer punished.
+  repeatability                      100%
+  right, no reason                   44 of 300
+    by ability:  poor 22, weak 10, ok 7, good 3, excellent 2
+
+THE FLAG WORKS. 32 of the 44 no-reason greens are the poor and weak bands -
+the guessers - and only 2 are excellent. So the flag lands on the pupils who got
+it right without understanding, and barely touches the ones who understand. That
+is the at-risk list, and it is clean.
+
+WHAT MOVED WHERE:
+  the COLOUR now means did they get it right (so it no longer falls with
+  difficulty - easy 1.22 medium 1.20 hard 1.28 - because right is right).
+  the FLAG now carries the understanding signal.
+  Agreement vs the old teacher bands reads 66.7% (was 70.3%), but the old bands
+  encoded UNDERSTANDING and the colour no longer does - so it is a different
+  metric, not a regression. Compare too-harsh (2 -> 0) and the flag breakdown.

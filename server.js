@@ -24,7 +24,11 @@ function loadConfig() {
   catch { return {}; }
 }
 const cfg = Object.assign({ port: 4590, model: 'google/gemini-2.5-flash-lite', maxQuestions: 5 }, loadConfig());
+if (cfg.brainModel) cfg.model = cfg.brainModel;   // brainModel is the name teachers set; cfg.model is what the code calls it
 if (process.env.PORT) cfg.port = Number(process.env.PORT);
+if (process.env.BRAIN_MODEL) cfg.model = process.env.BRAIN_MODEL;
+if (process.env.VERDICT_MODEL) cfg.verdictModel = process.env.VERDICT_MODEL;
+if (process.env.CRITIC_MODEL) cfg.criticModel = process.env.CRITIC_MODEL;
 
 function readKey() {
   try { return fs.readFileSync(path.join(ROOT, 'key.txt'), 'utf8').trim(); }
@@ -356,6 +360,10 @@ function splitPoints(list) {
     if (!s) continue;
     if (s === '[object Object]') continue;
     s = s.replace(/^(the\s+)?pupil\s+/i, '').replace(/^\-\s*/, '');
+    /* Commas inside brackets are part of one idea - "converts to decimals (5/7 is 0.71, 0.8)"
+       is a single point, not two. Park them so the comma rules below cannot split a point
+       down the middle, and put them back after. */
+    s = s.replace(/\(([^)]*)\)/g, m => m.replace(/,/g, '\u0001'));
     /* The model bundles two ideas into one string, lower case after the join, so a
        sentence rule that needs a capital walks straight past it:
        "finds a common denominator,the pupil converts fractions to have common denominators".
@@ -372,7 +380,7 @@ function splitPoints(list) {
        the rule above walks past it. A pupil who knows the answer but not the whole
        two-step method then scores nothing at all. */
     s = s.replace(/,\s*(?=(?:so|then)?\s*(?:\d|[a-z]?\d+\s*\/\s*\d+))/gi, '. ');
-    const parts = s.split(/[.;]\s+|\s+[-\u2013]\s+/).map(x => x.trim().replace(/^(so|then|therefore|and)\s+/i, '').replace(/[,.]$/, '').trim());
+    const parts = s.split(/[.;]\s+|\s+[-\u2013]\s+/).map(x => x.trim().replace(/^(so|then|therefore|and)\s+/i, '').replace(/[,.]$/, '').trim()).map(x => x.replace(/\u0001/g, ','));
     for (const p of parts) {
       if (p.length < 12) continue;              /* too short to be a real point on its own */
       if (/[,.]\s+and\s+/i.test(p) && p.length > 60) {
@@ -514,6 +522,7 @@ Return ONLY JSON: {"level":"green","why":"..."}
   and rough grammar are irrelevant - a pupil who understands in their own words is "green".
 - "amber" = right idea with a real gap, or only partly there.
 - "red" = gave no answer, guessed, or did not address the question asked.
+- A bare right answer with no reasoning at all is "amber", never "green". Green needs the pupil to show they know WHY, not just the right word or number.
 
 A correct sentence that was clearly copied or rote-learned is "amber", not "red".`;
 }
@@ -674,7 +683,7 @@ function isEcho(answer, question) {
   return mine.every(w => asked.has(w));
 }
 
-async function marksFromAnswers(topic, marks, transcript, questions) {
+async function marksFromAnswers(topic, marks, transcript, questions, year) {
   const points = [].concat.apply([], marks).filter(Boolean);
   if (!points.length) return null;
   const turns = [];
@@ -717,6 +726,13 @@ async function marksFromAnswers(topic, marks, transcript, questions) {
     }
   }
   const paired = answers.length === marks.length;
+  /* The year group is OPTIONAL and set once on the class. It never touches whether an
+     answer is right - a right answer is right at any age. It only moves the bar for
+     whether a pupil said WHY, which is the one thing that really does differ between a
+     nine-year-old and a seventeen-year-old. */
+  const yearNote = year
+    ? 'The class is ' + year + '. Pitch the "reason" flag to that. A younger pupil may show they get it in very few words and that still counts as a reason. An older pupil should be expected to say why, so a bare answer from them is more likely reason=false. Never change whether the ANSWER is right because of the age - only how much explaining you expect.'
+    : '';
   const sysFor = (lo, hi) => `Topic: "${topic}".
 
 A pupil had to show these things to count as understanding it:
@@ -733,7 +749,7 @@ pupil never said the words: "3/4" to "what is 1/4 + 2/4?" shows "adds the top nu
 bottom. "3/5" to "2/5 + 1/5" shows the same two points. A right answer is evidence of the
 method, so tick the method point. Only refuse a working point when the answer is wrong or
 has nothing to do with it. This does NOT apply to a WHY point - a number cannot show a
-reason, so a reason the pupil never gave stays a miss. More examples: "17" to "what is 9 + 8?" shows both "the answer is 17" and "adds 9 and 8".
+reason, so a reason the pupil never gave stays a miss. The same goes for ANY point that asks the pupil to compare, explain or justify: a bare answer never shows it. "1/2" to "which is bigger, 1/2 or 1/4? How do you know?" shows ONLY the point that names the answer - not the point about 2/4, and not the point about bigger pieces. The pupil has to say those themselves. More examples: "17" to "what is 9 + 8?" shows both "the answer is 17" and "adds 9 and 8".
 A muddled attempt at the idea counts. Judge what the pupil meant, not how they said it - a
 garbled sentence that reaches for the right idea has shown it, and a tidy sentence that
 merely restates the question has not. A pupil may show a point by a different valid method
@@ -744,12 +760,15 @@ A pupil is allowed to show the same point more than once, so only judge this one
 
 ${NO_IMAGES}
 
-Return ONLY JSON: {"shown":[1,3]}`;
+${yearNote}
+Return ONLY JSON: {"shown":[1,3],"reason":true}
+"reason" = did the pupil say WHY in their own words - any working, comparison or explanation, however clumsy or short? A bare answer on its own is reason=false, even when the answer is right.`;
   /* Which answer showed each point, not merely whether it was shown somewhere. Keeping
      the answer is what lets the card print the child's own words under the point they
      earned - so the teacher can agree or disagree from the evidence instead of from the
      colour. The words are quoted, never summarised. */
   const hit = new Map();
+  let reasonYes = 0;
   for (let k = 0; paired && k < answers.length; k++) {
     const a = answers[k];
     const lo = paired ? offset[k] : 0;
@@ -763,6 +782,7 @@ Return ONLY JSON: {"shown":[1,3]}`;
         { role: 'user', content: 'The pupil answered: ' + a }
       ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
       const o = parseJson(raw);
+      if (o && o.reason === true) reasonYes++;
       if (o && Array.isArray(o.shown)) o.shown.forEach(n => {
         const i = Number(n) - 1;
         if (i >= 0 && i < points.length && !hit.has(i)) hit.set(i, a);
@@ -989,9 +1009,10 @@ Return ONLY JSON: {"shown":[1,3]}`;
   const shownQs = evidence.filter(e => e.got > 0).length;
   const fullQs = evidence.filter(e => e.got >= e.total).length;
   const level = !shownQs ? 'red'
-    : (shownQs === qCount && fullQs > 0) ? 'green'
+    : (shownQs === qCount) ? 'green'
     : 'amber';
-  return { level, hit: hitPool, total: allPool, blanks, shown: shownQs, qs: qCount, evidence };
+  const reason = reasonYes >= qCount;
+  return { level, hit: hitPool, total: allPool, blanks, shown: shownQs, qs: qCount, reason, evidence };
 }
 
 function verdictSystem(topic) {
@@ -1249,7 +1270,7 @@ const server = http.createServer(async (req, res) => {
       if (!t) return sendErr(res, 'Not logged in.', 401);
       const list = store.classes
         .filter(c => c.teacherId === t.id)
-        .map(c => ({ id: c.id, name: c.name, code: c.code, checks: store.sessions.filter(s => s.classId === c.id).length }));
+        .map(c => ({ id: c.id, name: c.name, code: c.code, year: c.year || '', checks: store.sessions.filter(s => s.classId === c.id).length }));
       return sendJson(res, { classes: list });
     }
 
@@ -1261,10 +1282,10 @@ const server = http.createServer(async (req, res) => {
       if (!name) return sendErr(res, 'Please give the class a name.');
       let code = mkCode(6);
       while (store.classes.find(c => c.code === code)) code = mkCode(6);
-      const c = { id: rid(6), teacherId: t.id, name, code, createdAt: Date.now() };
+      const c = { id: rid(6), teacherId: t.id, name, code, year: String(b.year || '').trim(), createdAt: Date.now() };
       store.classes.push(c);
       saveStore();
-      return sendJson(res, { class: { id: c.id, name: c.name, code: c.code, checks: 0 } });
+      return sendJson(res, { class: { id: c.id, name: c.name, code: c.code, year: c.year || '', checks: 0 } });
     }
 
     // ---- student: look up class by code
@@ -1459,6 +1480,33 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
           });
         } catch (e) { logError('/api/generate marks top-up', e.message); }
       }
+      /* Critic: a second, independent pass over the mark points, because the writer
+         will happily produce a point that is simply FALSE for the question it sits on.
+         On a 30-pupil run it wrote "the bottom number (denominator) is the same" for
+         "which is bigger, 1/2 or 1/4?" - they are 2 and 4 - so a pupil who answered
+         correctly, "a half is bigger than a quarter", hit nothing and came back red.
+         The critic re-derives the scheme for any question that is wrong or thin, and a
+         corrected scheme is only taken when it still has two points, so a bad critic
+         can never leave a question unmarked. */
+      try {
+        const audit = qs.map((q, i) => (i + 1) + '. Question: ' + q + '\n   current points: ' +
+          (marks[i] || []).map((p, n) => (n + 1) + ') ' + p).join('  |  ')).join('\n');
+        const raw = await llm([
+          { role: 'system', content: `You are checking the marking scheme for a short school quiz on "${topic}".
+For each question, every point must be TRUE for that question and must be something a correct answer actually shows. Rewrite the points for any question whose scheme is wrong or incomplete; leave a good scheme exactly as it is.
+Be strict about the maths: "the denominators are the same" is FALSE for "which is bigger, 1/2 or 1/4?" because they are 2 and 4. A rule that only holds for some numbers is wrong.
+Every question needs the ANSWER itself plus the WORKING a pupil would show. Keep each point short and in plain words. Do NOT use commas inside a point - write "and" instead - so a point can never be split in two.
+` + audit + `
+Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array per question, in order, all of them.` }
+        ], { json: true, temperature: 0, model: cfg.criticModel || cfg.verdictModel || cfg.model });
+        const o = parseJson(raw);
+        if (o && Array.isArray(o.marks)) {
+          qs.forEach((q, i) => {
+            const fixed = splitPoints(Array.isArray(o.marks[i]) ? o.marks[i] : []);
+            if (fixed.length >= 2) marks[i] = fixed;
+          });
+        }
+      } catch (e) { logError('/api/generate critic', e.message); }
       return sendJson(res, { questions: qs, marks });
     }
 
@@ -1521,6 +1569,7 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
       const topic = String(b.topic || '').trim();
       const transcript = String(b.transcript || '').trim();
       if (!topic || !transcript) return sendErr(res, 'Missing topic or transcript.');
+      let year = String(b.year || '').trim();
 
       /* the teacher's mark points for this check - sent direct, or looked up from
          the class code the pupil came in on. The questions come too, because a mark
@@ -1534,6 +1583,7 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
         if (sess) {
           if (!marks.length && Array.isArray(sess.marks)) marks = sess.marks;
           if (!questions.length && Array.isArray(sess.questions)) questions = sess.questions;
+          if (cls && cls.year) year = String(cls.year);
         }
       }
       const raw = await llm([
@@ -1552,7 +1602,7 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
          the teacher can see, point by point, what the level was built from. */
       try {
         const graded = marks.length
-          ? await marksFromAnswers(topic, marks, transcript, questions)
+          ? await marksFromAnswers(topic, marks, transcript, questions, year)
           : null;
         if (graded) {
           v.level = graded.level;
@@ -1563,6 +1613,14 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
           v.blanks = graded.blanks;
           v.qs = graded.qs;
           v.shown = graded.shown;
+          /* Green now follows the ANSWER, not the explanation. A pupil who got it right is
+             green whatever they wrote beside it - a right answer is right, and knocking a
+             correct answer down to amber for being terse punished the wrong thing.
+             Whether they showed WHY is a SEPARATE flag, so the teacher sees "right, but no
+             reason given" instead of the app pretending they only half-understood. That
+             flag is the at-risk list: right today, unexplained, likely to fall apart next. */
+          v.reason = graded.reason;
+          v.noReason = graded.level === 'green' && !graded.reason;
           /* Two graders write this one card: the read judged the pupil from the whole
              transcript, the count judged them point by point. The count sets the floor
              and the green cliff. The read may HOLD A PUPIL BACK - it spots wrong maths a
@@ -1662,7 +1720,7 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
         while (store.classes.find(x => x.code === code)) code = mkCode(6);
       }
       if (!c) {
-        c = { id: rid(6), code, key: rid(14), name: String(b.name || '').trim(), anon: true, createdAt: Date.now() };
+        c = { id: rid(6), code, key: rid(14), name: String(b.name || '').trim(), year: String(b.year || '').trim(), anon: true, createdAt: Date.now() };
         store.classes.push(c);
       }
       const s = { id: rid(4), classId: c.id, topic, questions, students: [], createdAt: Date.now() };
@@ -1817,14 +1875,14 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
 
       const head = ['Pupil']
         .concat(checks.map(s => s.topic + ' (' + new Date(s.createdAt).toISOString().slice(0, 10) + ')'))
-        .concat(['Checks done', 'Latest level', 'Shaky on', 'Next step']);
+        .concat(['Checks done', 'Latest level', 'No reason given', 'Shaky on', 'Next step']);
       const rows = names.map(n => {
         const cells = checks.map(s => { const st = find(s, n); return st ? ((st.verdict && st.verdict.level) || 'amber') : ''; });
         const verdicts = checks.map(s => find(s, n)).filter(st => st && st.verdict).map(st => st.verdict);
         const last = verdicts[verdicts.length - 1] || {};
-        return [n].concat(cells).concat([verdicts.length, last.level || '', last.shaky || '', last.nextStep || '']);
+        return [n].concat(cells).concat([verdicts.length, last.level || '', last.noReason ? 'yes' : '', last.shaky || '', last.nextStep || '']);
       });
-      const note = ['NOTE: AI guidance only - not a formal assessment or grade. A teacher must review this before it informs any decision.', '', '', ''];
+      const note = ['NOTE: AI guidance only - not a formal assessment or grade. A teacher must review this before it informs any decision.', '', '', '', ''];
       const csv = '\uFEFF' + [head].concat(rows).concat([note]).map(r => r.map(quote).join(',')).join('\r\n') + '\r\n';
       const fname = (c.name || 'class').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'class';
       res.writeHead(200, {

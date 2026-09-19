@@ -97,6 +97,20 @@
         <div id="classList"></div>
         <div class="row">
           <input id="newClassName" placeholder="New class name, e.g. Year 8 Maths"/>
+          <select id="newClassYear" data-tip="Optional. Sets how much explaining to expect for this class. Leave as Not set and the marking is unchanged.">
+            <option value="">Not set</option>
+            <option>Year 5</option>
+            <option>Year 6</option>
+            <option>Year 7</option>
+            <option>Year 8</option>
+            <option>Year 9</option>
+            <option>Year 10</option>
+            <option>Year 11</option>
+            <option>Year 12</option>
+            <option>Year 13</option>
+            <option>College</option>
+            <option>Adult</option>
+          </select>
           <button id="btnAddClass" class="primary" data-tip="Makes a class with its own permanent join code. Reuse it all year.">Add class</button>
         </div>
         <p class="msg" id="classMsg"></p>

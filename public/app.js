@@ -146,6 +146,12 @@ $('#btnLogout').addEventListener('click', async () => {
 });
 
 // ----------------------------------------------------------------- classes
+/* Remember the year group last used, so a teacher sets it once and never ticks it again. */
+try {
+  const lastYear = localStorage.getItem('gi_lastYear') || '';
+  if (lastYear && $('#newClassYear')) $('#newClassYear').value = lastYear;
+} catch {}
+
 async function loadClasses() {
   try {
     const j = await api('/api/classes');
@@ -163,7 +169,7 @@ function renderClasses() {
     `<div class="classrow${activeClass && activeClass.id === c.id ? ' on' : ''}" data-id="${esc(c.id)}">
        <span class="crowmain">
          <strong>${esc(c.name)}</strong>
-         <span class="small">${c.checks} check${c.checks === 1 ? '' : 's'}${c.code ? ' · code <b>' + esc(c.code) + '</b>' : ''}</span>
+         <span class="small">${c.checks} check${c.checks === 1 ? '' : 's'}${c.year ? ' &middot; ' + esc(c.year) : ''}${c.code ? ' &middot; code <b>' + esc(c.code) + '</b>' : ''}</span>
        </span>
        <button class="small-btn cdel" data-del="${esc(c.id)}" data-name="${esc(c.name)}" data-checks="${c.checks}" data-tip="Delete this class, its code and every check in it.">Delete</button>
      </div>`
@@ -193,9 +199,11 @@ function renderClasses() {
 $('#btnAddClass').addEventListener('click', async () => {
   setMsg($('#classMsg'), '');
   const name = $('#newClassName').value.trim();
+  const year = $('#newClassYear') ? $('#newClassYear').value : '';
   if (!name) return setMsg($('#classMsg'), 'Type a class name first.');
   try {
-    const j = await post('/api/class', { name });
+    const j = await post('/api/class', { name, year });
+    try { localStorage.setItem('gi_lastYear', year); } catch {}
     $('#newClassName').value = '';
     await loadClasses();
     openClass(j.class.id);
@@ -621,9 +629,10 @@ function drawResults(s, students) {
   }
 
   const L = levelsOf(students);
+  const noReasonCount = students.filter(st => (st.verdict || {}).noReason).length;
   const order = { red: 0, amber: 1, green: 2 };
   const shown = students
-    .filter(st => resultFilter === 'all' || ((st.verdict && st.verdict.level) || 'amber') !== 'green')
+    .filter(st => { const lv = (st.verdict && st.verdict.level) || 'amber'; if (resultFilter === 'all') return true; if (resultFilter === 'noreason') return !!(st.verdict && st.verdict.noReason); return lv !== 'green'; })
     .slice()
     .sort((a, b) => {
       const la = order[(a.verdict && a.verdict.level) || 'amber'] ?? 3;
@@ -729,6 +738,7 @@ function drawResults(s, students) {
          <div class="stat green" data-tip="Really understands it."><b>${L.green}</b><span>get it</span></div>
          <div class="stat amber" data-tip="Partly knows it, with clear gaps."><b>${L.amber}</b><span>shaky</span></div>
          <div class="stat red" data-tip="Got little right — needs help."><b>${L.red}</b><span>struggling</span></div>
+         <div class="stat green" data-tip="Right answer, but they did not say why. They may look fine now and fall apart later."><b>${noReasonCount}</b><span>no reason</span></div>
        </div>
        <p class="summary"><b>${students.length}</b> finished · <b>${needHelp}</b> need${needHelp === 1 ? 's' : ''} a hand</p>
        ${worst.length ? `<div class="lostit">
@@ -743,6 +753,7 @@ function drawResults(s, students) {
        <div class="filters">
          <button data-f="all" class="${resultFilter === 'all' ? 'on' : ''}">Everyone (${students.length})</button>
          <button data-f="help" class="${resultFilter === 'help' ? 'on' : ''}">Needs help (${needHelp})</button>
+         <button data-f="noreason" class="${resultFilter === 'noreason' ? 'on' : ''}">Right, no reason (${noReasonCount})</button>
        </div>
        ${rows || '<p class="muted">Nothing in this list.</p>'}
      </div>`;

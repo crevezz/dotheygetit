@@ -1,0 +1,22 @@
+{
+  "easy": [
+    [
+      "1/2 is bigger",
+      "halves are bigger pieces than quarters"
+    ]
+  ],
+  "medium": [
+    [
+      "4/5 is bigger",
+      "3/4 is 15/20",
+      "4/5 is 16/20"
+    ]
+  ],
+  "hard": [
+    [
+      "converts 3/4 to 0.75",
+      "converts 5/7 to approximately 0.714",
+      "gives the correct order as 5/7 then 3/4 then 0.8"
+    ]
+  ]
+}

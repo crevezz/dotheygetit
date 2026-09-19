@@ -1,0 +1,125 @@
+30 pupils x 3 difficulty classes (easy / medium / hard) - findings
+==================================================================
+
+Run: node eval/three-tier-30.js     (real AI on every chat turn and every verdict)
+30 pupils, mixed ability poor->excellent (2 gave nothing, 6 poor, 6 weak,
+6 middling, 5 good, 5 excellent). Short answers. One question per tier:
+  easy    "Which is bigger, 1/2 or 1/4? How do you know?"
+  medium  "Which is bigger, 3/4 or 4/5? Tell me how you know."
+  hard    "Put these in order, smallest to biggest: 3/4, 5/7, 0.8. Explain."
+
+Wall clock 26.9s. 90 gradings. Agreement with the teacher band: 59/90 (66%).
+
+PER TIER (teacher band -> AI verdict)
+  easy    red->red 8  green->green 5  green->amber 7  green->red 4  amber->red 4  amber->amber 2
+  medium  red->red 10 green->green 10 amber->green 5  red->amber 4  amber->amber 1
+  hard    red->red 13 amber->amber 5  green->green 5  amber->red 4  red->amber 1  amber->green 2
+
+  The middle tier is the honest one. Easy is graded MORE harshly than medium.
+
+DOES DIFFICULTY BITE? (2=green, 1=amber, 0=red)
+  easy 0.63   medium 1.17   hard 0.67
+  Not monotonic - the class scored HIGHER on medium than on easy. The easy
+  question is the one it gets wrong.
+
+WHAT IT GETS RIGHT
+  - pupils who gave nothing (Amira, Megan) -> red on all three tiers, every time
+  - wrong-reasoning pupils stay red/amber; nobody who clearly understood was
+    handed a green for nothing
+  - the class spreads across all three colours on every tier
+
+WHAT IT GETS WRONG (real, repeatable)
+
+1. The easy mark scheme is generated WRONG, and it fails correct pupils.
+   The auto-drafted marks for the easy question were:
+     ["1/2 is bigger, The bottom number (denominator) is the same",
+      "the bigger top number (numerator) is the bigger fraction"]
+   "The denominator is the same" is FALSE for 1/2 vs 1/4 - they are 2 and 4.
+   So a pupil who answers correctly, "1/2. A half is bigger than a quarter.",
+   hits neither point and is graded RED. This is the whole reason easy scores
+   worst. Green pupils failed on easy: Omar, Nia (excellent); Ravi, Jonah (good).
+   Fix: sanity-check generated mark points against the actual question before
+   they are used to grade anyone.
+
+2. A bare right guess is passed. "4/5" with no reasoning -> amber, for pupils a
+   teacher would call red (Jack, Layla, Leon, Bilal on medium). Right number,
+   nothing else, is still worth a colour.
+
+3. Fluent method-words are passed as green. "4/5. Convert both fractions to a
+   common denominator and compare the numerators." -> green (Sofia, Freya on
+   medium) with no working shown. The words carry the mark.
+
+4. Chatter suppresses a correct answer. Prepending "I like maths when it is not
+   fractions." dropped Callum from green to amber on easy, and Tyler from amber
+   to red. The marker is distracted by words that are not the answer.
+
+5. Flip-flopping collapses a good pupil. "1/2, because quarters are smaller
+   pieces. No wait, the other one." -> red (Jonah, easy). A change of mind with
+   the right answer in it is thrown away.
+
+FIX FIRST: the easy-tier mark scheme (finding 1). It is the single biggest cause
+of wrong grades in this run and it is the same bug the one-topic run already
+logged ("spurious points": a point counted for words that do not carry it).
+
+
+==================================================================
+A/B: does upgrading the model help? does a critic agent help?
+==================================================================
+Same 30 pupils x 3 tiers each time. Agreement = AI verdict matches the teacher band.
+
+  run                          verdict model        critic   agree   green->red  two-band  wall
+  baseline (broken easy marks) gemini-2.5-flash     no       59/90   4           4         27s
+  model upgrade only           gemini-3.8-flash     no       47/90   1           14        191s
+  critic + keep strict verdict gemini-2.5-flash     yes      55/90   0           2         37s
+
+WHAT THE MODEL UPGRADE DID (2.5-flash -> 3.8-flash)
+  - Made it WORSE overall (66% -> 52%) and 7x slower (27s -> 191s).
+  - It is far too LENIENT: 13 pupils a teacher would call red were passed as green
+    (bare guesses like "4/5" and "1/2 I think" came back green).
+  - The model was never the problem: for grading short primary answers the task is
+    instruction-following and consistency, not world knowledge. A newer model did
+    not help and cost 7x the latency. Upgrading the VERDICT model was a mistake.
+
+WHAT THE CRITIC DID (a second agent that audits the mark scheme)
+  - FIXED THE REAL BUG. The easy-tier scheme came back as
+      ["states that 1/2 is bigger",
+       "shows that 1/2 = 2/4, or explains that dividing into fewer parts makes each part bigger"]
+    - both true, both answerable. green->red failures went 4 -> 0 and two-band
+    misses 4 -> 2. The easy tier's green->green rose from 5 to 8.
+  - So the fix is at the RUBRIC, not the grade. One extra generation-time call,
+    off the hot path, is worth more than any number of graders voting.
+
+STILL OPEN
+  - The hard-tier points are still being split ("...showing 5/7 = 0.71, 3/4 = 0.75,
+    and 0.8" came back as three fragments). Fixed in code (protect commas in
+    brackets + tell the critic not to use commas) but not yet re-verified.
+  - 2 red pupils still passed as green; the grader prompt is still slightly lenient.
+  - Difficulty still does not bite monotonically (easy 1.00, medium 1.03, hard 0.83).
+
+VERDICT ON THE ORIGINAL QUESTIONS
+  1. The model was old but the model was not the bug - do NOT swap the verdict model
+     for a newer one; this task wants strict + fast, and 3.8-flash was neither.
+     Keeping the newer CHEAP brain (3.1-flash-lite) for asking questions is fine.
+  2. Do NOT build a standing grading swarm - the app already ensembles correctly by
+     counting mark points in code. The ONE agent worth adding was a rubric critic,
+     and it is the change that actually moved the failures.
+
+==================================================================
+RUN 4: critic + tightened grader prompt (original models)
+==================================================================
+  agreement 56/90 (62%).  two-band 3.  wall 49.6s.
+
+  FIXED: nobody who gave nothing was passed (0 red->green, was 2). The bare-guess
+  rule worked - a bare right answer is no longer green.
+  FIXED: hard-tier points are clean now (2 points, no fragments).
+
+  REGRESSED: 3 green pupils graded red again (was 0). The stricter rule plus a
+  narrow rubric point - easy point 2 demands the exact words about 2/4 - now
+  fails a good pupil who justified it a different valid way (halves are bigger
+  pieces). The rubric must accept ANY valid justification, not one phrasing.
+
+  CONCLUSION: prompt tweaks are whack-a-mole. Run-to-run spread is about +/-5
+  percent, which swamps each individual tweak (66, 61, 62 all overlap). The two
+  durable wins are in CODE, not prompts: (1) the rubric critic, (2) the splitter
+  fix. The next real lever is rubric SPECIFICITY - points must accept any sound
+  route to the idea - enforced in code, not by asking the model nicely.
