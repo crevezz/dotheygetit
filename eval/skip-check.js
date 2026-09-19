@@ -1,5 +1,7 @@
-/* See eval/OPEN-FIX.txt - this file also proves the half-finished
-   comparison-question fix: Q2 is fixed, Q1 is still 0/2.
+/* See eval/comparison-fix.txt - this file also proves that fix. Two of the three
+   bugs it found live here: a skipped question used to switch the marker off for
+   the questions that WERE answered (Q2 came back 1/2), and the greeting on the
+   first turn broke the pairing the same way. Both now read 2/2.
 
    What happens when a pupil skips a question and moves on?
    Three transcripts for the same 2-question check:

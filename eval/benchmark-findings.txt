@@ -69,3 +69,28 @@ WHAT MOVED WHERE:
   Agreement vs the old teacher bands reads 66.7% (was 70.3%), but the old bands
   encoded UNDERSTANDING and the colour no longer does - so it is a different
   metric, not a regression. Compare too-harsh (2 -> 0) and the flag breakdown.
+
+==================================================================
+CHANGE: comparison questions - a correct pupil was scored 0 (three bugs)
+==================================================================
+See eval/comparison-fix.txt for the detail. Short version:
+
+  1. "1/2 because 2 is smaller" was read as the pupil saying 1/2 is SMALLER,
+     which contradicted the point "1/2 is bigger", which voided the whole
+     question. Fixed with subjectOf() - the thing being compared is what comes
+     after the last connective, not the first fraction in the phrase.
+  2. Skipping a question made the re-pairing step past the NEXT question, so
+     pairing failed and the LLM marker switched off for the WHOLE transcript.
+     A pupil who skipped Q1 and aced Q2 got 1/2 on Q2. Fixed: at = idx + 1.
+  3. The greeting on the first turn ("Hi there! Which is bigger...") broke the
+     same lookup by exact string match. Fixed: look for the question inside the
+     turn.
+
+  AGREEMENT        199/300  (66.3%)   was 66.7% - one grading, i.e. noise
+  too harsh        0                  unchanged
+  too lenient      34                 was 33
+  right, no reason 45 of 300          was 44
+
+No regression and no big win: the corpus is dominated by the LUCKY GUESS
+problem ("1/2 I think" -> green), which is a separate bug and still open.
+This fix was about a correct pupil being failed, and that is fixed.

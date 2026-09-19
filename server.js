@@ -615,13 +615,29 @@ function fracs(s) {
   return out;
 }
 
+/* Which thing is being called bigger or smaller. "1/2 because 2 is smaller" is NOT the
+   pupil saying 1/2 is smaller - the thing being called smaller is "2", the denominator,
+   and the 1/2 is the answer they gave before they explained. A connective starts a new
+   clause, so the subject of the comparison is what comes AFTER the last one - never a
+   fraction borrowed from the clause before it.
+   Without this, "1/2 because 2 is smaller" was read as "1/2 is smaller", which contradicted
+   the point "1/2 is bigger" - and a contradiction voids the WHOLE question, so a pupil who
+   answered correctly and explained correctly scored 0 out of 2. */
+const CLAUSE_BREAK = /\b(?:because|since|so|but|then|whereas|however|therefore|although|though)\b/gi;
+function subjectOf(phrase) {
+  const s = String(phrase || '');
+  const re = new RegExp(CLAUSE_BREAK.source, 'gi');
+  let last = -1, m;
+  while ((m = re.exec(s))) last = m.index + m[0].length;
+  return last < 0 ? s : s.slice(last);
+}
 /* "4/5 is bigger than 3/4" means 4/5 is the answer. The first fraction in the phrase is
    the one being called the bigger (or smaller) one; anything after "than" is what it is
    being compared against. */
 function claim(text) {
   const m = String(text || '').match(/([^,;.:!?]{0,24}?)\s+(?:is|are)\s+(?:the\s+)?(bigger|larger|greater|more|smaller|less|biggest|largest|smallest)\b/i);
   if (!m) return null;
-  const f = fracs(m[1]);
+  const f = fracs(subjectOf(m[1]));
   if (!f.length) return null;
   return { win: f[0], dir: /^(?:smaller|less|smallest)$/i.test(m[2]) ? 'less' : 'more' };
 }
@@ -647,7 +663,7 @@ function saidAs(text) {
   let m;
   while ((m = re.exec(t))) {
     const dir = /^(?:smaller|less)$/.test(m[2]) ? 'less' : 'more';
-    const f = fracs(m[1]);
+    const f = fracs(subjectOf(m[1]));
     if (f.length) out.push({ f: f[0], dir });
     if (m[3]) {
       const opp = dir === 'more' ? 'less' : 'more';
@@ -714,11 +730,21 @@ async function marksFromAnswers(topic, marks, transcript, questions, year) {
     let at = 0;
     for (const q of questions) {
       const want = String(q || '').trim();
-      const idx = turns.findIndex((t, i) => i >= at && t.role === 'examiner' && t.text === want);
+      /* The first turn carries the greeting ("Hi there! Which is bigger..."), so the turn
+         text is the question with something in front of it - an exact match missed it, the
+         pairing failed, and the answered question lost its marker. Look for the question
+         INSIDE the turn instead. */
+      const idx = turns.findIndex((t, i) => i >= at && t.role === 'examiner' && want && t.text.includes(want));
       if (idx < 0) { found.length = 0; break; }
       const a = turns[idx + 1];
       found.push(a && a.role === 'student' ? a.text : '');
-      at = idx + 2;
+      /* Move past the QUESTION, not past the answer. When a pupil skips a question the
+         turn after it is the NEXT question, and stepping to idx + 2 jumped clean over it -
+         so the following question could never be found, the pairing failed, and the whole
+         transcript lost its marker. A pupil who skipped Q1 and answered Q2 well was marked
+         only by the number nets. Stepping to idx + 1 still cannot re-match the question we
+         just used, because that sits at idx. */
+      at = idx + 1;
     }
     if (found.length === questions.length) {
       answers.length = 0;
@@ -749,7 +775,7 @@ pupil never said the words: "3/4" to "what is 1/4 + 2/4?" shows "adds the top nu
 bottom. "3/5" to "2/5 + 1/5" shows the same two points. A right answer is evidence of the
 method, so tick the method point. Only refuse a working point when the answer is wrong or
 has nothing to do with it. This does NOT apply to a WHY point - a number cannot show a
-reason, so a reason the pupil never gave stays a miss. The same goes for ANY point that asks the pupil to compare, explain or justify: a bare answer never shows it. "1/2" to "which is bigger, 1/2 or 1/4? How do you know?" shows ONLY the point that names the answer - not the point about 2/4, and not the point about bigger pieces. The pupil has to say those themselves. More examples: "17" to "what is 9 + 8?" shows both "the answer is 17" and "adds 9 and 8".
+reason, so a reason the pupil never gave stays a miss. The same goes for a point that asks the pupil to explain or justify WHY - a bare answer never shows that. But tell the two apart, because they look alike: the point that NAMES the answer the pupil gave IS shown by a bare answer, even when it is worded as a comparison. "1/2" to "which is bigger, 1/2 or 1/4? How do you know?" SHOWS the point "1/2 is bigger" - that point only states which one the pupil claims is bigger, and they claimed it, so tick it. It does NOT show "halves are bigger pieces than quarters", which asks why - miss that one. Tick the point that states the claim; miss the points that ask for the reason. More examples: "17" to "what is 9 + 8?" shows both "the answer is 17" and "adds 9 and 8".
 A muddled attempt at the idea counts. Judge what the pupil meant, not how they said it - a
 garbled sentence that reaches for the right idea has shown it, and a tidy sentence that
 merely restates the question has not. A pupil may show a point by a different valid method
@@ -774,6 +800,9 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
     const lo = paired ? offset[k] : 0;
     const hi = paired ? offset[k] + (marks[k] || []).filter(Boolean).length : points.length;
     if (paired && !(hi > lo)) continue;
+    /* A question the pupil skipped has no answer. There is nothing to mark, so do not ask
+       the model - an empty answer should never be the thing that ticks a point. */
+    if (!String(a || '').trim()) continue;
     /* nothing of their own to mark */
     if (isEcho(a, paired ? questions[k] : questions.join(' '))) continue;
     try {
@@ -788,6 +817,30 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
         if (i >= 0 && i < points.length && !hit.has(i)) hit.set(i, a);
       });
     } catch (e) { logError('/api/verdict marks', e.message); }
+  }
+  /* A comparison question offers two things and the pupil picks one: "1/2 or 1/4?" -> "1/2".
+     The point is worded as the CLAIM - "1/2 is bigger" - so the marker waits for the word
+     "bigger", ticks nothing, and the safety net below cannot help because the question
+     itself asked about 1/2. The pupil did answer, though: picking one of two offered values
+     IS the whole of the answer. So where the question offers two or more values and the
+     answer names exactly one of them, tick the point that names that same value. Exactly
+     one - naming both is not a choice, and naming the other one is simply wrong, so a wrong
+     pick still earns nothing. */
+  if (paired) {
+    const esc = v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    for (let k = 0; k < answers.length; k++) {
+      const offered = (String(questions[k] || '').match(/\d+\s*\/\s*\d+|\d+\.\d+/g) || []).map(s => s.replace(/\s+/g, ''));
+      if (offered.length < 2) continue;
+      const flat = String(answers[k]).replace(/\s+/g, '');
+      const named = offered.filter(v => new RegExp('(^|[^0-9/.])' + esc(v) + '($|[^0-9/.])').test(flat));
+      if (named.length !== 1) continue;
+      (marks[k] || []).forEach((p, n) => {
+        if (!p) return;
+        const i = offset[k] + n;
+        if (hit.has(i)) return;
+        if (String(p).replace(/\s+/g, '').indexOf(named[0]) >= 0) hit.set(i, answers[k]);
+      });
+    }
   }
   /* A safety net under the marker, for the one case it keeps getting wrong. The teacher
      writes "The sum of 15 and 23 is 38" and a pupil who is right answers "38". The model

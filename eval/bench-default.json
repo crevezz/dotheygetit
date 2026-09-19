@@ -1,26 +1,26 @@
 {
   "label": "default",
   "n": 100,
-  "agree": 200,
+  "agree": 199,
   "total": 300,
-  "falseGreen": 33,
+  "falseGreen": 34,
   "falseRed": 0,
-  "twoOut": 33,
-  "steady": 60,
+  "twoOut": 34,
+  "steady": 58,
   "repeats": 60,
-  "noReason": 44,
+  "noReason": 45,
   "noReasonByQuality": {
-    "poor": 22,
-    "weak": 10,
-    "ok": 7,
+    "poor": 23,
+    "weak": 9,
+    "ok": 8,
     "good": 3,
     "excellent": 2
   },
-  "secs": 132.479,
+  "secs": 150.76,
   "perTierTally": {
     "easy": {
-      "red->red": 28,
-      "red->green": 6,
+      "red->red": 27,
+      "red->green": 7,
       "amber->red": 11,
       "amber->green": 5,
       "green->green": 50
@@ -28,15 +28,14 @@
     "medium": {
       "red->red": 38,
       "red->green": 12,
-      "amber->green": 15,
-      "amber->red": 2,
+      "amber->green": 17,
       "green->green": 33
     },
     "hard": {
       "red->red": 35,
       "red->green": 15,
-      "amber->green": 33,
-      "amber->red": 1,
+      "amber->green": 31,
+      "amber->red": 3,
       "green->green": 16
     }
   },
@@ -50,7 +49,7 @@
       "got": "green",
       "hit": 1,
       "tot": 2,
-      "note": "Can correctly identify the larger of two simple fractions"
+      "note": "Can identify the larger of two simple fractions"
     },
     {
       "tier": "medium",
@@ -75,17 +74,6 @@
       "note": "Can identify the larger of two fractions"
     },
     {
-      "tier": "hard",
-      "quality": "poor",
-      "style": "rote",
-      "answer": "0.8 is biggest.",
-      "want": "red",
-      "got": "green",
-      "hit": 1,
-      "tot": 3,
-      "note": "Can identify the largest of three fractions, including a decimal"
-    },
-    {
       "tier": "easy",
       "quality": "poor",
       "style": "changes-mind",
@@ -108,6 +96,17 @@
       "note": "Can identify the larger of two fractions"
     },
     {
+      "tier": "easy",
+      "quality": "poor",
+      "style": "learner",
+      "answer": "1/2",
+      "want": "red",
+      "got": "green",
+      "hit": 1,
+      "tot": 2,
+      "note": "Can correctly identify the larger of two simple unit fractions."
+    },
+    {
       "tier": "medium",
       "quality": "poor",
       "style": "rushing",
@@ -117,17 +116,6 @@
       "hit": 1,
       "tot": 3,
       "note": "Can identify the larger of two fractions"
-    },
-    {
-      "tier": "hard",
-      "quality": "poor",
-      "style": "rushing",
-      "answer": "0.8 is biggest.",
-      "want": "red",
-      "got": "green",
-      "hit": 1,
-      "tot": 3,
-      "note": "Can identify the largest of three fractions, including a decimal"
     },
     {
       "tier": "easy",
@@ -161,17 +149,6 @@
       "hit": 1,
       "tot": 3,
       "note": "Can identify the larger of two fractions"
-    },
-    {
-      "tier": "hard",
-      "quality": "poor",
-      "style": "terse",
-      "answer": "0.8 is biggest.",
-      "want": "red",
-      "got": "green",
-      "hit": 1,
-      "tot": 3,
-      "note": "Can identify the largest of three fractions, including a decimal"
     },
     {
       "tier": "easy",
@@ -207,17 +184,6 @@
       "note": "Can identify the larger of two fractions"
     },
     {
-      "tier": "hard",
-      "quality": "poor",
-      "style": "changes-mind",
-      "answer": "0.8 is biggest.",
-      "want": "red",
-      "got": "green",
-      "hit": 1,
-      "tot": 3,
-      "note": "Can identify the largest of three fractions, including a decimal"
-    },
-    {
       "tier": "easy",
       "quality": "poor",
       "style": "learner",
@@ -249,17 +215,6 @@
       "hit": 1,
       "tot": 3,
       "note": "Can identify the larger of two fractions"
-    },
-    {
-      "tier": "hard",
-      "quality": "poor",
-      "style": "draws",
-      "answer": "0.8 is biggest.",
-      "want": "red",
-      "got": "green",
-      "hit": 1,
-      "tot": 3,
-      "note": "Can identify the largest of three fractions, including a decimal"
     },
     {
       "tier": "easy",
@@ -303,7 +258,7 @@
       "got": "green",
       "hit": 2,
       "tot": 2,
-      "note": "Can identify the larger of two simple fractions"
+      "note": "Can correctly identify the larger of two simple fractions with a common numerator."
     },
     {
       "tier": "hard",
@@ -350,6 +305,17 @@
       "note": "Very little about comparing fractions"
     },
     {
+      "tier": "hard",
+      "quality": "weak",
+      "style": "learner",
+      "answer": "3/4, 5/7, 0.8 because 3 is the smallest.",
+      "want": "red",
+      "got": "green",
+      "hit": 1,
+      "tot": 3,
+      "note": "Can identify the smallest fraction in a simple set"
+    },
+    {
       "tier": "easy",
       "quality": "weak",
       "style": "rushing",
@@ -369,7 +335,7 @@
       "got": "green",
       "hit": 1,
       "tot": 3,
-      "note": "Can identify numbers in different formats"
+      "note": "Can identify the largest of the three values when presented without context."
     },
     {
       "tier": "easy",
@@ -403,6 +369,17 @@
       "hit": 0,
       "tot": 2,
       "note": "Very little about comparing fractions"
+    },
+    {
+      "tier": "hard",
+      "quality": "weak",
+      "style": "plain",
+      "answer": "3/4, 5/7, 0.8 because 3 is the smallest.",
+      "want": "red",
+      "got": "green",
+      "hit": 1,
+      "tot": 3,
+      "note": "Can identify the smallest fraction in a simple set"
     },
     {
       "tier": "easy",
@@ -471,6 +448,17 @@
       "note": "Very little about comparing fractions"
     },
     {
+      "tier": "hard",
+      "quality": "weak",
+      "style": "rote",
+      "answer": "3/4, 5/7, 0.8 because 3 is the smallest.",
+      "want": "red",
+      "got": "green",
+      "hit": 1,
+      "tot": 3,
+      "note": "Can identify the smallest fraction in a simple set"
+    },
+    {
       "tier": "easy",
       "quality": "weak",
       "style": "changes-mind",
@@ -479,7 +467,7 @@
       "got": "green",
       "hit": 2,
       "tot": 2,
-      "note": "Can identify the larger of two simple fractions"
+      "note": "Can identify the larger fraction between 1/2 and 1/4."
     },
     {
       "tier": "hard",
@@ -501,7 +489,7 @@
       "got": "red",
       "hit": 0,
       "tot": 2,
-      "note": "Nothing yet"
+      "note": "No understanding of fraction comparison"
     },
     {
       "tier": "hard",
@@ -524,6 +512,17 @@
       "hit": 0,
       "tot": 2,
       "note": "Very little about comparing fractions"
+    },
+    {
+      "tier": "hard",
+      "quality": "weak",
+      "style": "rushing",
+      "answer": "3/4, 5/7, 0.8 because 3 is the smallest.",
+      "want": "red",
+      "got": "green",
+      "hit": 1,
+      "tot": 3,
+      "note": "Can identify the smallest fraction in a simple set"
     },
     {
       "tier": "easy",
@@ -581,6 +580,17 @@
       "note": "Very little about comparing fractions"
     },
     {
+      "tier": "hard",
+      "quality": "weak",
+      "style": "terse",
+      "answer": "3/4, 5/7, 0.8 because 3 is the smallest.",
+      "want": "red",
+      "got": "green",
+      "hit": 1,
+      "tot": 3,
+      "note": "Can identify the smallest fraction in a simple set"
+    },
+    {
       "tier": "medium",
       "quality": "ok",
       "style": "chatty",
@@ -598,7 +608,7 @@
       "answer": "I like maths but not fractions. 5/7 then 3/4 then 0.8, I made decimals.",
       "want": "amber",
       "got": "green",
-      "hit": 2,
+      "hit": 1,
       "tot": 3,
       "note": "Can convert fractions to decimals to compare them accurately."
     },
@@ -611,7 +621,7 @@
       "got": "green",
       "hit": 1,
       "tot": 3,
-      "note": "Understands how to compare fractions by finding a common denominator."
+      "note": "Understands the procedure for comparing fractions"
     },
     {
       "tier": "hard",
@@ -619,10 +629,10 @@
       "style": "rote",
       "answer": "5/7, 3/4, 0.8. Convert each value to a common form and order by magnitude.",
       "want": "amber",
-      "got": "green",
+      "got": "red",
       "hit": 1,
       "tot": 3,
-      "note": "Can identify the numbers in the question"
+      "note": "Nothing yet about comparing fractions or decimals."
     },
     {
       "tier": "medium",
@@ -631,7 +641,7 @@
       "answer": "4/5, I put them over 20. No wait, the other one.",
       "want": "amber",
       "got": "green",
-      "hit": 1,
+      "hit": 3,
       "tot": 3,
       "note": "The concept of using a common denominator to compare fractions."
     },
@@ -675,7 +685,7 @@
       "answer": "4/5. I get 20 on the bottom.",
       "want": "amber",
       "got": "green",
-      "hit": 1,
+      "hit": 2,
       "tot": 3,
       "note": "Can identify the larger of two fractions when the numerators and denominators are close."
     },
@@ -699,7 +709,7 @@
       "got": "green",
       "hit": 3,
       "tot": 3,
-      "note": "The concept of finding a common denominator to compare fractions."
+      "note": "The concept of common denominators for comparing fractions."
     },
     {
       "tier": "hard",
@@ -730,7 +740,7 @@
       "answer": "5/7 then 3/4 then 0.8, I made decimals.",
       "want": "amber",
       "got": "green",
-      "hit": 3,
+      "hit": 1,
       "tot": 3,
       "note": "Can convert fractions to decimals to compare them."
     },
@@ -741,9 +751,9 @@
       "answer": "4/5. I get 20 on the bottom.",
       "want": "amber",
       "got": "green",
-      "hit": 1,
+      "hit": 2,
       "tot": 3,
-      "note": "Can identify the larger fraction in a simple comparison."
+      "note": "Can identify the larger of two fractions when the numerators and denominators are close."
     },
     {
       "tier": "hard",
@@ -762,8 +772,8 @@
       "style": "chatty",
       "answer": "I like maths but not fractions. 4/5, I put them over 20.",
       "want": "amber",
-      "got": "red",
-      "hit": 0,
+      "got": "green",
+      "hit": 1,
       "tot": 3,
       "note": "The concept of finding a common denominator to compare fractions."
     },
@@ -787,7 +797,7 @@
       "got": "green",
       "hit": 1,
       "tot": 3,
-      "note": "The student knows a correct method for comparing fractions and can apply it to a simple case."
+      "note": "Understands how to compare fractions by finding a common denominator."
     },
     {
       "tier": "hard",
@@ -806,8 +816,8 @@
       "style": "changes-mind",
       "answer": "4/5. I get 20 on the bottom. No wait, the other one.",
       "want": "amber",
-      "got": "red",
-      "hit": 0,
+      "got": "green",
+      "hit": 1,
       "tot": 3,
       "note": "Understands that a common denominator helps compare fractions"
     },
@@ -862,7 +872,7 @@
       "answer": "5/7 then 3/4 then 0.8, I made decimals.",
       "want": "amber",
       "got": "green",
-      "hit": 3,
+      "hit": 1,
       "tot": 3,
       "note": "Can convert fractions to decimals to compare them."
     },
@@ -873,7 +883,7 @@
       "answer": "4/5. I get 20 on the bottom.",
       "want": "amber",
       "got": "green",
-      "hit": 1,
+      "hit": 2,
       "tot": 3,
       "note": "Can identify the larger of two fractions when the numerators and denominators are close."
     },
@@ -928,7 +938,7 @@
       "answer": "5/7 then 3/4 then 0.8, I made decimals.",
       "want": "amber",
       "got": "green",
-      "hit": 3,
+      "hit": 1,
       "tot": 3,
       "note": "Can convert fractions to decimals to compare them."
     },
@@ -960,10 +970,10 @@
       "style": "rote",
       "answer": "5/7, 3/4, 0.8. Convert each value to a common form and order by magnitude.",
       "want": "amber",
-      "got": "green",
+      "got": "red",
       "hit": 1,
       "tot": 3,
-      "note": "Can identify the numbers in the question"
+      "note": "Nothing yet about comparing fractions or decimals."
     },
     {
       "tier": "hard",
@@ -985,7 +995,7 @@
       "got": "green",
       "hit": 1,
       "tot": 3,
-      "note": "The principle of converting different number types to compare them."
+      "note": "The general strategy for comparing different number formats."
     },
     {
       "tier": "hard",
@@ -1062,7 +1072,7 @@
       "got": "green",
       "hit": 1,
       "tot": 3,
-      "note": "The idea of converting to a common format for comparison"
+      "note": "Can identify the numbers in the problem."
     },
     {
       "tier": "hard",
@@ -1073,7 +1083,7 @@
       "got": "green",
       "hit": 1,
       "tot": 3,
-      "note": "The general strategy for comparing different number formats."
+      "note": "The need for a common format to compare different number types."
     },
     {
       "tier": "hard",
@@ -1084,7 +1094,7 @@
       "got": "green",
       "hit": 1,
       "tot": 3,
-      "note": "Can compare fractions and decimals accurately"
+      "note": "Can accurately compare fractions and decimals, and order them."
     },
     {
       "tier": "hard",
@@ -1106,7 +1116,7 @@
       "got": "green",
       "hit": 3,
       "tot": 3,
-      "note": "Can convert fractions to decimals and use this to compare and order them."
+      "note": "Can convert fractions to decimals and order them"
     },
     {
       "tier": "hard",

@@ -1,0 +1,85 @@
+COMPARISON QUESTIONS - FIXED
+============================
+A correct pupil scored 0 on "Which is bigger, 1/2 or 1/4? How do you know?"
+It turned out to be THREE separate bugs, all in server.js. None of them was the
+prompt. Fixing the wording of the prompt did nothing.
+
+  Test:   node eval/skip-check.js       (the whole transcript cases)
+          node eval/direction-check.js  (the direction rule, unit level)
+
+
+BUG 1 - THE PUPIL WAS READ AS SAYING THE OPPOSITE
+  The worst of the three. "1/2 because 2 is smaller" was read by saidAs() as the
+  pupil claiming 1/2 is SMALLER - the "2" they were talking about is the
+  denominator. The regex took the first fraction anywhere in the phrase and
+  attached it to the comparison word, so a fraction in one clause was borrowed by
+  the next.
+  That contradicted the point "1/2 is bigger", and a contradiction does not lose
+  one point - it voids the WHOLE question:
+      if (wrong) for (k...) hit.delete(k)
+  so a pupil who answered right and explained right scored 0 of 2.
+
+  FIX: subjectOf() in server.js. The thing being called bigger/smaller is what
+  comes AFTER the last connective (because / since / so / but / then / whereas /
+  however / therefore / although / though). Used by both claim() and saidAs().
+  A genuine opposite ("1/2 is smaller") is STILL caught and still voids the
+  question - that part was right, only the reading was wrong.
+
+BUG 2 - SKIPPING A QUESTION SWITCHED THE MARKER OFF FOR THE REST
+  When a pupil skips a question the transcript has fewer answers than questions,
+  so the fallback re-pairs them by finding each question in the text. It stepped
+  `at = idx + 2`, which assumed the turn after a question is an answer. When the
+  pupil skipped, the turn after the question is the NEXT QUESTION - so the search
+  jumped clean over it, pairing failed, and `paired` went false. And with
+  `paired` false the LLM marker does not run AT ALL.
+  Effect: skip Q1 and answer Q2 perfectly -> Q2 marked 1/2, by the number nets
+  only, with the marker switched off. The answer was not credited to the wrong
+  question (that part was always fine) - it was simply under-marked.
+
+  FIX: `at = idx + 1`. Step past the QUESTION, not past the answer. Cannot
+  re-match the question just used, because that sits at idx.
+
+BUG 3 - THE GREETING ON THE FIRST TURN BROKE THE PAIRING
+  The app puts "Hi there!" in front of the first question, so the first examiner
+  turn is "Hi there! Which is bigger...". The lookup was an exact string compare,
+  it missed, and bug 2's failure mode fired again. Same effect, but on the
+  NORMAL first question - so it was not an edge case.
+
+  FIX: look for the question INSIDE the turn (t.text.includes(want)).
+
+ALSO: a skipped question is never sent to the model. An empty answer should not
+be the thing that ticks a point, and it was being asked about. Guard added.
+
+
+WHAT THE FIX DID NOT TOUCH
+  The prompt. The old prompt blamed the marker for refusing "1/2" against the
+  point "1/2 is bigger" - it was never the marker. Left in place, because it
+  correctly tells the marker to tick the point that STATES the claim and miss the
+  points that ask WHY.
+
+
+WHERE IT STANDS  (node eval/skip-check.js)
+  2 questions. Q1 = "1/2 or 1/4?"  Q2 = "3/4 or 4/5?"
+
+  A normal   level=green  points=3/4  blanks=0  perQ=[1/2  2/2]
+  B skipped  level=amber  points=2/4  blanks=1  perQ=[0/2  2/2]
+  C greeted  level=amber  points=2/4  blanks=1  perQ=[0/2  2/2]
+
+  A: the answer point on Q1 is credited (was 0/2), Q2 full, green.
+  B/C: skipped Q1 is blank, NOT green, and Q2 is now credited in full (was 1/2).
+  Both original expectations hold: a skipped question is blank, and Q2's points
+  are never credited to Q1.
+
+  node eval/direction-check.js -> all 8 cases ok.
+
+
+BENCHMARK  (node eval/benchmark.js 100, frozen rubric)
+  AGREEMENT      199/300  (66.3%)   was 66.7% - one grading, i.e. run-to-run noise
+  too harsh      0                  unchanged
+  too lenient    34                 was 33
+  repeatability  97%
+  right, no reason  45 of 300       was 44
+
+  So: no regression, and no big win either - the corpus is dominated by the
+  LUCKY GUESS problem ("1/2 I think" -> green), which is a different bug and
+  still open. This fix was about a correct pupil being failed, and that is fixed.
