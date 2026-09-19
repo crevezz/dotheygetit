@@ -100,6 +100,9 @@ async function doAuth(path) {
   const invite = inv ? inv.value.trim() : '';
   try {
     await post(path, { email, password, invite });
+    /* A sign-up is the number that matters for the campaign, and it happens with no
+       page load - so without this GA only ever sees the visit, never the conversion. */
+    if (window.gtag) gtag('event', path === '/api/signup' ? 'sign_up' : 'login');
     $('#authPass').value = '';
     await boot();
   } catch (e) { setMsg($('#authMsg'), e.message); }
