@@ -112,10 +112,11 @@ seconds until 23 words were added to `03b`.
 ## YouTube
 
 `upload-youtube.js` puts the whole set on YouTube in one command, modelled on
-`apps/briefs/upload.js`: OAuth2 with a stored refresh token, 8AM / 3PM UK
-scheduling, per-chapter title, description and tags, a thumbnail cut from each
-chapter's own title card, a duplicate shield, and a ledger so a re-run never
-uploads a chapter twice.
+`apps/briefs/upload.js`: OAuth2 with a stored refresh token, per-chapter title,
+description and tags, a thumbnail cut from each chapter's own title card, a
+duplicate shield, and a ledger so a re-run never uploads a chapter twice.
+**Videos go live the moment they upload.** `--schedule` spreads them at 8AM / 3PM
+UK instead, and `publish-now.js` undoes that for anything already scheduled.
 
 ```
 node upload-youtube.js --auth          # once: sign in as the channel's account
@@ -123,7 +124,8 @@ node upload-youtube.js                 # laptop set, up to 5 uploads
 node upload-youtube.js --mobile        # the phone set
 node upload-youtube.js --status        # what is up, what is left
 node upload-youtube.js --dry           # print the metadata, touch nothing
-node upload-youtube.js --now           # publish straight away, no schedule
+node upload-youtube.js --schedule      # go up at 8AM / 3PM UK instead of straight away
+node publish-now.js                    # anything already scheduled goes public now
 ```
 
 **The quota is the whole story.** A fresh Google Cloud project gets 10,000 units

@@ -13,10 +13,10 @@
    batch - it stops it cleanly and the next run picks up exactly where it left.
 
    Usage:
-     node upload-youtube.js                 laptop set, up to 5 uploads
+     node upload-youtube.js                 laptop set, up to 5 uploads, live straight away
      node upload-youtube.js --mobile        the phone set instead
      node upload-youtube.js --limit 2       smaller batch
-     node upload-youtube.js --now           publish straight away, no schedule
+     node upload-youtube.js --schedule      go up at 8AM / 3PM UK instead of straight away
      node upload-youtube.js --unlisted      unlisted, no schedule
      node upload-youtube.js --private       private, no schedule
      node upload-youtube.js --full          also upload all.mp4 as one long video
@@ -64,10 +64,10 @@ const DRY = has('--dry');
 const THUMBS = !has('--no-thumb');
 const FULL = has('--full');
 
-const MODE = has('--now') ? 'public'
+const MODE = has('--schedule') ? 'scheduled'
   : has('--unlisted') ? 'unlisted'
   : has('--private') ? 'private'
-  : 'scheduled';
+  : 'public';
 
 const LEDGER = path.join(YT_OUT, `${SET}.json`);
 const SLOT_MS = 2 * 60 * 1000;
@@ -368,7 +368,7 @@ async function main() {
     let slot = new Date();
     for (const c of pending.slice(0, LIMIT)) {
       const meta = buildMetadata(c, all, MOBILE ? ' (on a phone)' : '');
-      slot = claimSlot(ledger, slot, []) || slot;
+      slot = claimSlot({ slots: [], items: {} }, slot, []) || slot;   // a throwaway: --dry must not touch the ledger
       console.log(`  --- ${c.id} ---`);
       console.log(`  title: ${meta.title}`);
       console.log(`  when : ${MODE === 'scheduled' ? ukString(slot) : MODE}`);
