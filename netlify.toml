@@ -1,0 +1,36 @@
+# Netlify config for dotheygetit.app - the marketing landing page only.
+#
+# The product itself is a separate Render service (app.dotheygetit.app).
+# This site is plain static HTML with no build step, so the publish directory
+# is the only thing that matters. Keeping it here means the setting lives in
+# the repo instead of only in the Netlify dashboard.
+
+[build]
+  publish = "landing-site"
+  command = ""
+
+# Paths that belong to the app, not the landing page. Without these they 404
+# on dotheygetit.app, which is what Google would otherwise find.
+[[redirects]]
+  from = "/help"
+  to = "https://app.dotheygetit.app/help"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/help/*"
+  to = "https://app.dotheygetit.app/help/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/privacy"
+  to = "https://app.dotheygetit.app/privacy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/app/*"
+  to = "https://app.dotheygetit.app/:splat"
+  status = 301
+  force = true
