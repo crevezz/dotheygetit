@@ -162,6 +162,9 @@ function share(total) {
     const t = Math.max(0, +(LEAD + mk[i].t - 0.12).toFixed(2));
     const e = i < SEG.length - 1 ? +(LEAD + mk[i + 1].t - 0.12).toFixed(2) : TOTAL;
     return { id: s.id, t: t, e: Math.max(t + 0.5, e), clip: s.clip || null,
+             /* a1-/a2- are the AI atmosphere plates that sit BEHIND the type;
+                everything else is real app footage that goes inside the phone */
+             plate: !!s.clip && /^a\d/.test(s.clip),
              vid: s.clip ? 'v-' + s.id : null, ss: s.ss === undefined ? null : s.ss };
   });
   console.log('');

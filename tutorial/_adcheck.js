@@ -16,6 +16,9 @@ function yavg(t, crop) {
 /* the phone sits centred: 556x1202 in a 1080x1920 frame -> x=262, y=359 */
 const HEAD = 'crop=900:260:90:1180';
 const PHONE = 'crop=300:300:390:760';
+/* plates drift slowly on purpose, so they need a wider window and a finer
+   threshold than app footage - dust in a light beam is not a moving screen */
+const PLATE = 'crop=700:700:190:610';
 
 let bad = 0;
 TL.shots.forEach(s => {
@@ -23,9 +26,13 @@ TL.shots.forEach(s => {
   const head = yavg(mid, HEAD);
   let note = '';
   if (s.clip) {
-    const a = yavg(s.t + 0.9, PHONE), b = yavg(Math.min(s.e - 0.2, s.t + 1.9), PHONE);
-    const moving = a !== null && b !== null && Math.abs(a - b) > 0.6;
-    note = '  phone ' + (a === null ? 'n/a' : a.toFixed(1)) + ' -> ' + (b === null ? 'n/a' : b.toFixed(1)) +
+    const box = s.plate ? PLATE : PHONE;
+    const w = s.plate ? 1.4 : 1.0;
+    const a = yavg(s.t + 0.3, box), b = yavg(Math.min(s.e - 0.2, s.t + 0.3 + w), box);
+    const thr = s.plate ? 0.15 : 0.6;
+    const moving = a !== null && b !== null && Math.abs(a - b) > thr;
+    note = '  ' + (s.plate ? 'plate' : 'phone') + ' ' +
+           (a === null ? 'n/a' : a.toFixed(1)) + ' -> ' + (b === null ? 'n/a' : b.toFixed(1)) +
            (moving ? '  moving' : '  <-- NOT MOVING');
     if (!moving) bad++;
   }

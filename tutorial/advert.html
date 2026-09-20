@@ -45,6 +45,17 @@ html,body{margin:0;background:#000;overflow:hidden}
 .ln.red{color:#ff5a6a;text-shadow:0 0 60px rgba(255,90,106,.45)}
 .ln.md{font-size:106px}
 
+/* ---------- AI atmosphere plates ----------
+   A real room, filmed, dimmed behind the type. The scrim is not decoration: the
+   plate is a photograph, so without it the middle of the frame is as bright as
+   the words on top of it and the headline stops reading. */
+.bgwrap{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity .55s ease}
+.bgwrap.on{opacity:1}
+.bgwrap video{width:1080px;height:1920px;object-fit:cover;display:block}
+.bgwrap .scrim{position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(5,7,15,.80) 0%,rgba(5,7,15,.46) 40%,
+             rgba(5,7,15,.62) 62%,rgba(5,7,15,.88) 100%)}
+
 /* ---------- phone mockup ---------- */
 .phone{
   width:556px;height:1202px;border-radius:58px;overflow:hidden;position:relative;
@@ -91,11 +102,13 @@ html,body{margin:0;background:#000;overflow:hidden}
   <div id="vig"></div>
 
   <div class="shot" id="s1">
+    <div class="bgwrap"><video id="v-s1" src="out/advert/art/a1-classroom.mp4" muted playsinline></video><div class="scrim"></div></div>
     <div class="ln grad">Are you a</div>
     <div class="ln grad">teacher?</div>
   </div>
 
   <div class="shot" id="s2">
+    <div class="bgwrap"><video id="v-s2" src="out/advert/art/a2-books.mp4" muted playsinline></video><div class="scrim"></div></div>
     <div class="ln md">Just finished a lesson.</div>
     <div class="ln md">Not sure it landed.</div>
   </div>
@@ -153,15 +166,24 @@ function at(ms, fn){ timers.push(setTimeout(fn, ms)); }
 
 window.__go = function(){
   document.getElementById('cover').style.display = 'none';
+  /* a clip is either a plate behind the type or footage inside the phone, so
+     switch whatever is playing off by whatever it actually is */
+  function live(v, on){
+    if (!v) return;
+    var wrap = v.closest ? v.closest('.bgwrap') : null;
+    if (wrap) wrap.classList.toggle('on', on); else v.classList.toggle('live', on);
+    if (on) v.play(); else v.pause();
+  }
+  function stopAll(){ document.querySelectorAll('.phone video, .bgwrap video').forEach(function(v){ live(v, false); }); }
   SHOTS.forEach(function(s){
     var el = document.getElementById(s[0]);
     var vid = s[3] ? document.getElementById(s[3]) : null;
     at(s[1] * 1000, function(){
-      if (vid){ document.querySelectorAll('.phone video').forEach(function(v){ v.classList.remove('live'); v.pause(); });
-                vid.classList.add('live'); if (s[4] !== null) vid.currentTime = s[4]; vid.play(); }
+      stopAll();
+      if (vid){ if (s[4] !== null) vid.currentTime = s[4]; live(vid, true); }
       el.classList.add('on');
     });
-    at(s[2] * 1000, function(){ el.classList.remove('on'); if (vid) vid.pause(); });
+    at(s[2] * 1000, function(){ el.classList.remove('on'); live(vid, false); });
   });
 };
 </script>
