@@ -1,0 +1,52 @@
+{
+  "_note": "Everything the YouTube uploader says about us, in one place. Edit here, not in upload-youtube.js.",
+
+  "channel": "Get It?",
+  "categoryId": "27",
+
+  "links": {
+    "site": "https://dotheygetit.app",
+    "app": "https://app.dotheygetit.app",
+    "help": "https://dotheygetit.app/help"
+  },
+
+  "blurb": "Get It? gives your class one code. They answer on their phones or in homework - two minutes, no marking. You see exactly who got it, who is shaky, and who is quietly faking it, before the test does.",
+  "free": "Free for teachers while it is in beta.",
+
+  "hashtags": "#GetIt #formativeassessment #teachertools #edtech #teaching #UKteachers",
+  "shorts": "#Shorts",
+
+  "tags": [
+    "get it", "formative assessment", "assessment for learning", "teacher tools",
+    "edtech", "classroom quiz", "no marking", "exit ticket", "retrieval practice",
+    "secondary school", "uk teachers", "teaching resources", "check for understanding"
+  ],
+
+  "playlist": {
+    "laptop": "Get It? - teacher tutorials",
+    "mobile": "Get It? - teacher tutorials (on a phone)"
+  },
+
+  "schedule": {
+    "ukHours": [8, 15],
+    "minLeadMinutes": 20,
+    "maxPerDay": 2
+  },
+
+  "hooks": {
+    "01-what-get-it-is": "Thirty students nod. That is not the same as thirty students understanding. This is the two-minute check that tells you the difference.",
+    "02-create-your-account": "One teacher account, about a minute. No class list to build and no pupils to add.",
+    "03-set-up-your-class": "A class is one code, and it lasts all year. You set it up once.",
+    "03b-put-the-code-on-the-wall": "The code goes on the wall, the board or the slide. Pupils type it and they are in.",
+    "03c-the-year-group": "The year group tells the marking how much detail to expect. It never changes whether an answer is right.",
+    "04-write-the-questions": "You type the topic. Get It? writes the questions, with the marks and the model answers.",
+    "05-how-pupils-join": "Two minutes on their phones, or set as homework. Nothing to mark afterwards.",
+    "05b-what-the-pupil-sees": "What a pupil actually sees. Worth watching once so you can answer the questions you will get.",
+    "06-read-your-results": "One screen: who got it, who is shaky, and who is quietly faking it.",
+    "07-change-a-colour": "If the marking gets a colour wrong, you change it yourself. You are still the teacher.",
+    "08-spot-the-pattern": "The record builds itself. Spot the class-wide misconception before the test does.",
+    "06b-take-the-record-away": "A pupil leaving, or a whole class moving on - take the record with you.",
+    "09-your-data": "What Get It? stores, what it does not, and how to get it out. In plain English.",
+    "09b-if-it-gets-it-wrong": "If it gets an answer wrong, tell it. Every correction makes the next one better."
+  }
+}

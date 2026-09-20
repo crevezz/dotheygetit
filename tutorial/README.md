@@ -109,10 +109,49 @@ voice. If a scene is much longer than its words, the fix is to add words, not to
 raise `MAX_SPEED` — chapter 4 ran at the 1.32× cap and then sat silent for six
 seconds until 23 words were added to `03b`.
 
+## YouTube
+
+`upload-youtube.js` puts the whole set on YouTube in one command, modelled on
+`apps/briefs/upload.js`: OAuth2 with a stored refresh token, 8AM / 3PM UK
+scheduling, per-chapter title, description and tags, a thumbnail cut from each
+chapter's own title card, a duplicate shield, and a ledger so a re-run never
+uploads a chapter twice.
+
+```
+node upload-youtube.js --auth          # once: sign in as the channel's account
+node upload-youtube.js                 # laptop set, up to 5 uploads
+node upload-youtube.js --mobile        # the phone set
+node upload-youtube.js --status        # what is up, what is left
+node upload-youtube.js --dry           # print the metadata, touch nothing
+node upload-youtube.js --now           # publish straight away, no schedule
+```
+
+**The quota is the whole story.** A fresh Google Cloud project gets 10,000 units
+a day; one upload costs 1,600 plus 50 for the thumbnail and 50 for the playlist,
+so 1,700 each. **Five a day is the ceiling**, which is why the default `--limit`
+is 5 and the 14 chapters take three days. Going over does not fail the batch -
+it stops cleanly and the next run resumes. If you need more, request a quota
+increase on the project in Google Cloud.
+
+Two things to know before the first run:
+
+- `client_secret.json` sits in the repo root (copied from `apps/briefs`). The
+  OAuth client is app-level, so it can be reused; the **token** is per channel,
+  so the first `--auth` is where you pick the new YouTube page. The script prints
+  the channel it ended up on - check it is the right one.
+- If the OAuth consent screen is still in *Testing*, Google expires the refresh
+  token after 7 days and you will have to `--auth` again. Publishing the consent
+  screen in Google Cloud makes it permanent.
+
+`youtube.json` holds every word of the copy - titles, blurb, links, hashtags,
+per-chapter hooks, playlist names, schedule hours. Edit it there, not in the JS.
+
 ## Files
 
 | file | what |
 |---|---|
+| `upload-youtube.js` | uploads the whole set to YouTube, schedules it, resumes on quota. |
+| `youtube.json` | all the YouTube copy and scheduling config. Edit here. |
 | `record.js` | records the main take. Isolated copy of the app in `.run/` on port 4591. |
 | `record-why.js` | records the landing page for chapter 7. `WHY_URL=...` to point elsewhere. |
 | `build.js` | `--scan` finds cuts; otherwise builds the MP4s. |

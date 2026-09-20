@@ -28,3 +28,7 @@ ERROR
 tutorial/voice-advert/
 tutorial/*.bak
 tutorial/.kie.key 
+
+# youtube uploader - secrets never leave this machine
+client_secret.json
+youtube_token.json
