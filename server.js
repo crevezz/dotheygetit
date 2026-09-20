@@ -1265,6 +1265,55 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { inviteRequired: !!String(process.env.SIGNUP_CODE || '').trim() });
     }
 
+    // ---- contact form on the marketing site. It is a different origin, so this
+    // ---- one route carries CORS headers. Nothing else here does.
+    if (p === '/api/contact' && req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': 'https://dotheygetit.app',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400',
+      });
+      return res.end();
+    }
+
+    if (p === '/api/contact' && req.method === 'POST') {
+      res.setHeader('Access-Control-Allow-Origin', 'https://dotheygetit.app');
+      if (tooMany(req, 'contact', 5, 3600000)) {
+        return sendErr(res, 'Too many messages from here just now. Try again shortly.', 429);
+      }
+      const b = await readBody(req);
+      const name = String(b.name || '').trim().slice(0, 120);
+      const school = String(b.school || '').trim().slice(0, 160);
+      const email = String(b.email || '').trim().slice(0, 200);
+      const msg = String(b.message || '').trim().slice(0, 2000);
+      if (!email || email.indexOf('@') < 1) return sendErr(res, 'That email address does not look right.');
+      if (!msg) return sendErr(res, 'Add a message so I know what you need.');
+
+      const tok = String(process.env.DISCORD_TOKEN || '').trim();
+      const chan = String(process.env.FEEDBACK_CHANNEL || '').trim();
+      if (tok && chan) {
+        const body = { embeds: [{
+          title: 'Enquiry from the website',
+          description: msg,
+          color: 0x8b5cff,
+          fields: [
+            { name: 'Name', value: name || 'not given', inline: true },
+            { name: 'Email', value: email, inline: true },
+            { name: 'School', value: school || 'not given', inline: true },
+          ],
+        }] };
+        try {
+          await fetch('https://discord.com/api/v10/channels/' + chan + '/messages', {
+            method: 'POST',
+            headers: { Authorization: 'Bot ' + tok, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        } catch (e) { /* never let this break the person sending it */ }
+      }
+      return sendJson(res, { ok: true });
+    }
+
     if (p === '/api/feedback' && req.method === 'POST') {
       const b = await readBody(req);
       const msg = String(b.message || '').trim().slice(0, 1200);

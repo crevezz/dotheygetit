@@ -529,6 +529,7 @@ fs.writeFileSync(path.join(OUT, 'index.html'), indexHtml);
 // sitemap, regenerated so it can never go stale
 const urls = [
   { loc: `${SITE}/`, changefreq: 'weekly', priority: '1.0' },
+  { loc: `${SITE}/contact/`, changefreq: 'yearly', priority: '0.6' },
   { loc: `${SITE}/blog/`, changefreq: 'weekly', priority: '0.8' },
   ...POSTS.map((p) => ({ loc: `${SITE}/blog/${p.slug}`, changefreq: 'monthly', priority: '0.7' }))
 ];
