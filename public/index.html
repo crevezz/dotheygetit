@@ -106,10 +106,11 @@
           </div>
           <p class="msg" id="pwMsg"></p>
         </div>
+        <p class="muted" id="classHint">A class is one code your students join with, and it lasts all year. Pick a class below to write a check for it, or to read what it got right.</p>
         <div id="classList"></div>
         <div class="row">
           <input id="newClassName" placeholder="New class name, e.g. Year 8 Maths"/>
-          <select id="newClassYear" data-tip="Optional. Sets how much explaining to expect for this class. Leave as Not set and the marking is unchanged.">
+          <select id="newClassYear" aria-label="Year group, optional" data-tip="Optional. How much detail the marking expects. It never changes whether an answer is right.">
             <option value="">Not set</option>
             <option>Year 5</option>
             <option>Year 6</option>
@@ -125,6 +126,7 @@
           </select>
           <button id="btnAddClass" class="primary" data-tip="Makes a class with its own permanent join code. Reuse it all year.">Add class</button>
         </div>
+        <p class="muted tiny" id="yearHint">The <b>year group</b> is optional. It only tells the marking how much detail to expect - it never changes whether an answer is right, and it does not pick the class. Leave it as <b>Not set</b> if you would rather not say.</p>
         <p class="msg" id="classMsg"></p>
       </div>
 

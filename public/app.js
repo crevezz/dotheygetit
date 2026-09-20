@@ -149,11 +149,11 @@ $('#btnLogout').addEventListener('click', async () => {
 });
 
 // ----------------------------------------------------------------- classes
-/* Remember the year group last used, so a teacher sets it once and never ticks it again. */
-try {
-  const lastYear = localStorage.getItem('gi_lastYear') || '';
-  if (lastYear && $('#newClassYear')) $('#newClassYear').value = lastYear;
-} catch {}
+/* The year group starts at Not set, every time. It used to be remembered from the
+   last class, which meant a new class silently inherited last term's year group -
+   and the dropdown sits next to the class name, so a teacher reading "Year 9" there
+   reasonably thought it was picking the class. It is not: it is the year group, and
+   it has to start empty so it is never mistaken for a choice already made. */
 
 async function loadClasses() {
   try {
@@ -165,7 +165,7 @@ async function loadClasses() {
 
 function renderClasses() {
   if (!myClasses.length) {
-    $('#classList').innerHTML = '<p class="muted">No classes yet. Add one below — it only takes a name.</p>';
+    $('#classList').innerHTML = '<p class="muted">No classes yet. A class is just a name and a code. Add one below — it only takes a name.</p>';
     return;
   }
   $('#classList').innerHTML = myClasses.map(c =>
@@ -206,7 +206,6 @@ $('#btnAddClass').addEventListener('click', async () => {
   if (!name) return setMsg($('#classMsg'), 'Type a class name first.');
   try {
     const j = await post('/api/class', { name, year });
-    try { localStorage.setItem('gi_lastYear', year); } catch {}
     $('#newClassName').value = '';
     await loadClasses();
     openClass(j.class.id);
