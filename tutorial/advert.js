@@ -19,6 +19,7 @@
    then starts on the exact moment its sentence starts - measured, not guessed.
 
    Reads advert.json.
+   Reads bg.mp3 (the music) and out/advert/voice.mp3 (the read).
    Writes out/advert/voice.mp3, out/advert/mix.wav, out/advert/timeline.json
    ========================================================================== */
 const fs = require('fs');
@@ -203,21 +204,34 @@ function share(total) {
   fs.writeFileSync(path.join(OUT, 'timeline.json'),
     JSON.stringify({ total: TOTAL, voice: VOICE_DUR, lead: LEAD, tail: TAIL, shots: shots }, null, 2));
 
-  /* 3. a quiet bed, so it is not just a voice in a void ------------------ */
-  const bed = path.join(OUT, 'bed.wav');
-  const sine = f => ['-f', 'lavfi', '-i', 'sine=frequency=' + f + ':duration=' + TOTAL];
-  run(['-y', ...sine(110), ...sine(164.81), ...sine(220),
-       '-filter_complex',
-       '[0:a][1:a][2:a]amix=inputs=3:normalize=0,lowpass=f=900,volume=0.055,' +
-       'tremolo=f=0.16:d=0.35,afade=t=in:st=0:d=1.5,afade=t=out:st=' + (TOTAL - 2).toFixed(2) + ':d=2[out]',
-       '-map', '[out]', '-ar', '44100', '-ac', '2', bed]);
-
-  /* 4. one continuous read, pushed back by the lead, over the bed -------- */
+  /* 3. the music, sitting under the read ---------------------------------
+     bg.mp3 is a finished track, so the only decisions left are level and
+     ducking. It comes in at about a fifth of its own level, and for as long as
+     anyone is speaking the voice pushes it down a further ~8dB - so it is there
+     in the gaps and out of the way everywhere else. It also has to be cut to
+     length: the track is 1:42 and the advert is 27 seconds. */
+  const MUSIC = path.join(HERE, 'bg.mp3');
+  if (!fs.existsSync(MUSIC)) throw new Error('bg.mp3 is missing from ' + HERE);
   const mix = path.join(OUT, 'mix.wav');
-  run(['-y', '-i', bed, '-i', voice, '-filter_complex',
-       '[1:a]adelay=' + Math.round(LEAD * 1000) + ':all=1[vo];' +
-       '[0:a][vo]amix=inputs=2:normalize=0,alimiter=limit=0.95[out]',
-       '-map', '[out]', '-ar', '44100', '-ac', '2', mix]);
+  run(['-y', '-i', MUSIC, '-i', voice, '-filter_complex',
+       '[0:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,' +
+       'volume=0.26,afade=t=in:st=0:d=0.15,' +
+       'afade=t=out:st=' + (TOTAL - 2.5).toFixed(2) + ':d=2.5[m];' +
+       /* the voice is used twice - once as the sound, once as the key that
+          ducks the music - and a filter output can only be read once, hence the
+          asplit. It is padded to the full length first: sidechaincompress stops
+          when its key stops, so without the pad the whole mix ended with the
+          voice and the last two seconds of the advert fell off. */
+       '[1:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,' +
+       'adelay=' + Math.round(LEAD * 1000) + ':all=1,apad=whole_dur=' + TOTAL + ',asplit=2[vo][key];' +
+       '[m][key]sidechaincompress=threshold=0.05:ratio=8:attack=10:release=400[md];' +
+       '[md][vo]amix=inputs=2:normalize=0,alimiter=limit=0.95[out]',
+       '-map', '[out]', '-t', String(TOTAL), '-ar', '44100', '-ac', '2', mix]);
+
+  /* measure it rather than trusting the constant: this is the length every
+     advert is then cut to, and a mix that is short takes the ending with it */
+  const mixed = dur(mix);
+  if (Math.abs(mixed - TOTAL) > 0.15) throw new Error('mix is ' + mixed.toFixed(2) + 's, expected ' + TOTAL + 's');
 
   console.log('\n  out/advert/mix.wav      ' + TOTAL + 's');
   console.log('  out/advert/timeline.json   ' + shots.length + ' shots');
