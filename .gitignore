@@ -32,3 +32,7 @@ tutorial/.kie.key
 # youtube uploader - secrets never leave this machine
 client_secret.json
 youtube_token.json
+
+# scratch: ad-hoc probes and payload dumps, never shipped
+tutorial/_test.json
+tutorial/ERROR
