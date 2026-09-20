@@ -9,9 +9,12 @@
   "note": "Advert voice, NOT the tutorial voice. The tutorial voice is deliberately flat so it does not distract from instructions; an advert needs pace and personality. There are NO durations here any more: advert.js sends the whole script to ElevenLabs in ONE call, gets a character-level alignment back, and reads every shot's start and end off that. Timing is measured, not invented. 'lead' is silence before the voice so the hook is on screen as it is spoken; 'tail' is the hold on the end card after the voice stops. To change the advert, edit the sentences - everything else follows.",
 
   "segments": [
-    { "id": "s1", "text": "Are you a teacher?", "clip": "a1-classroom", "ss": 0 },
-    { "id": "s2", "text": "You've just finished a lesson and you're not sure it actually landed.", "clip": "a2-books", "ss": 0 },
-    { "id": "s3", "text": "Thirty students nodded — but nodding isn't understanding." },
+    { "id": "s1", "text": "Are you a teacher?", "clip": "a1-classroom", "ss": 0,
+      "lines": ["Are you a", "teacher?"] },
+    { "id": "s2", "text": "You've just finished a lesson and you're not sure it actually landed.", "clip": "a2-books", "ss": 0,
+      "lines": ["Just finished a lesson.", "Not sure it landed."] },
+    { "id": "s3", "text": "Thirty students nodded — but nodding isn't understanding.",
+      "lines": ["Thirty students nodded.", "Nodding isn't understanding."] },
     { "id": "s4", "text": "Get It gives your class one code.", "clip": "03b-put-the-code-on-the-wall", "ss": 12.5 },
     { "id": "s5", "text": "They answer on their phones or in homework, two minutes, no marking.", "clip": "05-how-pupils-join", "ss": 20 },
     { "id": "s6", "text": "And you see exactly who got it, who's shaky, and who's quietly faking it.", "clip": "06-read-your-results", "ss": 4.2 },

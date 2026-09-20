@@ -209,3 +209,36 @@ as a custom voice. The id is in `narration.json`.
 
 The key needs **Text to Speech** permission. It does *not* need `user_read` or
 `voices_read` — so `/v1/voices` will 401 even when everything needed works.
+
+## The advert
+
+One design, four frames. `advert-film.js` takes a ratio and films the same page
+four times - nothing is re-laid-out by hand:
+
+    set "RATIO=9x16" & node advert-film.js     # Reels, TikTok, Shorts, Stories
+    set "RATIO=4x5"  & node advert-film.js     # Instagram and Facebook feed
+    set "RATIO=1x1"  & node advert-film.js     # Instagram grid
+    set "RATIO=16x9" & node advert-film.js     # YouTube, LinkedIn, X
+
+Every size in `advert.html` is its 1080x1920 value multiplied by one unit,
+`--u: min(100vw/1080, 100vh/1920)`, so at 9:16 `--u` is exactly 1 and the design
+scales rather than being cropped. The background plate is `100%/100%` with
+`object-fit:cover` - a fixed 1080x1920 video there is what made every other ratio
+a crop. 16:9 renders correctly but only fills 1.2% of its frame with type against
+6% at 9:16, so it still wants its own composition (type left, product right).
+
+The two atmosphere shots are **not** a video model. Seedream draws the still and
+ffmpeg `zoompan` moves over it (Ken Burns, see `kb` in `art.json`). Four seconds
+of atmosphere behind a scrim reads the same, costs nothing, cannot return a 422,
+and re-renders the moment the grade changes. Measured: the plates came out 27%
+and 37% brighter than the video-model takes they replaced, and still move.
+
+Where `advert.json` names a shot's `lines`, each line lands on its own clause in
+the voice - `advert.js` finds the line in the ElevenLabs character alignment and
+writes its time into `timeline.json`. That is what stops "Not sure it landed."
+appearing a second and a half before it is said.
+
+Check a render before you post it:
+
+    node _safecheck.js 10      # type inside the frame at every ratio, at t=10s
+    node _verify.js            # shape, length, sound, and that it does not open on black

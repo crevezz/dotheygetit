@@ -1,0 +1,7 @@
+{
+    "input":  {
+                  "prompt":  "an empty classroom in morning light",
+                  "aspect_ratio":  "9:16"
+              },
+    "model":  "seedream/5-pro-text-to-image"
+}

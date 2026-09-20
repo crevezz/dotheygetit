@@ -93,6 +93,23 @@ function words(s) {
   return out;
 }
 
+/* A line in the design is often not a verbatim slice of the sentence - the
+   design says "Not sure it landed." where the voice says "not sure it actually
+   landed" - so match the longest run of its words that IS there, from the front.
+   The line then lands on the moment the voice reaches it. */
+function findLine(W, from, to, text, st, en) {
+  const w = words(text).map(x => x.w);
+  for (let n = w.length; n >= 1; n--) {
+    for (let k = from; k + n <= to; k++) {
+      let ok = true;
+      for (let j = 0; j < n; j++) if (W[k + j].w !== w[j]) { ok = false; break; }
+      if (!ok) continue;
+      return { t: st[W[k].i], e: en[W[k + n - 1].i + W[k + n - 1].n - 1] };
+    }
+  }
+  return null;
+}
+
 /* find each sentence in the alignment and take its real start and end */
 function marks(a) {
   const S = a.characters.join('');
@@ -109,8 +126,12 @@ function marks(a) {
     }
     if (hit < 0) return null;
     const first = W[hit], last = W[hit + want.length - 1];
-    cur = hit + want.length;
-    return { t: st[first.i], e: en[last.i + last.n - 1] };
+    const end = hit + want.length;
+    cur = end;
+    const lines = (seg.lines || [])
+      .map(txt => findLine(W, hit, end, txt, st, en))
+      .filter(Boolean);
+    return { t: st[first.i], e: en[last.i + last.n - 1], lines };
   });
 }
 
@@ -161,16 +182,22 @@ function share(total) {
   const shots = SEG.map((s, i) => {
     const t = Math.max(0, +(LEAD + mk[i].t - 0.12).toFixed(2));
     const e = i < SEG.length - 1 ? +(LEAD + mk[i + 1].t - 0.12).toFixed(2) : TOTAL;
+    /* the lines of a shot land on their own clause, so they carry no lead-in -
+       they are already where they should be */
+    const lines = (mk[i].lines || []).map(L => ({ t: +(LEAD + L.t).toFixed(2), e: +(LEAD + L.e).toFixed(2) }));
     return { id: s.id, t: t, e: Math.max(t + 0.5, e), clip: s.clip || null,
              /* a1-/a2- are the AI atmosphere plates that sit BEHIND the type;
                 everything else is real app footage that goes inside the phone */
              plate: !!s.clip && /^a\d/.test(s.clip),
-             vid: s.clip ? 'v-' + s.id : null, ss: s.ss === undefined ? null : s.ss };
+             vid: s.clip ? 'v-' + s.id : null, ss: s.ss === undefined ? null : s.ss,
+             lines: lines };
   });
   console.log('');
   shots.forEach((s, i) => {
     console.log('  ' + s.id + '  ' + s.t.toFixed(2).padStart(6) + ' -> ' + s.e.toFixed(2).padStart(6) +
                 '  (' + (s.e - s.t).toFixed(2) + 's)  ' + SEG[i].text);
+    s.lines.forEach((L, j) => console.log('        line ' + (j + 1) + '  ' + L.t.toFixed(2) +
+                '  ' + (SEG[i].lines[j] || '')));
   });
 
   fs.writeFileSync(path.join(OUT, 'timeline.json'),
