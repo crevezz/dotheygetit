@@ -22,7 +22,21 @@ catch { ({ chromium } = require('playwright')); }
 
 const HERE = __dirname;
 const OUT = path.join(HERE, 'out', 'advert');
-const W = 1080, H = 1920;
+/* One design, four frames, and the page is told which frame it is drawing for.
+   Cropping a 9:16 design to 16:9 loses the top and bottom of every line of type,
+   so the layout reflows instead - it is never cut. */
+const RATIOS = {
+  '9x16': [1080, 1920],   // Reels, TikTok, Shorts, Stories
+  '4x5': [1080, 1350],    // Instagram and Facebook feed - the one that performs
+  '1x1': [1080, 1080],    // Instagram grid, carousels
+  '16x9': [1920, 1080],   // YouTube, LinkedIn, X
+};
+const RATIO = process.env.RATIO || '9x16';
+if (!RATIOS[RATIO]) {
+  console.error('unknown RATIO "' + RATIO + '" - one of ' + Object.keys(RATIOS).join(', '));
+  process.exit(1);
+}
+const [W, H] = RATIOS[RATIO];
 /* The film must be exactly as long as the voice mix, and every shot must start
    when its sentence starts. Both come from the timeline advert.js measured off
    the voice track - never from a duration typed in by hand. */
@@ -53,7 +67,9 @@ function run(args) {
   const vid = page.video();
 
   /* hand the measured timeline to the page before its own script runs */
-  await ctx.addInitScript('window.TIMELINE = ' + JSON.stringify(TL) + ';');
+  await ctx.addInitScript('window.TIMELINE = ' + JSON.stringify(TL) + ';' +
+    ' window.RATIO = ' + JSON.stringify(RATIO) + ';' +
+    ' document.documentElement.setAttribute("data-ratio", ' + JSON.stringify(RATIO) + ');');
 
   await page.goto('file://' + path.join(HERE, 'advert.html').replace(/\\/g, '/'));
   /* make sure every clip can actually play before we start the clock */
@@ -83,14 +99,14 @@ function run(args) {
        '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
        '-r', '30', path.join(OUT, 'film.mp4')]);
 
-  const final = path.join(OUT, 'advert.mp4');
+  const final = path.join(OUT, 'advert-' + RATIO + '.mp4');
   run(['-y', '-i', path.join(OUT, 'film.mp4'), '-i', MIX,
        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest',
        '-movflags', '+faststart', final]);
 
   const r = spawnSync(ffmpeg, ['-hide_banner', '-i', final], { encoding: 'utf8' });
   const d = /Duration: (\d+):(\d+):(\d+\.\d+)/.exec(String(r.stderr));
-  console.log('done  out/advert/advert.mp4  ' + (fs.statSync(final).size / 1048576).toFixed(1) + ' MB  ' +
+  console.log('done  out/advert/advert-' + RATIO + '.mp4  ' + (fs.statSync(final).size / 1048576).toFixed(1) + ' MB  ' +
               (d ? d[1] + ':' + d[2] + ':' + d[3] : '?'));
   console.log(String(r.stderr).split('\n').filter(l => /Stream #/.test(l)).map(l => l.trim()).join('\n'));
 })();
