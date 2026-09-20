@@ -15,8 +15,8 @@
       "lines": ["Just finished a lesson.", "Not sure it landed."] },
     { "id": "s3", "text": "Thirty students nodded — but nodding isn't understanding.",
       "lines": ["Thirty students nodded.", "Nodding isn't understanding."] },
-    { "id": "s4", "text": "Get It gives your class one code.", "clip": "03b-put-the-code-on-the-wall", "ss": 12.5 },
-    { "id": "s5", "text": "They answer on their phones or in homework, two minutes, no marking.", "clip": "05-how-pupils-join", "ss": 20 },
+    { "id": "s4", "text": "You type the topic. It writes the questions. They answer on their phones — and you know if they get your lesson or not. In minutes.", "clip": "04-write-the-questions", "ss": 8 },
+    { "id": "s5", "text": "One code on the board. No logins, no apps — and no marking.", "clip": "03b-put-the-code-on-the-wall", "ss": 12.5 },
     { "id": "s6", "text": "And you see exactly who got it, who's shaky, and who's quietly faking it.", "clip": "06-read-your-results", "ss": 4.2 },
     { "id": "s7", "text": "Before the test does." },
     { "id": "s8", "text": "100% free for a limited time." }
