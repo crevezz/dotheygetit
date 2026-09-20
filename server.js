@@ -93,7 +93,7 @@ async function initStore() {
   }
   try { Object.assign(store, JSON.parse(fs.readFileSync(DATA, 'utf8'))); } catch {}
   normalise();
-  console.log('  Storage: local file — data is lost when the server restarts');
+  console.log('  Storage: local file at ' + DATA + ' — data is lost when the server restarts');
 }
 
 function saveStore() {
