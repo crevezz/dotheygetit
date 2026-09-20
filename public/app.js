@@ -780,10 +780,12 @@ async function loadAdmin() {
           <div><span class="k">Classes</span>${x.classes.length} &nbsp; <span class="k">Checks</span>${x.checkCount} &nbsp; <span class="k">Answers</span>${x.studentCount}</div>
           ${x.classes.length ? `<div class="notes">${x.classes.map(c => esc(c.name) + ' <b>' + esc(c.code) + '</b>').join(' · ')}</div>` : ''}
         </div>
+        ${(x.role === 'admin' || (me && x.id === me.id)) ? ''
+          : `<div class="btnrow"><button class="ghost tdel" data-id="${esc(x.id)}" data-email="${esc(x.email)}" data-classes="${x.classes.length}" data-checks="${x.checkCount}" data-answers="${x.studentCount}" data-tip="Removes this teacher and everything they made. Only you can do this.">Remove teacher</button></div>`}
       </div>`).join('');
     $('#adminWrap').innerHTML =
       `<div class="card">
-         <div class="srow"><h3>Owner view</h3><span class="small">everyone using it</span></div>
+         <div class="srow"><h3>Owner view</h3><span class="small">everyone using it - Remove teacher deletes the account and everything they made</span></div>
          <div class="stat-row">
            <div class="stat green"><b>${t.teachers}</b><span>teachers</span></div>
            <div class="stat amber"><b>${t.classes}</b><span>classes</span></div>
@@ -798,6 +800,27 @@ async function loadAdmin() {
          <div id="errorList"></div>
          ${rows || '<p class="muted">Nobody has signed up yet.</p>'}
        </div>`;
+
+    /* Removing a teacher takes their classes, their checks and every answer in them,
+       so the confirm has to say the real numbers out loud before it asks. */
+    document.querySelectorAll('.tdel').forEach(btn => btn.addEventListener('click', async () => {
+      const n = Number(btn.dataset.classes) || 0;
+      const k = Number(btn.dataset.checks) || 0;
+      const a = Number(btn.dataset.answers) || 0;
+      const bits = [];
+      if (n) bits.push(n === 1 ? 'their 1 class' : 'their ' + n + ' classes');
+      if (k) bits.push(k === 1 ? '1 check' : k + ' checks');
+      if (a) bits.push(a === 1 ? '1 answer' : a + ' answers');
+      const q = 'Remove ' + btn.dataset.email + '?\n\n' + (bits.length
+        ? 'This also deletes ' + bits.join(', ') + '. The join codes stop working, and their browser is signed out.\n\n'
+        : 'They have not made anything yet, so nothing else goes.\n\n') + 'This cannot be undone.';
+      if (!confirm(q)) return;
+      try {
+        const r = await post('/api/admin/teacher/delete', { teacherId: btn.dataset.id });
+        toast('Removed ' + r.email + (r.deletedClasses ? ' and ' + r.deletedClasses + ' class(es)' : ''));
+        await loadAdmin();
+      } catch (e) { toast(e.message); }
+    }));
 
     $('#btnSelftest').addEventListener('click', async () => {
       setMsg($('#healthMsg'), 'Asking the AI...');

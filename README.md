@@ -56,6 +56,22 @@ default) is very cheap and reliable — a whole check is a tiny fraction of a pe
 | `config.json` | Model, number of questions, port. |
 | `key.txt` | Your API key (never share it). |
 | `data.json` | Saved results (made automatically). |
+| `test-admin-delete.js` | Boots the app on a throwaway port and proves only the owner can remove a teacher. |
+
+## The owner view
+
+Whoever signs up with `ADMIN_EMAIL` (default `craigokelly121@hotmail.com`) is the owner.
+The owner gets an extra card on the dashboard: every teacher, what they have made, a
+button to test the AI, and a button to read the last 20 errors.
+
+**Remove teacher** deletes that account, its classes, every check inside them and every
+answer in them, and signs their browser out. Their join codes stop working. The owner
+cannot remove their own account, or another owner account. The confirm says the real
+numbers before it asks, and nothing here can be undone.
+
+```
+node test-admin-delete.js     :: 16 checks: a teacher is refused, the owner is allowed
+```
 
 ## Coming next (not built yet)
 

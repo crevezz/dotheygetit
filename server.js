@@ -1833,6 +1833,37 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       return sendJson(res, { teachers, totals });
     }
 
+    // ---- owner: remove a teacher, and everything they made
+    /* Only the owner can do this, and only for a teacher. Two accounts are never
+       removable here: your own (you would lock yourself out of the owner view) and
+       another owner account (that is a change to the code, not to the data). The
+       teacher's classes go, every check inside them goes, and every token they were
+       signed in with is dropped, so their browser is signed out on the next click. */
+    if (p === '/api/admin/teacher/delete' && req.method === 'POST') {
+      const me = currentTeacher(req);
+      if (!me) return sendErr(res, 'Not signed in.', 401);
+      if (me.role !== 'admin') return sendErr(res, 'Not allowed.', 403);
+      const b = await readBody(req);
+      const t = store.teachers.find(x => x.id === String(b.teacherId || '').trim());
+      if (!t) return sendErr(res, 'That teacher is already gone.');
+      if (t.id === me.id) return sendErr(res, 'That is your own account. You cannot remove yourself.');
+      if ((t.role || 'teacher') === 'admin') return sendErr(res, 'That is an owner account. Change it in the code, not here.');
+      const ids = store.classes.filter(c => c.teacherId === t.id).map(c => c.id);
+      const theirs = store.sessions.filter(s => ids.includes(s.classId) || s.teacherId === t.id);
+      const gone = {
+        email: t.email,
+        deletedClasses: ids.length,
+        deletedChecks: theirs.length,
+        deletedAnswers: theirs.reduce((n, s) => n + (s.students || []).length, 0)
+      };
+      store.teachers = store.teachers.filter(x => x.id !== t.id);
+      store.classes = store.classes.filter(c => c.teacherId !== t.id);
+      store.sessions = store.sessions.filter(s => !ids.includes(s.classId) && s.teacherId !== t.id);
+      for (const [tok, owner] of Object.entries(store.tokens)) if (owner === t.id) delete store.tokens[tok];
+      saveStore();
+      return sendJson(res, Object.assign({ ok: true }, gone));
+    }
+
     // ---- no-login checks: the teacher's browser remembers its own classes
     if (p === '/api/check' && req.method === 'POST') {
       const b = await readBody(req);
