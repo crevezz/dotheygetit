@@ -171,12 +171,15 @@ function buildMetadata(ch, all, setLabel) {
   if (title.length > 100) title = ch.title.slice(0, 100 - tail.length - 1).trim() + tail;
 
   const hook = CFG.hooks[ch.id] || ch.sub;
+  /* The link goes FIRST. YouTube only shows the opening line or two of a
+     description in search and under the player, so a link three paragraphs down
+     is a link nobody clicks. */
   const body = [
+    `Try it free: ${CFG.links.app}`,
     ch.sub,
     hook,
     CFG.blurb,
     CFG.free,
-    `Try it: ${CFG.links.app}`,
     `What it is: ${CFG.links.site}`,
     `All ${all.length} chapters: ${CFG.links.help}`,
     'Every chapter:\n' + chapterList(all).join('\n'),
@@ -362,7 +365,7 @@ async function main() {
   console.log(`  mode: ${MODE}${MODE === 'scheduled' ? ` (${CFG.schedule.ukHours.join(':00, ')}:00 UK)` : ''}`);
   console.log(`  this run: up to ${LIMIT}\n`);
 
-  if (!pending.length) { console.log('  Nothing left to upload.\n'); return; }
+  if (!pending.length && !has('--fix-desc')) { console.log('  Nothing left to upload.\n'); return; }
 
   if (DRY) {
     let slot = new Date();
@@ -394,6 +397,39 @@ async function main() {
     process.exit(1);
   }
   console.log(`  channel: ${chan.title} (${chan.id})\n`);
+
+  /* Rewrite the description on videos already up - for when the copy in
+     youtube.json changes and you do not want to re-upload. 50 quota units each. */
+  if (has('--fix-desc')) {
+    let n = 0;
+    for (const c of all) {
+      const it = ledger.items[c.id];
+      if (!it) continue;
+      const meta = buildMetadata(c, all, MOBILE ? ' (on a phone)' : '');
+      const cur = await youtube.videos.list({ part: 'snippet', id: it.videoId });
+      const sn = cur.data.items && cur.data.items[0] && cur.data.items[0].snippet;
+      if (!sn) { console.log(`  ${c.id}: not found on YouTube`); continue; }
+      if (sn.description === meta.description) { console.log(`  ${c.id}: already right`); continue; }
+      await youtube.videos.update({
+        part: 'snippet',
+        requestBody: {
+          id: it.videoId,
+          snippet: {
+            title: meta.title,
+            description: meta.description,
+            tags: meta.tags,
+            categoryId: sn.categoryId || CFG.categoryId,
+            defaultLanguage: sn.defaultLanguage,
+            defaultAudioLanguage: sn.defaultAudioLanguage,
+          },
+        },
+      });
+      console.log(`  ${c.id}: description updated  https://youtu.be/${it.videoId}`);
+      n++;
+    }
+    console.log(`\n  ${n} description(s) updated.\n`);
+    return;
+  }
 
   const existing = await recentTitles(youtube, chan.uploads);
   const ytSlots = await takenSlots(youtube, chan.uploads);
