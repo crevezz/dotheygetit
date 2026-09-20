@@ -115,6 +115,30 @@ function mkCode(len) {
   for (let i = 0; i < (len || 6); i++) s += A[b[i] % A.length];
   return s;
 }
+// ---- tiny in-memory rate limit, per IP. No package, no Redis, no cost.
+// A Render restart wipes it, which is fine at this size. Two things get hit:
+// the auth routes (bot signups / credential stuffing) and /api/result, which is
+// the only route with no login behind it.
+const HITS = new Map();
+function ipOf(req) {
+  const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return fwd || req.socket.remoteAddress || 'unknown';
+}
+function tooMany(req, bucket, max, winMs) {
+  const k = bucket + ':' + ipOf(req), now = Date.now();
+  let a = HITS.get(k);
+  if (!a) { a = []; HITS.set(k, a); }
+  while (a.length && now - a[0] > winMs) a.shift();
+  if (a.length >= max) return true;
+  a.push(now);
+  return false;
+}
+// keep the map from growing forever
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, a] of HITS) if (!a.length || now - a[a.length - 1] > 3600000) HITS.delete(k);
+}, 600000).unref();
+
 function cookies(req) {
   const out = {};
   (req.headers.cookie || '').split(';').forEach(p => {
@@ -1273,6 +1297,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/signup' && req.method === 'POST') {
+      if (tooMany(req, 'signup', 8, 3600000)) return sendErr(res, 'Too many sign-ups from here just now. Try again shortly.', 429);
       const b = await readBody(req);
       const email = String(b.email || '').trim().toLowerCase();
       const pw = String(b.password || '');
@@ -1294,6 +1319,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/login' && req.method === 'POST') {
+      if (tooMany(req, 'login', 20, 600000)) return sendErr(res, 'Too many attempts. Wait a minute and try again.', 429);
       const b = await readBody(req);
       const email = String(b.email || '').trim().toLowerCase();
       const pw = String(b.password || '');
@@ -1804,6 +1830,7 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
 
     // ---- save a student result (student submits with class code)
     if (p === '/api/result' && req.method === 'POST') {
+      if (tooMany(req, 'result', 60, 60000)) return sendErr(res, 'Slow down a moment, then try again.', 429);
       const b = await readBody(req);
       const code = String(b.code || '').trim().toLowerCase();
       const name = String(b.name || '').trim() || 'Student';
