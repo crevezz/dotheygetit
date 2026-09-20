@@ -1,0 +1,30 @@
+{
+  "voice": "bLzt208N1hwaM2qjhmYE",
+  "model": "eleven_v3",
+  "settings": { "stability": 0.3, "similarity_boost": 0.75, "style": 0.55 },
+
+  "beats": [
+    { "id": "a1", "type": "card", "dur": 2.6,
+      "line1": "Half your class", "line2": "just nodded.",
+      "text": "Half your class just nodded." },
+
+    { "id": "a2", "type": "card", "dur": 2.6, "accent": "red",
+      "line1": "Three of them", "line2": "have no idea.",
+      "text": "Three of them have no idea." },
+
+    { "id": "a3", "type": "clip", "dur": 3.6, "src": "03b-put-the-code-on-the-wall", "ss": 12.5,
+      "line1": "One code.", "line2": "Whole class.",
+      "text": "One code, and everyone joins from their phone." },
+
+    { "id": "a4", "type": "clip", "dur": 4.8, "src": "06-read-your-results", "ss": 4.2,
+      "line1": "Two minutes", "line2": "later.",
+      "text": "Two minutes later, you can see exactly who got it." },
+
+    { "id": "a5", "type": "clip", "dur": 4.2, "src": "06-read-your-results", "ss": 17.0,
+      "line1": "And what they", "line2": "actually said.",
+      "text": "And what they actually said." },
+
+    { "id": "a6", "type": "end", "dur": 3.2,
+      "text": "Get It? Find out before the test does." }
+  ]
+}

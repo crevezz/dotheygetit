@@ -48,8 +48,9 @@ function duration(file) {
   return (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]);
 }
 
-/* how long each video chapter actually is (from blackdetect on the raw takes) */
-const VIDEO = require('./chapters.json');
+/* how long each video chapter actually is (from blackdetect on the raw takes).
+   MOBILE=1 reports against the phone take's own geometry. */
+const VIDEO = require(process.env.MOBILE?.trim() === '1' ? './chapters-mobile.json' : './chapters.json');
 
 (async () => {
   const rows = [];

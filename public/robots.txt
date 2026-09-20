@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# the API is not a page - keep crawlers out of it
+Disallow: /api/
+
+Sitemap: https://app.dotheygetit.app/sitemap.xml

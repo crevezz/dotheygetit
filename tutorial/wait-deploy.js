@@ -1,6 +1,13 @@
 const KEY = 'rnd_LAFeh3B5v5mPne6gpXAvPOi2Q0dG';
 const SVC = 'srv-dak0p7142hec73971ls0';
+const fs = require('fs');
+const path = require('path');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* smoke-test whatever is actually published, read from the manifests, so this
+   cannot end up asking the live site for a chapter that was renamed. */
+const pub = p => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'help', p), 'utf8'));
+const idx = pub('index.json'), mob = pub(path.join('mobile', 'index.json'));
 
 (async () => {
   let status = '';
@@ -21,8 +28,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ['/', {}],
     ['/help', {}],
     ['/api/health', {}],
-    ['/help/01-create-account.mp4', { Range: 'bytes=0-999' }],
-    ['/help/all.mp4', { Range: 'bytes=0-999' }]
+    ['/help/' + idx.chapters[0].file, { Range: 'bytes=0-999' }],
+    ['/help/' + idx.chapters[idx.chapters.length - 1].file, { Range: 'bytes=0-999' }],
+    ['/help/all.mp4', { Range: 'bytes=0-999' }],
+    ['/help/mobile/' + mob.chapters[0].file, { Range: 'bytes=0-999' }],
+    ['/help/mobile/all.mp4', { Range: 'bytes=0-999' }]
   ];
   console.log('\n  live check on ' + base);
   for (const [p, h] of hits) {

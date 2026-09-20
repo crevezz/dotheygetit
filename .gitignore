@@ -22,3 +22,8 @@ push.err
 brand/out/
 eval/card-preview.png
 eval/*.log 
+
+# scratch + render leftovers that must never be committed
+ERROR
+tutorial/voice-advert/
+tutorial/*.bak

@@ -1,0 +1,151 @@
+{
+  "_note": "Exact chapter boundaries found by blackdetect on the raw takes - do not hand-edit. Regenerate with `node build.js --scan` (MOBILE=1: phone takes, 390x844).",
+  "takes": {
+    "raw-mobile": {
+      "file": "out/raw-mobile.webm",
+      "duration": 515.24
+    }
+  },
+  "chapters": [
+    {
+      "n": 1,
+      "src": "raw-mobile",
+      "cardStart": 2.36,
+      "cardEnd": 4.56,
+      "start": 2.36,
+      "span": 22.52,
+      "voStart": 3.36,
+      "window": 21.52
+    },
+    {
+      "n": 2,
+      "src": "raw-mobile",
+      "cardStart": 24.88,
+      "cardEnd": 27.08,
+      "start": 24.88,
+      "span": 27.52,
+      "voStart": 25.88,
+      "window": 26.52
+    },
+    {
+      "n": 3,
+      "src": "raw-mobile",
+      "cardStart": 52.4,
+      "cardEnd": 54.64,
+      "start": 52.4,
+      "span": 44.32,
+      "voStart": 53.4,
+      "window": 43.32
+    },
+    {
+      "n": 4,
+      "src": "raw-mobile",
+      "cardStart": 96.72,
+      "cardEnd": 98.92,
+      "start": 96.72,
+      "span": 36.76,
+      "voStart": 97.72,
+      "window": 35.76
+    },
+    {
+      "n": 5,
+      "src": "raw-mobile",
+      "cardStart": 133.48,
+      "cardEnd": 135.72,
+      "start": 133.48,
+      "span": 27.32,
+      "voStart": 134.48,
+      "window": 26.32
+    },
+    {
+      "n": 6,
+      "src": "raw-mobile",
+      "cardStart": 160.8,
+      "cardEnd": 163,
+      "start": 160.8,
+      "span": 51.52,
+      "voStart": 161.8,
+      "window": 50.52
+    },
+    {
+      "n": 7,
+      "src": "raw-mobile",
+      "cardStart": 212.32,
+      "cardEnd": 214.52,
+      "start": 212.32,
+      "span": 60.8,
+      "voStart": 213.32,
+      "window": 59.8
+    },
+    {
+      "n": 8,
+      "src": "raw-mobile",
+      "cardStart": 273.12,
+      "cardEnd": 275.32,
+      "start": 273.12,
+      "span": 39.36,
+      "voStart": 274.12,
+      "window": 38.36
+    },
+    {
+      "n": 9,
+      "src": "raw-mobile",
+      "cardStart": 312.48,
+      "cardEnd": 314.72,
+      "start": 312.48,
+      "span": 43.52,
+      "voStart": 313.48,
+      "window": 42.52
+    },
+    {
+      "n": 10,
+      "src": "raw-mobile",
+      "cardStart": 356,
+      "cardEnd": 358.2,
+      "start": 356,
+      "span": 21.28,
+      "voStart": 357,
+      "window": 20.28
+    },
+    {
+      "n": 11,
+      "src": "raw-mobile",
+      "cardStart": 377.28,
+      "cardEnd": 379.48,
+      "start": 377.28,
+      "span": 29.56,
+      "voStart": 378.28,
+      "window": 28.56
+    },
+    {
+      "n": 12,
+      "src": "raw-mobile",
+      "cardStart": 406.84,
+      "cardEnd": 409.08,
+      "start": 406.84,
+      "span": 38.08,
+      "voStart": 407.84,
+      "window": 37.08
+    },
+    {
+      "n": 13,
+      "src": "raw-mobile",
+      "cardStart": 444.92,
+      "cardEnd": 447.16,
+      "start": 444.92,
+      "span": 39,
+      "voStart": 445.92,
+      "window": 38
+    },
+    {
+      "n": 14,
+      "src": "raw-mobile",
+      "cardStart": 483.92,
+      "cardEnd": 486.12,
+      "start": 483.92,
+      "span": 31.32,
+      "voStart": 484.92,
+      "window": 30.32
+    }
+  ]
+}

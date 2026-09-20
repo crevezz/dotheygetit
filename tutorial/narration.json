@@ -30,45 +30,80 @@
     },
     {
       "n": 4,
+      "id": "03b-put-the-code-on-the-wall",
+      "title": "Put the code on the wall",
+      "sub": "Or on the board",
+      "text": "Your class has one code, and it does not change.\nCopy the code into a message, or into the homework post.\nOr copy the link, and it takes them straight to the right page with nothing to type.\nShow the QR code on the board and they scan it with a tablet or a phone.\nPrint it and pin it up, so it is already there next lesson and you have done nothing.\nWhichever you use, it is the same code all year, and every class keeps its own. You never set this up twice."
+    },
+    {
+      "n": 5,
+      "id": "03c-the-year-group",
+      "title": "Tell it the year group",
+      "sub": "So the marking expects the right amount",
+      "text": "When you make a class, you can say which year it is.\nThat only tells the marking how much explaining to expect. A Year 7 answer and a Year 11 answer are not the same answer.\nIt does not change the questions, and it does not change the marks.\nLeave it as not set and nothing changes at all."
+    },
+    {
+      "n": 6,
       "id": "04-write-the-questions",
       "title": "Write the questions",
       "sub": "You type the topic. That is it.",
       "text": "Now the bit that used to take your Sunday evening.\nType what you just taught. Press generate, and the questions are written for you.\nThen read them properly. Rewrite one if you do not like the wording. Delete any you would not ask in class. Add your own if you have a better one.\nIt takes seconds, and nothing is set in stone.\nThe questions are the check, so make them yours.\nThen press create check. It is live for that class, waiting until they are ready.\nNext lesson, do the same again. Every check stays in the list, so nothing gets lost."
     },
     {
-      "n": 5,
+      "n": 7,
       "id": "05-how-pupils-join",
       "title": "How pupils join",
       "sub": "Play this one on the whiteboard",
       "text": "This is the one to play on the whiteboard.\nPupils open the link, put in the code, and pick their name from your list. There are no accounts and no logins for them.\nThey tick one box: that their answers go to you, and to an AI that helps you read them. That box explains itself, and there is a privacy page if anyone wants the detail.\nThen the interesting part.\nIt does not give them a quiz to tick boxes on. A tick tells you nothing.\nIt asks them to explain it, in their own words. Then it reads that answer and digs deeper. Asking why. Asking what happens if.\nIt keeps going until it finds real understanding, or finds the gap.\nWhen it is done, it thanks them. Their answers come straight to you. They never see a mark."
     },
     {
-      "n": 6,
+      "n": 8,
+      "id": "05b-what-the-pupil-sees",
+      "title": "What the pupil sees",
+      "sub": "Worth watching once",
+      "text": "It is worth seeing this from their side once.\nThey pick their name, tick the box, and start.\nIt does not give them a quiz to tick. It asks them to explain it, and then it asks again - why, and what if.\nIf they have learned it off by heart, that shows. If they have understood it, that shows too.\nIt keeps going until it is sure, then thanks them and sends their answers to you.\nThey never see a mark, so nobody has to be wrong in front of the class."
+    },
+    {
+      "n": 9,
       "id": "06-read-your-results",
       "title": "Read your results",
       "sub": "Who got it, who did not",
       "text": "Back on the teacher tab, open the check.\nHere is the whole class in one look. Green got it. Amber is shaky. Red did not get it yet.\nYou did not mark any of this. You did not read thirty sets of answers to find the three that matter.\nUnder each pupil is the evidence. Every point they were meant to show, and their own words beside it. So you can check the claim yourself instead of taking its word for it.\nClick a name and the card folds down to one line, which is handy when you are looking at the whole class.\nAnd it says so on the screen: this is guidance, not a grade. The judgement is yours."
     },
     {
-      "n": 7,
+      "n": 10,
       "id": "07-change-a-colour",
       "title": "Change a colour yourself",
       "sub": "You decide, not the AI",
       "text": "The AI reads answers. Sometimes it reads them wrong.\nSo you can change any colour, by hand.\nSay it called a pupil red, and you know she is part way there. Click amber. That is her colour now, and it is the one that counts. The AI's own read stays beside it, so you can see where you disagreed.\nYour change is remembered, so it does not flip back next lesson."
     },
     {
-      "n": 8,
+      "n": 11,
       "id": "08-spot-the-pattern",
       "title": "Spot the pattern",
       "sub": "The record builds itself",
       "text": "Go back to the class.\nEvery pupil has a line of dots, and every check adds one more.\nOne red is a bad day. Two of those together is a pattern, and you can see it in about three seconds. Not three weeks later, on the drive home.\nAnyone who has finished is greyed out, so you can see who you are still waiting on.\nYou are not guessing who is struggling any more. You are looking at it, while you can still do something about it."
     },
     {
-      "n": 9,
+      "n": 12,
+      "id": "06b-take-the-record-away",
+      "title": "Take the record away",
+      "sub": "A pupil, or the whole class",
+      "text": "Sometimes you need it somewhere other than the screen.\nOpen a pupil and you get every check they have done in this class, in one place. What they got, what was shaky, and their own words underneath.\nThat is what you read before a parents' evening. So you are not reading thirty answers to find the three that matter.\nExport results and the whole class comes out as a spreadsheet. Every check, every pupil, the colour and the reason for it.\nIt is your data, in a form you can hand to somebody else."
+    },
+    {
+      "n": 13,
       "id": "09-your-data",
       "title": "Your data, and theirs",
       "sub": "In plain English",
       "text": "A word about data, because it matters.\nThere is a privacy page in plain English. What is kept. Who sees it. What is not done with it. No ads, no tracking, nothing sold.\nYour school's policy comes first. If it does not allow pupil answers to go to an outside service, do not use it for that.\nYou can export a class as a spreadsheet. You can delete a check, with every answer in it. Or delete a class and everything under it.\nLast thing. This is a teaching aid, not an assessment. The AI can be wrong. Your judgement is the one that counts."
+    },
+    {
+      "n": 14,
+      "id": "09b-if-it-gets-it-wrong",
+      "title": "If it gets it wrong",
+      "sub": "Tell me, and it gets better",
+      "text": "One more thing, and it matters if you are going to trust this.\nIt reads answers, and sometimes it reads one badly. You will spot it, because you know the child.\nWhen that happens, there is a link at the bottom of the page. Tell me what happened, and what you expected instead.\nThat is how the marking improves, and it is the honest position. The judgement is yours."
     }
   ]
 }

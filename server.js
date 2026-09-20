@@ -1159,7 +1159,8 @@ Be fair but honest. Partial understanding is "amber", not "red".`;
 // ------------------------------------------------------------------- helpers
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
   '.mp4': 'video/mp4', '.webm': 'video/webm', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.txt': 'text/plain', '.woff2': 'font/woff2',
-  '.webmanifest': 'application/manifest+json', '.webp': 'image/webp', '.avif': 'image/avif' };
+  '.webmanifest': 'application/manifest+json', '.webp': 'image/webp', '.avif': 'image/avif',
+  '.xml': 'application/xml' };
 
 function sendJson(res, obj, extra) {
   const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});

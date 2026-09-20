@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Get It? — how it works, in nine short videos</title>
-<meta name="description" content="Nine short videos: create your account, set up a class, write the questions, how pupils join, read your results, spot the pattern."/>
+<title>Get It? — how it works, in fourteen short videos</title>
+<link rel="canonical" href="https://app.dotheygetit.app/help"/>
+<meta name="description" content="Fourteen short videos: create your account, set up a class, put the code on the wall, write the questions, how pupils join, what the pupil sees, read your results, spot the pattern, take the record away."/>
 <link rel="stylesheet" href="/styles.css"/>
 <style>
   .hero{padding:34px 0 8px}
@@ -14,11 +15,20 @@
 
   .player{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:22px 0 26px}
   .player video{display:block;width:100%;aspect-ratio:16/10;background:#000}
+  /* the phone set is a real 390x844 phone screen, so it is shown at its own shape */
+  .player.phone video{aspect-ratio:390/844;max-width:390px;margin:0 auto}
   .player .bar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
   .player .bar .now{font-weight:700;font-size:15px}
   .player .bar .sub{color:var(--muted);font-size:13px}
   .player .bar .sp{flex:1}
   .player .bar select{background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font:inherit;font-size:14px}
+
+  .dev{display:inline-flex;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 4px}
+  .dev button{background:none;border:0;color:var(--muted);font:inherit;font-size:13.5px;font-weight:600;
+              padding:7px 14px;border-radius:9px;cursor:pointer;transition:.16s}
+  .dev button:hover{color:var(--text)}
+  .dev button.on{background:var(--surface2);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.04)}
+  .devnote{color:var(--muted);font-size:13px;margin:10px 0 0}
 
   .list{display:grid;gap:10px;margin-bottom:36px}
   .item{display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:var(--surface);
@@ -80,12 +90,18 @@
 <main class="wrap">
 
   <div class="hero">
-    <h1>Get It? in nine short videos</h1>
+    <h1>Get It? in fourteen short videos</h1>
     <p>Each one is under a minute. Watch them in order, or just the one you are stuck on.</p>
-    <p class="meta" id="totalLine">Seven videos, 4 minutes 20 seconds in total. Sound on.</p>
+    <p class="meta" id="totalLine">Fourteen videos, 7 minutes 41 seconds in total. Sound on.</p>
   </div>
 
-  <div class="player">
+  <div class="dev" id="dev">
+    <button type="button" data-dev="laptop" class="on">Laptop</button>
+    <button type="button" data-dev="phone">Phone</button>
+  </div>
+  <p class="devnote" id="devNote">Filmed on a laptop. The Phone set shows the same journey on a phone.</p>
+
+  <div class="player" id="player">
     <video id="v" controls playsinline preload="metadata"></video>
     <div class="bar">
       <div>
@@ -100,14 +116,14 @@
         <option value="1.75">1.75×</option>
         <option value="2">2×</option>
       </select>
-      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (5 min)</a>
+      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (8 min)</a>
     </div>
   </div>
 
   <div class="list" id="list"></div>
 
   <div class="foot">
-    <p><b>Play this one on the whiteboard:</b> video 5, “How pupils join”. It shows the whole pupil journey end to end, so you never have to explain it twice.</p>
+    <p><b>Play this one on the whiteboard:</b> video 7, “How pupils join”. It shows the whole pupil journey end to end, so you never have to explain it twice.</p>
     <p>Something not working? <a href="/">Open the app</a> and use the error panel, or reply to the email you got this from.</p>
   </div>
 
@@ -115,23 +131,38 @@
 
 <script>
 const CHAPTERS = [
-  { n:1, id:'01-what-get-it-is',       title:'What Get It? is',         sub:'Start here - 30 seconds',        d:'Why a right answer on paper can still hide a gap.', len:'0:27' },
-  { n:2, id:'02-create-your-account',  title:'Create your account',     sub:'Takes about a minute',           d:'Email, password, done. Your classes follow you to any computer.', len:'0:27' },
-  { n:3, id:'03-set-up-your-class',    title:'Set up your class',       sub:'One code, lasts all year',       d:'Name the class, then paste your list straight from SIMS or Arbor.', len:'0:35' },
-  { n:4, id:'04-write-the-questions',  title:'Write the questions',     sub:'You type the topic. That is it.',d:'Generate, rewrite, add, delete. No Sunday evening.', len:'0:40' },
-  { n:5, id:'05-how-pupils-join',      title:'How pupils join',         sub:'Play this one on the whiteboard',d:'The whole pupil journey: code, name, explain it in their own words, send.', len:'0:52' },
-  { n:6, id:'06-read-your-results',    title:'Read your results',       sub:'Who got it, who did not',        d:'Green, amber, red - and what each pupil actually said.', len:'0:38' },
-  { n:7, id:'07-change-a-colour',      title:'Change a colour yourself', sub:'You know the child',            d:'The AI can be wrong. Click the colour you would give, and it sticks.', len:'0:26' },
-  { n:8, id:'08-spot-the-pattern',     title:'Spot the pattern',        sub:'The record builds itself',       d:'A dot per pupil per check. Two in a row is a pattern.', len:'0:30' },
-  { n:9, id:'09-your-data',            title:'Your data, and theirs',   sub:'In plain English',               d:'What is kept, who sees it, what is exported, what is deleted.', len:'0:43' }
+  { n:1,  id:'01-what-get-it-is',            title:'What Get It? is',          sub:'The bit behind it',                     d:'Why a right answer on paper can still hide a gap.', len:'0:27', secs:27.1 },
+  { n:2,  id:'02-create-your-account',       title:'Create your account',      sub:'Takes about a minute',                  d:'Email, password, done. Your classes follow you to any computer.', len:'0:27', secs:27.0 },
+  { n:3,  id:'03-set-up-your-class',         title:'Set up your class',        sub:'One code, lasts all year',              d:'Name the class, then paste your list straight from SIMS or Arbor.', len:'0:35', secs:34.6 },
+  { n:4,  id:'03b-put-the-code-on-the-wall', title:'Put the code on the wall', sub:'Or on the board',                       d:'Copy the code, copy the link, or show the QR and print it.', len:'0:31', secs:31.1 },
+  { n:5,  id:'03c-the-year-group',           title:'Tell it the year group',   sub:'So the marking expects the right amount',d:'Optional. It changes how much explaining the marking expects - not the questions.', len:'0:23', secs:23.0 },
+  { n:6,  id:'04-write-the-questions',       title:'Write the questions',      sub:'You type the topic. That is it.',       d:'Generate, rewrite, add, delete. No Sunday evening.', len:'0:40', secs:40.2 },
+  { n:7,  id:'05-how-pupils-join',           title:'How pupils join',          sub:'Play this one on the whiteboard',       d:'The whole pupil journey: code, name, explain it in their own words, send.', len:'0:52', secs:51.6 },
+  { n:8,  id:'05b-what-the-pupil-sees',      title:'What the pupil sees',      sub:'Worth watching once',                   d:'Their screen: pick your name, answer in your own words, send.', len:'0:31', secs:31.3 },
+  { n:9,  id:'06-read-your-results',         title:'Read your results',        sub:'Who got it, who did not',               d:'Green, amber, red - and what each pupil actually said.', len:'0:38', secs:38.4 },
+  { n:10, id:'07-change-a-colour',           title:'Change a colour yourself', sub:'You decide, not the AI',                d:'The AI can be wrong. Click the colour you would give, and it sticks.', len:'0:26', secs:25.5 },
+  { n:11, id:'08-spot-the-pattern',          title:'Spot the pattern',         sub:'The record builds itself',              d:'A dot per pupil per check. Two in a row is a pattern.', len:'0:30', secs:29.9 },
+  { n:12, id:'06b-take-the-record-away',     title:'Take the record away',     sub:'A pupil, or the whole class',           d:'Open one pupil’s record, or export the whole class as a spreadsheet.', len:'0:34', secs:33.9 },
+  { n:13, id:'09-your-data',                 title:'Your data, and theirs',    sub:'In plain English',                      d:'What is kept, who sees it, what is exported, what is deleted.', len:'0:43', secs:42.5 },
+  { n:14, id:'09b-if-it-gets-it-wrong',      title:'If it gets it wrong',      sub:'Tell me, and it gets better',           d:'A lesson it marked wrong? Say so, in a sentence.', len:'0:25', secs:24.5 }
 ];
+
+const BASE = { laptop: '/help/', phone: '/help/mobile/' };
+const NOTE = {
+  laptop: 'Filmed on a laptop. The Phone set shows the same journey on a phone.',
+  phone:  'Filmed on a real phone screen (390×844). Same fourteen chapters, same words.'
+};
 
 const v = document.getElementById('v');
 const list = document.getElementById('list');
 const nowTitle = document.getElementById('nowTitle');
 const nowSub = document.getElementById('nowSub');
 const speed = document.getElementById('speed');
+const player = document.getElementById('player');
+const devNote = document.getElementById('devNote');
 let current = 0;
+let dev = 'laptop';
+try { dev = localStorage.getItem('getit.dev') === 'phone' ? 'phone' : 'laptop'; } catch {}
 
 try { speed.value = localStorage.getItem('getit.speed') || '1'; } catch {}
 v.playbackRate = parseFloat(speed.value) || 1;
@@ -141,8 +172,10 @@ speed.addEventListener('change', () => {
 });
 
 function seen() { try { return JSON.parse(localStorage.getItem('getit.seen') || '[]'); } catch { return []; } }
+function seenKey(id) { return dev + ':' + id; }
 function markSeen(id) {
-  const s = seen(); if (!s.includes(id)) s.push(id);
+  const s = seen(); const k = seenKey(id);
+  if (!s.includes(k)) s.push(k);
   try { localStorage.setItem('getit.seen', JSON.stringify(s)); } catch {}
 }
 
@@ -156,7 +189,7 @@ function render() {
         <span class="d">${c.d}</span>
       </span>
       <span class="len">${c.len}</span>
-      ${s.includes(c.id) ? '<span class="watched">watched</span>' : ''}
+      ${s.includes(seenKey(c.id)) ? '<span class="watched">watched</span>' : ''}
       <span class="play"></span>
     </button>`).join('');
 }
@@ -164,7 +197,7 @@ function render() {
 function play(i, autoplay) {
   current = Math.max(0, Math.min(CHAPTERS.length - 1, i));
   const c = CHAPTERS[current];
-  v.src = '/help/' + c.id + '.mp4';
+  v.src = BASE[dev] + c.id + '.mp4';
   nowTitle.textContent = c.n + '. ' + c.title;
   nowSub.textContent = c.sub;
   document.title = c.title + ' — Get It? help';
@@ -174,6 +207,21 @@ function play(i, autoplay) {
   markSeen(c.id);
   if (window.innerWidth < 760) document.querySelector('.player').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+/* switching device keeps your place, and restarts the clip on the other take */
+function setDev(next) {
+  dev = next;
+  try { localStorage.setItem('getit.dev', dev); } catch {}
+  player.classList.toggle('phone', dev === 'phone');
+  devNote.textContent = NOTE[dev];
+  document.querySelectorAll('#dev button').forEach(b => b.classList.toggle('on', b.dataset.dev === dev));
+  play(current, false);
+}
+
+document.getElementById('dev').addEventListener('click', e => {
+  const b = e.target.closest('button[data-dev]');
+  if (b && b.dataset.dev !== dev) setDev(b.dataset.dev);
+});
 
 list.addEventListener('click', e => {
   const b = e.target.closest('.item');
@@ -188,17 +236,34 @@ v.addEventListener('ended', () => {
 });
 v.addEventListener('loadedmetadata', () => { v.playbackRate = parseFloat(speed.value) || 1; });
 
+/* the total, straight from the chapter table so it can never drift */
+(function total() {
+  const t = CHAPTERS.reduce((a, c) => a + c.secs, 0);
+  const m = Math.floor(t / 60), s = Math.round(t - m * 60);
+  document.getElementById('totalLine').textContent =
+    'Fourteen videos, ' + m + ' minutes ' + s + ' seconds in total. Sound on.';
+})();
+
 /* deep link: /help#05-how-pupils-join */
 const want = (location.hash || '').replace('#', '');
 const start = CHAPTERS.findIndex(c => c.id === want);
+setDev(dev);
 play(start >= 0 ? start : 0, false);
+
+/* and follow the hash if it changes while the page is open (pasted link, back button).
+   play() uses replaceState, which does not fire hashchange, so this cannot loop. */
+window.addEventListener('hashchange', () => {
+  const w = (location.hash || '').replace('#', '');
+  const i = CHAPTERS.findIndex(c => c.id === w);
+  if (i >= 0 && i !== current) play(i, true);
+});
 
 /* the "watch the lot" link swaps in the single continuous cut */
 document.getElementById('btnAll').addEventListener('click', ev => {
   ev.preventDefault();
-  v.src = '/help/all.mp4';
-  nowTitle.textContent = 'Get It? — all nine, in order';
-  nowSub.textContent = '5 minutes 17 seconds. Includes the title cards.';
+  v.src = BASE[dev] + 'all.mp4';
+  nowTitle.textContent = 'Get It? — all fourteen, in order';
+  nowSub.textContent = '7 minutes 41 seconds. Includes the title cards.';
   v.play().catch(() => {});
   render();
 });

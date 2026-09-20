@@ -26,6 +26,21 @@ const PORT = Number(process.env.PORT) || 4591;   // never clashes with a running
 const BASE = `http://localhost:${PORT}`;
 const REAL = process.env.USE_REAL === '1';
 
+/* MOBILE=1 films the SAME journey in a phone viewport instead of a laptop one.
+   390x844 CSS px, which is the mobile layout the app really serves, and a real
+   phone's own resolution. Separate take name, so both sets coexist.
+
+   recordVideo.size must be the VIEWPORT size, not viewport*DSF: Playwright does
+   not scale the capture up, it pads. Asking for 780x1688 recorded the page at
+   390x844 in the top-left of a grey 780x1688 frame, which also pushed the chapter
+   cards to 25% of the picture and made blackdetect find nothing at all. */
+/* .trim() because `set MOBILE=1 && node ...` in cmd leaves a trailing space
+   in the value, which would otherwise silently film the laptop version. */
+const MOBILE = process.env.MOBILE?.trim() === '1';
+const VP  = MOBILE ? { width: 390, height: 844 } : { width: 1280, height: 800 };
+const DSF = MOBILE ? 2 : 1;
+const TAKE = MOBILE ? 'raw-mobile' : 'raw';
+
 fs.mkdirSync(OUT, { recursive: true });
 
 /* ---------------------------------------------------------------- the lesson */
@@ -101,7 +116,20 @@ function OVERLAY() {
       '#__card .in{text-align:center;color:#fff;font-family:"Segoe UI",Roboto,sans-serif;}',
       '#__card .no{font:700 15px/1 "Segoe UI",Roboto,sans-serif;letter-spacing:.28em;color:#60a5fa;margin-bottom:18px;}',
       '#__card .ti{font:700 46px/1.15 "Segoe UI",Roboto,sans-serif;letter-spacing:-.5px;}',
-      '#__card .su{font:400 19px/1.4 "Segoe UI",Roboto,sans-serif;color:#94a3b8;margin-top:16px;}'
+      '#__card .su{font:400 19px/1.4 "Segoe UI",Roboto,sans-serif;color:#94a3b8;margin-top:16px;}',
+      /* On a phone the card has to stay ~99% black or blackdetect misses it and the
+         voiceover sync has nothing to lock onto. At 390px the 46px title covers
+         enough of the screen to drop the card to 97.7%, under the 98.5% threshold.
+         Measured on the real titles: 30px -> 98.9%, and the desktop card is untouched. */
+      '@media (max-width:520px){',
+      '  #__card .in{padding:0 22px;}',
+      '  #__card .no{font-size:11px;margin-bottom:12px;}',
+      '  #__card .ti{font-size:30px;line-height:1.2;}',
+      '  #__card .su{font-size:15px;margin-top:11px;}',
+      /* caption pill: left:50% makes a shrink-to-fit box only half the screen wide,
+         so max-width:76% never got a chance on a phone. Narrow screens only. */
+      '  #__cap{width:max-content;max-width:86%;bottom:44px;font-size:18px;padding:13px 20px;border-radius:20px;}',
+      '}'
     ].join('\n');
     document.head.appendChild(s);
 
@@ -134,7 +162,9 @@ function OVERLAY() {
 /* CAPTIONS=0 records with no on-screen captions. The hold time is still spent
    on the scene, so chapter lengths (and therefore the voiceover sync set up in
    build.js) are unchanged. */
-const CAPTIONS = process.env.CAPTIONS !== '0';
+/* .trim() for the same reason as MOBILE: `set CAPTIONS=0 && node ...` in cmd leaves a
+   trailing space, which would make "0 " !== "0" and quietly film WITH captions. */
+const CAPTIONS = (process.env.CAPTIONS || '').trim() !== '0';
 async function caption(page, text, hold = 1700) {
   if (CAPTIONS) await page.evaluate(t => window.__cap(t), text);
   await page.waitForTimeout(hold);
@@ -232,6 +262,7 @@ async function main() {
   console.log('Get It? - tutorial recorder');
   console.log('  Playwright dir :', PW_DIR);
   console.log('  Mode           :', REAL ? 'LIVE OpenRouter API' : 'mocked (deterministic)');
+  console.log('  Viewport       :', VP.width + 'x' + VP.height + (MOBILE ? ' @' + DSF + 'x  (phone)' : ' @1x  (laptop)'), '-> take:', TAKE + '.webm');
 
   /* 1. isolated throwaway copy - never touches the real app or its data */
   fs.rmSync(RUN, { recursive: true, force: true });
@@ -264,11 +295,16 @@ async function main() {
     /* 3. browser + video */
     browser = await chromium.launch({ headless: true });
     context = await browser.newContext({
-      viewport: { width: 1280, height: 800 },
-      recordVideo: { dir: OUT, size: { width: 1280, height: 800 } },
-      deviceScaleFactor: 1
+      viewport: VP,
+      recordVideo: { dir: OUT, size: { width: VP.width, height: VP.height } },
+      deviceScaleFactor: DSF,
+      isMobile: MOBILE,
+      hasTouch: MOBILE
     });
     await context.addInitScript(OVERLAY);
+    /* headless blocks the clipboard write, so "copy" would toast "Press Ctrl+C to copy"
+       (nonsense on a phone). Granting it makes the toast read "Class code copied". */
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE });
 
     /* 4. mock the three LLM endpoints (unless USE_REAL=1) */
     let chatTurn = 0;
@@ -286,6 +322,9 @@ async function main() {
       });
       await context.route('**/api/verdict', r =>
         r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ verdict: V_MAYA }) }));
+      /* the feedback box posts straight to a Discord webhook. Filmed, never sent. */
+      await context.route('**/api/feedback', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }));
     }
 
     const page = await context.newPage();
@@ -319,7 +358,8 @@ async function main() {
     } else {
       console.log('  Captions         : off (CAPTIONS=0)');
     }
-    await page.mouse.move(640, 400, { steps: 8 });
+    /* park the cursor - 640 is off-screen on a 390px phone */
+    await page.mouse.move(MOBILE ? 195 : 640, MOBILE ? 397 : 400, { steps: 8 });
     await sleep(400);
 
         /* ============ CH 1 — What Get It? is ==================== */
@@ -355,6 +395,11 @@ async function main() {
     await caption(page, 'Give the class a name', 1700);
     await typeIn(page, '#newClassName', 'Year 8 Maths', 44);
     await sleep(800);
+    /* the year group, set at the moment the class is made. Filmed here (silently)
+       so that 03c has a class row with the year actually on it to point at. */
+    await glideTo(page, '#newClassYear', { block: 'center', hold: 400 });
+    await page.locator('#newClassYear').selectOption('Year 8');
+    await sleep(700);
     await glideClick(page, '#btnAddClass');
     await page.locator('.classrow').first().waitFor({ state: 'visible' });
     await sleep(900);
@@ -390,8 +435,50 @@ async function main() {
     await check(page, 'class list saved', '#rosterView');
     await caption(page, 'Pupils then pick their name from a list. No typos.', 2600);
 
-    /* =========================== CH 4 — Write the questions ================ */
-    await chapter(page, 4, 'Write the questions', 'You type the topic. That is it.');
+    /* =============== CH 4 — Put the code on the wall (03b) ================= */
+    /* One code, four ways to hand it out: read it, copy it, copy the link that
+       fills it in, scan it, print it. 03b in narration.json. */
+    await chapter(page, 4, 'Put the code on the wall', 'Or on the board');
+    await focus(page, '#classCode', { block: 'center', hold: 1300 });
+    await caption(page, 'One code for the class. It does not change.', 2700);
+    await glideClick(page, '#btnCopyCode');
+    await sleep(600);
+    await caption(page, 'Copy it onto the class page, or read it out', 2700);
+    await glideClick(page, '#btnCopyLink');
+    await sleep(600);
+    await caption(page, 'Or copy the link, with the code already in it', 2900);
+    await glideClick(page, '#btnQr');
+    await page.locator('#qrWrap').waitFor({ state: 'visible' }).catch(() => {});
+    await sleep(900);
+    await focus(page, '#qrImg', { block: 'center', hold: 2400 });
+    await caption(page, 'Show it on the board. They scan it with a tablet or a phone.', 3400);
+    await glideTo(page, '#btnQrPrint', { block: 'center', hold: 700 });
+    await caption(page, 'Print it and pin it up, and next lesson it is already there', 3400);
+    /* the real print stylesheet, so this is what actually comes out of the printer */
+    await page.emulateMedia({ media: 'print' });
+    await sleep(2600);
+    await page.emulateMedia({ media: 'screen' });
+    await sleep(500);
+    await glideClick(page, '#btnQrClose');
+    await caption(page, 'Same code all year. You never set this up twice.', 2600);
+
+    /* =============== CH 5 — Tell it the year group (03c) =================== */
+    await chapter(page, 5, 'Tell it the year group', 'So the marking expects the right amount');
+    await focus(page, '#classList', { block: 'center', hold: 1500 });
+    await caption(page, 'There it is on the class: Year 8', 2600);
+    await glideTo(page, '.classrow', { block: 'center', hold: 800 });
+    await caption(page, 'It does not change the questions, and it does not change the marks', 3600);
+    await focus(page, '#newClassYear', { block: 'center', hold: 1400 });
+    await caption(page, 'It only tells the marking how much explaining to expect', 3200);
+    await glideTo(page, '#newClassYear', { block: 'center', hold: 300 });
+    await page.locator('#newClassYear').selectOption('Year 8');
+    await sleep(1500);
+    await caption(page, 'A Year 7 answer and a Year 11 answer are not the same answer', 3400);
+    await focus(page, '#newClassName', { block: 'center', hold: 900 });
+    await caption(page, 'Leave it as not set, and nothing changes at all', 2800);
+
+    /* =========================== CH 6 — Write the questions ================ */
+    await chapter(page, 6, 'Write the questions', 'You type the topic. That is it.');
     await caption(page, 'Type what you just taught', 1900);
     await typeIn(page, '#topic', TOPIC, 46);
     await sleep(1000);
@@ -460,8 +547,8 @@ async function main() {
     await focus(page, '#checkList', { block: 'center', hold: 900 });
     await caption(page, 'Next lesson, same thing. Every check stacks up in one place.', 2500);
 
-    /* =========================== CH 5 — How pupils join ==================== */
-    await chapter(page, 5, 'How pupils join', 'Play this one on the whiteboard');
+    /* =========================== CH 7 — How pupils join ==================== */
+    await chapter(page, 7, 'How pupils join', 'Play this one on the whiteboard');
     await glideClick(page, '#tab-student');
     await focus(page, '#joinCard', { block: 'start', hold: 800 });
     await caption(page, 'Open the link. No accounts, no logins for pupils.', 2400);
@@ -526,8 +613,28 @@ async function main() {
       ]) await post('/api/result', Object.assign({ code }, r));
     } catch (e) { console.log('  (seed skipped:', e.message + ')'); }
 
-    /* =========================== CH 6 — Read your results =================== */
-    await chapter(page, 6, 'Read your results', 'Who got it, who did not');
+    /* =============== CH 8 — What the pupil sees (05b) ====================== */
+    /* Their own screen after the event: the questions, their answers in their own
+       words, and no mark anywhere on it. 05b in narration.json. */
+    await chapter(page, 8, 'What the pupil sees', 'Worth watching once');
+    await focus(page, '#checkCard', { block: 'start', hold: 1100 });
+    await caption(page, 'This is their side of it. Nothing here is a tick box.', 3100);
+    const bubbles = await page.locator('#chat .bubble').count();
+    console.log('  pupil chat bubbles:', bubbles);
+    for (let i = 0; i < bubbles; i++) {
+      await focus(page, `#chat .bubble >> nth=${i}`, { block: 'center', hold: 250 });
+      await page.waitForTimeout(1400);
+      if (i === 2) await caption(page, 'It asks them to explain it, in their own words', 3000);
+      if (i === 4) await caption(page, 'Then it asks again - why, and what if', 2900);
+      if (i === 5) await caption(page, 'If they learned it off by heart, that shows', 3000);
+    }
+    await focus(page, '#progress', { block: 'center', hold: 1500 });
+    await caption(page, 'Finished - and not one mark anywhere on the screen', 2900);
+    await focus(page, '.endline', { block: 'center', hold: 1700 }).catch(() => {});
+    await caption(page, 'Just a thank you, and their answers are with you', 2900);
+
+    /* =========================== CH 9 — Read your results =================== */
+    await chapter(page, 9, 'Read your results', 'Who got it, who did not');
     await glideClick(page, '#tab-teacher');
     await sleep(1000);
     await focus(page, '#checkList', { block: 'center', hold: 800 });
@@ -555,8 +662,8 @@ async function main() {
     await glideClick(page, '#results .sresult >> nth=0 >> .head');
     await sleep(700);
 
-    /* =========================== CH 7 — Change a colour ==================== */
-    await chapter(page, 7, 'Change a colour yourself', 'You decide, not the AI');
+    /* =========================== CH 10 — Change a colour =================== */
+    await chapter(page, 10, 'Change a colour yourself', 'You decide, not the AI');
     const pri = page.locator('#results .sresult', { hasText: 'Priya Shah' }).first();
     await pri.scrollIntoViewIfNeeded().catch(() => {});
     await sleep(800);
@@ -573,8 +680,8 @@ async function main() {
     await glideTo(page, '#results .sresult >> nth=1', { block: 'center', hold: 500 });
     await caption(page, 'Your change is remembered, and it is the one that counts', 3000);
 
-    /* =========================== CH 8 — Spot the pattern =================== */
-    await chapter(page, 8, 'Spot the pattern', 'The record builds itself');
+    /* =========================== CH 11 — Spot the pattern =================== */
+    await chapter(page, 11, 'Spot the pattern', 'The record builds itself');
     await glideClick(page, '#btnCloseClass');
     await sleep(1200);
     await glideClick(page, '.classrow');
@@ -593,12 +700,39 @@ async function main() {
     await focus(page, '#checkList', { block: 'center', hold: 1800 });
     await caption(page, 'Three seconds. Not three weeks, on the drive home.', 3200);
 
-    /* =========================== CH 9 — Your data, and theirs ============== */
-    await chapter(page, 9, 'Your data, and theirs', 'In plain English');
-    await glideTo(page, '#btnExport', { block: 'center', hold: 1000 });
-    await caption(page, 'Export the class as a spreadsheet whenever you want it', 2900);
+    /* =============== CH 12 — Take the record away (06b) ==================== */
+    /* A pupil's whole record in one place, and the class as a spreadsheet.
+       06b in narration.json. */
+    await chapter(page, 12, 'Take the record away', 'A pupil, or the whole class');
+    await focus(page, '#rosterView', { block: 'center', hold: 1400 });
+    await caption(page, 'Click a name, and you get everything they have done here', 3400);
+    await glideTo(page, '#rosterView .plink >> nth=0', { block: 'center', hold: 600 });
+    await glideClick(page, '#rosterView .plink >> nth=0');
+    await page.locator('#pupWrap').waitFor({ state: 'visible' });
+    await page.locator('#pupBody .sresult').first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
+    await sleep(1100);
+    await focus(page, '#pupTitle', { block: 'center', hold: 1700 });
+    await focus(page, '#pupBody .sresult >> nth=0', { block: 'center', hold: 1800 });
+    await glideClick(page, '#pupBody .sresult >> nth=0 >> .said summary').catch(() => {});
+    await sleep(1200);
+    await focus(page, '#pupBody .said pre', { block: 'center', hold: 1900 }).catch(() => {});
+    await caption(page, 'And their own words underneath. That is what you read before a parents evening.', 3900);
+    await glideClick(page, '#btnPupClose');
+    await sleep(900);
+    await glideTo(page, '#btnExport', { block: 'center', hold: 1300 });
+    await caption(page, 'Export results, and the whole class comes out as a spreadsheet', 3500);
     await glideClick(page, '#btnExport');
-    await sleep(1400);
+    await sleep(2000);
+    await caption(page, 'Every check, every pupil, the colour and the reason for it', 2900);
+
+    /* =========================== CH 13 — Your data, and theirs ============= */
+    await chapter(page, 13, 'Your data, and theirs', 'In plain English');
+    await glideTo(page, '#btnExport', { block: 'center', hold: 900 });
+    await caption(page, 'Export the class as a spreadsheet whenever you want it', 2900);
+    /* the export itself was filmed in chapter 12 - clicking it again here would
+       only start a second download of the same file */
+    await glideTo(page, '.classrow .cdel', { block: 'center', hold: 1500 });
+    await caption(page, 'Or delete a class, and every check and answer under it', 3300);
 
     /* the privacy page, filmed in the same take */
     await page.goto(BASE + '/privacy', { waitUntil: 'load' });
@@ -630,6 +764,27 @@ async function main() {
         await caption(page, 'Gone. Nothing left behind.', 2300);
       }
     } catch (e) { console.log('  (delete shot skipped:', String(e.message).split('\n')[0] + ')'); }
+
+    /* =============== CH 14 — If it gets it wrong (09b) ===================== */
+    /* The honest footer, and the one link that makes the marking better.
+       09b in narration.json. */
+    await chapter(page, 14, 'If it gets it wrong', 'Tell me, and it gets better');
+    await focus(page, 'footer.sitenote', { block: 'center', hold: 1600 });
+    await caption(page, 'It reads answers, and sometimes it reads one badly', 3000);
+    await glideTo(page, '#fbOpen', { block: 'center', hold: 1000 });
+    await caption(page, 'You will spot it, because you know the child', 2700);
+    await glideClick(page, '#fbOpen');
+    await page.locator('#fbBox').waitFor({ state: 'visible' }).catch(() => {});
+    await sleep(700);
+    await focus(page, '#fbBox', { block: 'center', hold: 800 });
+    await caption(page, 'Tell me what happened, and what you expected instead', 2900);
+    await typeIn(page, '#fbMsg', 'It marked Tom red on adding fractions. He had the method right, he just wrote the steps in a different order.', 14, 'center');
+    await sleep(900);
+    await caption(page, 'That is how the marking improves', 2400);
+    await glideClick(page, '#fbSend');
+    await sleep(1600);
+    await focus(page, '#fbSend', { block: 'center', hold: 800 });
+    await caption(page, 'Straight to me, with the page and the browser attached', 2800);
     await clearCaption(page);
     await sleep(900);
     mark('end');
@@ -641,12 +796,12 @@ async function main() {
     await browser.close();
 
     if (raw && fs.existsSync(raw)) {
-      const final = path.join(OUT, 'raw.webm');
+      const final = path.join(OUT, TAKE + '.webm');
       if (fs.existsSync(final)) fs.unlinkSync(final);
       fs.renameSync(raw, final);
       const mb = (fs.statSync(final).size / 1048576).toFixed(1);
       fs.writeFileSync(path.join(OUT, 'timeline.json'), JSON.stringify({ cardMs: CARD_MS, marks: TL }, null, 2));
-      console.log('\n  raw  -> ' + final + '  (' + mb + ' MB)');
+      console.log('\n  ' + TAKE + '  -> ' + final + '  (' + mb + ' MB)');
       console.log('  marks-> ' + TL.map(m => m.name + '@' + (m.at / 1000).toFixed(1) + 's').join('  '));
     } else {
       console.log('\n  No video produced.');

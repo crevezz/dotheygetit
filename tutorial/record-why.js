@@ -16,6 +16,16 @@ let chromium;
 try { ({ chromium } = require(PW_DIR)); } catch { ({ chromium } = require('playwright')); }
 
 const URL = process.env.WHY_URL || 'https://dotheygetit.app/';
+/* MOBILE=1 mirrors record.js: the same phone viewport, so the landing chapter
+   belongs to a mobile set instead of being the one landscape video in it. */
+const MOBILE = process.env.MOBILE?.trim() === '1';
+const VP  = MOBILE ? { width: 390, height: 844 } : { width: 1280, height: 800 };
+const DSF = MOBILE ? 2 : 1;
+const TAKE = MOBILE ? 'why-mobile' : 'why';
+/* desktop-framed cursor coords, scaled into whatever viewport is being filmed:
+   identical to before at 1280x800, and on-screen on a phone. */
+const mx = x => Math.round(x / 1280 * VP.width);
+const my = y => Math.round(y / 800 * VP.height);
 const OUT = path.join(__dirname, 'out');
 const CARD_MS = Number(process.env.CARD_MS) || 2200;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -29,9 +39,13 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
-    recordVideo: { dir: OUT, size: { width: 1280, height: 800 } },
-    deviceScaleFactor: 1
+    viewport: VP,
+    /* size = the viewport, NOT viewport*DSF: Playwright pads rather than scales up,
+       which would leave the page in the top-left of a grey frame. */
+    recordVideo: { dir: OUT, size: { width: VP.width, height: VP.height } },
+    deviceScaleFactor: DSF,
+    isMobile: MOBILE,
+    hasTouch: MOBILE
   });
   await context.addInitScript(OVERLAY);
 
@@ -40,14 +54,15 @@ async function main() {
   T0 = Date.now();
   mark('start');
 
-  const CAPTIONS = process.env.CAPTIONS !== '0';
+  /* .trim(): `set CAPTIONS=0 && node ...` leaves a trailing space, and "0 " !== "0" */
+  const CAPTIONS = (process.env.CAPTIONS || '').trim() !== '0';
   const cap = (t, hold = 2600) =>
     (CAPTIONS ? page.evaluate(x => window.__cap(x), t) : Promise.resolve()).then(() => page.waitForTimeout(hold));
   const clearCap = () => page.evaluate(() => window.__cap(''));
 
   await page.goto(URL, { waitUntil: 'load', timeout: 45000 });
   await sleep(1200);
-  await page.mouse.move(640, 300, { steps: 12 });
+  await page.mouse.move(mx(640), my(300), { steps: 12 });
   await sleep(600);
 
   /* black chapter card - the "chapter 7" title */
@@ -64,7 +79,7 @@ async function main() {
       window.scrollTo({ top: Math.round(max * f), behavior: 'smooth' });
     }, frac);
     await page.waitForTimeout(1100);
-    await page.mouse.move(430 + Math.round(frac * 200), 340 + Math.round(frac * 90), { steps: 18 });
+    await page.mouse.move(mx(430 + Math.round(frac * 200)), my(340 + Math.round(frac * 90)), { steps: 18 });
     await page.waitForTimeout(hold);
   };
 
@@ -90,11 +105,11 @@ async function main() {
   await browser.close();
 
   if (raw && fs.existsSync(raw)) {
-    const final = path.join(OUT, 'why.webm');
+    const final = path.join(OUT, TAKE + '.webm');
     if (fs.existsSync(final)) fs.unlinkSync(final);
     fs.renameSync(raw, final);
-    fs.writeFileSync(path.join(OUT, 'timeline-why.json'), JSON.stringify({ cardMs: CARD_MS, marks: TL }, null, 2));
-    console.log('  raw -> ' + final + '  (' + (fs.statSync(final).size / 1048576).toFixed(1) + ' MB)');
+    fs.writeFileSync(path.join(OUT, 'timeline-' + TAKE + '.json'), JSON.stringify({ cardMs: CARD_MS, marks: TL }, null, 2));
+    console.log('  ' + TAKE + ' -> ' + final + '  (' + (fs.statSync(final).size / 1048576).toFixed(1) + ' MB)');
     console.log('  marks -> ' + TL.map(m => m.name + '@' + (m.at / 1000).toFixed(1) + 's').join('  '));
   } else {
     console.log('  No video produced.');

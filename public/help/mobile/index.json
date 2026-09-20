@@ -1,0 +1,121 @@
+{
+  "voice": "bLzt208N1hwaM2qjhmYE",
+  "builtAt": "2026-09-19T15:58:16.919Z",
+  "mobile": true,
+  "size": "390x844",
+  "total": 460.8,
+  "chapters": [
+    {
+      "n": 1,
+      "id": "01-what-get-it-is",
+      "title": "What Get It? is",
+      "sub": "The bit behind it",
+      "len": 27.1,
+      "file": "01-what-get-it-is.mp4"
+    },
+    {
+      "n": 2,
+      "id": "02-create-your-account",
+      "title": "Create your account",
+      "sub": "Takes about a minute",
+      "len": 27,
+      "file": "02-create-your-account.mp4"
+    },
+    {
+      "n": 3,
+      "id": "03-set-up-your-class",
+      "title": "Set up your class",
+      "sub": "One code, lasts all year",
+      "len": 34.6,
+      "file": "03-set-up-your-class.mp4"
+    },
+    {
+      "n": 4,
+      "id": "03b-put-the-code-on-the-wall",
+      "title": "Put the code on the wall",
+      "sub": "Or on the board",
+      "len": 31.1,
+      "file": "03b-put-the-code-on-the-wall.mp4"
+    },
+    {
+      "n": 5,
+      "id": "03c-the-year-group",
+      "title": "Tell it the year group",
+      "sub": "So the marking expects the right amount",
+      "len": 23,
+      "file": "03c-the-year-group.mp4"
+    },
+    {
+      "n": 6,
+      "id": "04-write-the-questions",
+      "title": "Write the questions",
+      "sub": "You type the topic. That is it.",
+      "len": 40.3,
+      "file": "04-write-the-questions.mp4"
+    },
+    {
+      "n": 7,
+      "id": "05-how-pupils-join",
+      "title": "How pupils join",
+      "sub": "Play this one on the whiteboard",
+      "len": 51.6,
+      "file": "05-how-pupils-join.mp4"
+    },
+    {
+      "n": 8,
+      "id": "05b-what-the-pupil-sees",
+      "title": "What the pupil sees",
+      "sub": "Worth watching once",
+      "len": 31.3,
+      "file": "05b-what-the-pupil-sees.mp4"
+    },
+    {
+      "n": 9,
+      "id": "06-read-your-results",
+      "title": "Read your results",
+      "sub": "Who got it, who did not",
+      "len": 38.4,
+      "file": "06-read-your-results.mp4"
+    },
+    {
+      "n": 10,
+      "id": "07-change-a-colour",
+      "title": "Change a colour yourself",
+      "sub": "You decide, not the AI",
+      "len": 25.5,
+      "file": "07-change-a-colour.mp4"
+    },
+    {
+      "n": 11,
+      "id": "08-spot-the-pattern",
+      "title": "Spot the pattern",
+      "sub": "The record builds itself",
+      "len": 29.9,
+      "file": "08-spot-the-pattern.mp4"
+    },
+    {
+      "n": 12,
+      "id": "06b-take-the-record-away",
+      "title": "Take the record away",
+      "sub": "A pupil, or the whole class",
+      "len": 34,
+      "file": "06b-take-the-record-away.mp4"
+    },
+    {
+      "n": 13,
+      "id": "09-your-data",
+      "title": "Your data, and theirs",
+      "sub": "In plain English",
+      "len": 42.5,
+      "file": "09-your-data.mp4"
+    },
+    {
+      "n": 14,
+      "id": "09b-if-it-gets-it-wrong",
+      "title": "If it gets it wrong",
+      "sub": "Tell me, and it gets better",
+      "len": 24.5,
+      "file": "09b-if-it-gets-it-wrong.mp4"
+    }
+  ]
+}
