@@ -36,3 +36,6 @@ youtube_token.json
 # scratch: ad-hoc probes and payload dumps, never shipped
 tutorial/_test.json
 tutorial/ERROR
+
+# the advert music - an asset, not source, and possibly licensed
+tutorial/bg.mp3
