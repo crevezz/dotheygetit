@@ -1,0 +1,24 @@
+{
+  "still_model": "seedream/5-pro-text-to-image",
+  "video_model": "kling-3.0-omni/image-to-video",
+  "resolution": "1080p",
+
+  "note": "The advert's atmosphere shots. Two stages, and the order matters: Seedream draws the FRAME so we control the composition, then Kling animates THAT frame. Text-to-video would give us a different room every take and the shots would never match each other. Each shot names the beat it backs ('for'), so the clip is always cut to the length the timeline actually needs. No people, no hands, no text in any of these - generated faces read as fake to teachers, and generated text is garbage.",
+
+  "shots": [
+    {
+      "id": "a1-classroom",
+      "for": "s1",
+      "dur": 5,
+      "still": "Photorealistic cinematic still of an empty secondary school classroom in the early morning. Rows of wooden desks with chairs tucked in, a blank whiteboard at the front, tall windows down the left side with low soft sunlight streaming through. Dust motes floating in the light beam. Absolutely no people and no writing or text anywhere in the frame. Shallow depth of field, slightly soft focus, muted navy blue and slate grey palette, subtle film grain, vertical composition with empty space at the top, dark and moody.",
+      "motion": "Locked-off camera with a very slow push in. Dust motes drift slowly through the sunlight. The light intensity shifts gently across the room. No people enter the frame, nothing else moves at all. Calm, subtle, cinematic."
+    },
+    {
+      "id": "a2-books",
+      "for": "s2",
+      "dur": 6,
+      "still": "Photorealistic cinematic still of a tall stack of school exercise books on a teacher's desk, one open on top with blank pages, a red marking pen lying beside it, a cold mug of coffee. No people, no hands, no writing and no text on any of the covers. Shallow depth of field with the background falling out of focus, muted navy blue and slate grey palette, soft window light from the left, subtle film grain, vertical composition, dark and moody.",
+      "motion": "Locked-off camera drifting extremely slowly to the right. Nothing moves except a faint shift of light across the paper and the slightest paper edge lift. No hands, no people, no pages turning. Still, quiet, cinematic."
+    }
+  ]
+}

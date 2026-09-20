@@ -22,7 +22,16 @@ catch { ({ chromium } = require('playwright')); }
 
 const HERE = __dirname;
 const OUT = path.join(HERE, 'out', 'advert');
-const W = 1080, H = 1920, LEN = 21.0;
+const W = 1080, H = 1920;
+/* The film must be exactly as long as the voice mix, and every shot must start
+   when its sentence starts. Both come from the timeline advert.js measured off
+   the voice track - never from a duration typed in by hand. */
+const TL = (() => {
+  const f = path.join(OUT, 'timeline.json');
+  if (!fs.existsSync(f)) { console.error('missing ' + f + ' - run advert.js first'); process.exit(1); }
+  return JSON.parse(fs.readFileSync(f, 'utf8'));
+})();
+const LEN = TL.total;
 const MIX = path.join(OUT, 'mix.wav');
 
 function run(args) {
@@ -42,6 +51,9 @@ function run(args) {
   });
   const page = await ctx.newPage();
   const vid = page.video();
+
+  /* hand the measured timeline to the page before its own script runs */
+  await ctx.addInitScript('window.TIMELINE = ' + JSON.stringify(TL) + ';');
 
   await page.goto('file://' + path.join(HERE, 'advert.html').replace(/\\/g, '/'));
   /* make sure every clip can actually play before we start the clock */

@@ -27,3 +27,4 @@ eval/*.log
 ERROR
 tutorial/voice-advert/
 tutorial/*.bak
+tutorial/.kie.key 

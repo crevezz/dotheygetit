@@ -27,23 +27,23 @@ html,body{margin:0;background:#000;overflow:hidden}
 
 /* ---------- shots ---------- */
 .shot{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:6px;opacity:0;transition:opacity .4s ease}
+  justify-content:center;gap:8px;opacity:0;transition:opacity .4s ease}
 .shot.on{opacity:1}
 
 .ln{
   font-weight:800;letter-spacing:-.035em;line-height:1.02;text-align:center;
-  font-size:124px;max-width:940px;
+  font-size:124px;max-width:960px;
   opacity:0;transform:translateY(52px) scale(.94);filter:blur(16px);
-  transition:opacity .85s cubic-bezier(.16,1,.3,1),transform .85s cubic-bezier(.16,1,.3,1),filter .85s cubic-bezier(.16,1,.3,1);
+  transition:opacity .62s cubic-bezier(.16,1,.3,1),transform .62s cubic-bezier(.16,1,.3,1),filter .62s cubic-bezier(.16,1,.3,1);
 }
 .shot.on .ln{opacity:1;transform:none;filter:blur(0)}
-.shot .ln:nth-child(2){transition-delay:.13s}
-.shot .ln:nth-child(3){transition-delay:.27s}
+.shot .ln:nth-child(2){transition-delay:.10s}
+.shot .ln:nth-child(3){transition-delay:.22s}
 
 .ln.grad{background:linear-gradient(100deg,#8fc0ff,#4f8cff 40%,#a98bff);
   -webkit-background-clip:text;background-clip:text;color:transparent}
 .ln.red{color:#ff5a6a;text-shadow:0 0 60px rgba(255,90,106,.45)}
-.ln.small{font-size:74px;letter-spacing:-.02em;opacity:.92}
+.ln.md{font-size:106px}
 
 /* ---------- phone mockup ---------- */
 .phone{
@@ -59,23 +59,26 @@ html,body{margin:0;background:#000;overflow:hidden}
 .shot.on .phone{opacity:1;transform:none}
 .phone video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
 .phone video.live{display:block}
-.shot.on .phone video.live{animation:kb 5.5s linear forwards}
+.shot.on .phone video.live{animation:kb 6s linear forwards}
 @keyframes kb{from{transform:scale(1.07)}to{transform:scale(1)}}
 
-.head{font-size:80px;letter-spacing:-.03em;font-weight:800;margin-bottom:34px}
+.head{font-size:74px;line-height:1.08;letter-spacing:-.03em;font-weight:800;
+  text-align:center;max-width:960px;margin-bottom:30px}
 .head em{font-style:normal;background:linear-gradient(100deg,#8fc0ff,#a98bff);
   -webkit-background-clip:text;background-clip:text;color:transparent}
 
 /* ---------- end card ---------- */
-#s6{gap:0}
+#s8{gap:0}
 .badge{width:250px;height:250px;border-radius:60px;box-shadow:0 40px 90px rgba(79,140,255,.45);
   opacity:0;transform:scale(.8);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
 .shot.on .badge{opacity:1;transform:none}
-.wordmark{font-size:168px;font-weight:800;letter-spacing:-.05em;margin-top:44px;
+.wordmark{font-size:168px;font-weight:800;letter-spacing:-.05em;margin-top:40px;
   background:linear-gradient(100deg,#ffffff,#c9dcff 45%,#a98bff);
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.url{margin-top:26px;font-size:60px;font-weight:700;letter-spacing:-.01em;color:#4f8cff}
-.free{margin-top:20px;font-size:42px;font-weight:600;color:#93a4c6;letter-spacing:.01em}
+.url{margin-top:24px;font-size:60px;font-weight:700;letter-spacing:-.01em;color:#4f8cff}
+.free{margin-top:22px;font-size:44px;font-weight:700;color:#dbe4f7;letter-spacing:-.01em}
+.link{margin-top:34px;font-size:38px;font-weight:700;color:#93a4c6;letter-spacing:.02em;
+  padding:16px 40px;border:2px solid rgba(147,164,198,.35);border-radius:999px}
 
 #cover{position:fixed;inset:0;background:#000;z-index:999}
 </style>
@@ -88,51 +91,64 @@ html,body{margin:0;background:#000;overflow:hidden}
   <div id="vig"></div>
 
   <div class="shot" id="s1">
-    <div class="ln">Half your class</div>
-    <div class="ln grad">just nodded.</div>
+    <div class="ln grad">Are you a</div>
+    <div class="ln grad">teacher?</div>
   </div>
 
   <div class="shot" id="s2">
-    <div class="ln">Three of them</div>
-    <div class="ln red">have no idea.</div>
+    <div class="ln md">Just finished a lesson.</div>
+    <div class="ln md">Not sure it landed.</div>
   </div>
 
   <div class="shot" id="s3">
-    <div class="ln head">One code. <em>Whole class.</em></div>
-    <div class="phone"><video id="v3" src="out/tutorials-mobile/03b-put-the-code-on-the-wall.mp4" muted playsinline></video></div>
+    <div class="ln md">Thirty students nodded.</div>
+    <div class="ln md red">Nodding isn't understanding.</div>
   </div>
 
   <div class="shot" id="s4">
-    <div class="ln head">Two minutes <em>later</em></div>
-    <div class="phone"><video id="v4" src="out/tutorials-mobile/06-read-your-results.mp4" muted playsinline></video></div>
+    <div class="ln head">One code. <em>Whole class.</em></div>
+    <div class="phone"><video id="v-s4" src="out/tutorials-mobile/03b-put-the-code-on-the-wall.mp4" muted playsinline></video></div>
   </div>
 
   <div class="shot" id="s5">
-    <div class="ln head">And what they <em>actually said</em></div>
-    <div class="phone"><video id="v5" src="out/tutorials-mobile/06-read-your-results.mp4" muted playsinline></video></div>
+    <div class="ln head">Two minutes. <em>No marking.</em></div>
+    <div class="phone"><video id="v-s5" src="out/tutorials-mobile/05-how-pupils-join.mp4" muted playsinline></video></div>
   </div>
 
   <div class="shot" id="s6">
+    <div class="ln head">Who got it. <em>Who's faking it.</em></div>
+    <div class="phone"><video id="v-s6" src="out/tutorials-mobile/06-read-your-results.mp4" muted playsinline></video></div>
+  </div>
+
+  <div class="shot" id="s7">
+    <div class="ln red">Before the test does.</div>
+  </div>
+
+  <div class="shot" id="s8">
     <img class="badge" src="../public/android-chrome-512.png" alt="">
     <div class="wordmark">Get It?</div>
     <div class="url">dotheygetit.app</div>
-    <div class="free">Free for teachers.</div>
+    <div class="free">100% free for a limited time.</div>
+    <div class="link">Link in comments</div>
   </div>
 </div>
 <div id="cover"></div>
 
 <script>
-/* beat t=start (s), s=end. videos carry their own in-point. */
-var SHOTS = [
-  ['s1', 0.0,   2.6],
-  ['s2', 2.6,   5.2],
-  ['s3', 5.2,   8.8,  'v3', 12.5],
-  ['s4', 8.8,  13.6,  'v4',  4.2],
-  ['s5', 13.6, 17.8,  'v5', 17.0],
-  ['s6', 17.8, 21.0]
-];
-var timers = [];
+/* The shots are not written here. advert.js reads the real line starts off the
+   voice track and writes out/advert/timeline.json; advert-film.js hands that
+   to the page before it loads. So the picture can only ever land on the voice -
+   change a sentence in advert.json and the timing follows on its own. */
+var TL = window.TIMELINE;
+var SHOTS = (TL && TL.shots.length)
+  ? TL.shots.map(function(s){ return [s.id, s.t, s.e, s.vid, s.ss]; })
+  /* opened straight in a browser, no film running: show it anyway, evenly */
+  : ['s1','s2','s3','s4','s5','s6','s7','s8'].map(function(id, i){
+      return [id, i * 2.6, (i + 1) * 2.6, 'v-' + id, 8];
+    });
 
+window.__len = (TL && TL.total) || 0;
+var timers = [];
 function at(ms, fn){ timers.push(setTimeout(fn, ms)); }
 
 window.__go = function(){
@@ -142,7 +158,7 @@ window.__go = function(){
     var vid = s[3] ? document.getElementById(s[3]) : null;
     at(s[1] * 1000, function(){
       if (vid){ document.querySelectorAll('.phone video').forEach(function(v){ v.classList.remove('live'); v.pause(); });
-                vid.classList.add('live'); vid.currentTime = s[4]; vid.play(); }
+                vid.classList.add('live'); if (s[4] !== null) vid.currentTime = s[4]; vid.play(); }
       el.classList.add('on');
     });
     at(s[2] * 1000, function(){ el.classList.remove('on'); if (vid) vid.pause(); });
