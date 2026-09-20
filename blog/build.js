@@ -69,7 +69,7 @@ ${o.jsonld || ''}
     <div class="navlinks">
       <a href="/blog/">Blog</a>
       <a href="/contact/">Contact</a>
-      <a href="/#pricing">Pricing</a>
+      <a href="/#pricing">Free</a>
       <a class="navcta" href="${APP}/">Try it free</a>
     </div>
   </div>

@@ -26,7 +26,9 @@ function token() {
   // Names must be listed explicitly: passing "." writes "./index.html" entries,
   // which Netlify stores at the wrong path and then 404s on.
   const zip = path.join(os.tmpdir(), 'getit-landing-' + Date.now() + '.zip');
-  const files = fs.readdirSync(DIR).filter(f => fs.statSync(path.join(DIR, f)).isFile());
+  // Every entry, directories included - tar walks them. Filtering to files here
+  // is what 404'd /blog/ and /contact/ on the live site.
+  const files = fs.readdirSync(DIR).filter((f) => !f.startsWith('.'));
   execFileSync('tar', ['-a', '-c', '-f', zip, '-C', DIR].concat(files), { stdio: 'inherit' });
   console.log('packing ' + files.length + ' files: ' + files.join(', '));
   console.log('zipped landing-site -> ' + (fs.statSync(zip).size / 1024).toFixed(0) + ' KB');
