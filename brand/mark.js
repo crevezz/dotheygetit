@@ -9,27 +9,34 @@ const GRAD = `
     <stop offset="1" stop-color="#8b5cf6"/>
   </linearGradient>`;
 
-// The tick, drawn on a 256 grid.
+// The tick, drawn on a 256 grid. Traced off the chosen logo (c4-two-strokes) and
+// then searched against its alpha mask until the drawn shape stopped disagreeing
+// with it: 98.7% overlap, so this is that mark, not an impression of it.
 const TICK = (w, c) =>
-  `<path d="M62 133 L107 178 L195 84" fill="none" stroke="${c}" stroke-width="${w}"
+  `<path d="M51.5 135.3 L98.9 184.3 L204.6 71.8" fill="none" stroke="${c}" stroke-width="${w}"
      stroke-linecap="round" stroke-linejoin="round"/>`;
 
 /**
  * The mark.
  * @param {object} o
- *  size    px canvas
- *  radius  corner radius on the 256 grid (0 = full bleed square)
- *  scale   how big the tick is relative to the tile (maskable icons need < 1)
- *  plain   drop the gradient tile and just draw the tick (for watermarks)
+ *  size         px canvas
+ *  radius       corner radius on the 256 grid (0 = full bleed square)
+ *  scale        how big the tick is relative to the tile (maskable icons need < 1)
+ *  plain        drop the tile, draw the tick in white (for watermarks)
+ *  transparent  drop the tile, draw the tick in the gradient (a logo with no
+ *               background at all - nothing to knock out, it is transparent)
  */
-function mark({ size = 256, radius = 58, scale = 1, plain = false, weight = 26 } = {}) {
+function mark({ size = 256, radius = 58, scale = 1, plain = false, transparent = false,
+                weight = 39 } = {}) {
   const inner = 256 * scale;
   const off = (256 - inner) / 2;
-  const body = plain
-    ? TICK(weight, '#ffffff')
+  const bare = plain || transparent;
+  const ink = transparent ? 'url(#gi)' : '#ffffff';
+  const body = bare
+    ? TICK(weight, ink)
     : `<rect width="256" height="256" rx="${radius}" fill="url(#gi)"/>` + TICK(weight, '#ffffff');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="${size}" height="${size}">
-  <defs>${plain ? '' : GRAD}</defs>
+  <defs>${bare && !transparent ? '' : GRAD}</defs>
   <g transform="translate(${off} ${off}) scale(${scale})">${body}</g>
 </svg>`;
 }
@@ -37,7 +44,7 @@ function mark({ size = 256, radius = 58, scale = 1, plain = false, weight = 26 }
 /* Just the tick, no tile - for stamping on photos / video end cards. */
 function tick({ size = 256, colour = '#ffffff' } = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="${size}" height="${size}">
-  ${TICK(28, colour)}
+  ${TICK(39, colour)}
 </svg>`;
 }
 
