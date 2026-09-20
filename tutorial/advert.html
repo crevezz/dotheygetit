@@ -8,7 +8,12 @@ html,body{margin:0;background:#000;overflow:hidden}
 *{box-sizing:border-box}
 
 #stage{
-  position:fixed;left:0;top:0;width:1080px;height:1920px;overflow:hidden;
+  /* One unit drives every size in this design. 1080x1920 is the reference, so at
+     9:16 --u is exactly 1 and this is pixel-identical to what has already been
+     shot. At 4:5, 1:1 or 16:9 the whole design scales together instead of being
+     cut - cropping a vertical design to a landscape frame decapitates the type. */
+  --u:min(calc(100vw / 1080), calc(100vh / 1920));
+  position:fixed;left:0;top:0;width:100vw;height:100vh;overflow:hidden;
   font-family:"Segoe UI",Inter,system-ui,-apple-system,sans-serif;color:#fff;
   background:
     radial-gradient(1150px 900px at 16% 8%,  rgba(79,140,255,.30), transparent 62%),
@@ -92,6 +97,24 @@ html,body{margin:0;background:#000;overflow:hidden}
   padding:16px 40px;border:2px solid rgba(147,164,198,.35);border-radius:999px}
 
 #cover{position:fixed;inset:0;background:#000;z-index:999}
+
+/* ---------- one design, every frame ----------
+   Each size here is its 1080x1920 value multiplied by --u. At 9:16 --u is 1 and
+   these overrides change nothing; they exist so the other three frames scale the
+   design rather than cropping it. The background plate must be 100%/100% with
+   object-fit:cover, or every non-9:16 frame shows a 1080x1920 video sitting in
+   the corner of the shot. */
+.ln{font-size:calc(124 * var(--u));max-width:calc(960 * var(--u))}
+.ln.md{font-size:calc(106 * var(--u))}
+.head{font-size:calc(74 * var(--u));max-width:calc(960 * var(--u));margin-bottom:calc(30 * var(--u))}
+.phone{width:calc(556 * var(--u));height:calc(1202 * var(--u));border-radius:calc(58 * var(--u))}
+.badge{width:calc(250 * var(--u));height:calc(250 * var(--u));border-radius:calc(60 * var(--u))}
+.wordmark{font-size:calc(168 * var(--u));margin-top:calc(40 * var(--u))}
+.url{font-size:calc(60 * var(--u));margin-top:calc(24 * var(--u))}
+.free{font-size:calc(44 * var(--u));margin-top:calc(22 * var(--u))}
+.link{font-size:calc(38 * var(--u));margin-top:calc(34 * var(--u));
+  padding:calc(16 * var(--u)) calc(40 * var(--u))}
+.bgwrap video{width:100%;height:100%}
 </style>
 </head>
 <body>
