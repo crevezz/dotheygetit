@@ -14,7 +14,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>How do you know who actually understood the lesson? | Get It?</title>
 <link rel="canonical" href="https://dotheygetit.app/blog/how-do-you-know-who-understood"/>
-<meta name="description" content="The nod is not evidence. Why "does that make sense?" tells you nothing, and how to find out in two minutes who understood, who is shaky, and who is quietly bluffing."/>
+<meta name="description" content="The nod is not evidence. Why "does that make sense?" tells you nothing, and how to find out in two minutes who understood, who is shaky, and who is quietly bluffing. The AfL check for KS3, KS4 and GCSE."/>
 <link rel="icon" href="/favicon.ico" sizes="any"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"/>
@@ -23,7 +23,7 @@
 <meta property="og:type" content="article"/>
 <meta property="og:site_name" content="Get It?"/>
 <meta property="og:title" content="How do you know who actually understood the lesson? | Get It?"/>
-<meta property="og:description" content="The nod is not evidence. Why "does that make sense?" tells you nothing, and how to find out in two minutes who understood, who is shaky, and who is quietly bluffing."/>
+<meta property="og:description" content="The nod is not evidence. Why "does that make sense?" tells you nothing, and how to find out in two minutes who understood, who is shaky, and who is quietly bluffing. The AfL check for KS3, KS4 and GCSE."/>
 <meta property="og:url" content="https://dotheygetit.app/blog/how-do-you-know-who-understood"/>
 <meta property="og:image" content="https://dotheygetit.app/og-image.png"/>
 <meta property="og:image:width" content="1200"/>
@@ -43,13 +43,17 @@
 </head>
 <body>
 
-<nav>
+<nav aria-label="Main">
   <div class="wrap">
     <a class="brand" href="/">
       <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg></span>
       <span>Get It?<small>Do they get it?</small></span>
     </a>
-    <div class="navlinks">
+        <button class="navtoggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navlinks">
+      <svg class="bars" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>
+      <svg class="x" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg>
+    </button>
+    <div class="navlinks" id="navlinks">
       <a href="/blog/">Blog</a>
       <a href="/contact/">Contact</a>
       <a href="/#pricing">Free</a>
@@ -62,7 +66,7 @@
   <div class="wrap">
     <div class="kicker">Teaching</div>
     <h1>How do you know who <em>actually</em> understood the lesson?</h1>
-    <p class="lede">You finish explaining. You ask "does that make sense?" Thirty heads nod. You move on. Then the test happens and a third of them can't do it.</p>
+    <p class="lede">You finish explaining. You ask "does that make sense?" Thirty heads nod. You move on. Then the test happens and a third of them can't do it. This is the hardest part of AfL to get right — and it matters whether you teach KS3, KS4 or GCSE.</p>
     <p class="byline">6 min read &middot; Updated 2026-09-20</p>
   </div>
 </header>
@@ -157,5 +161,20 @@
   </div>
 </footer>
 
+<script>
+(function () {
+  var btn = document.querySelector(".navtoggle");
+  var links = document.getElementById("navlinks");
+  if (!btn || !links) return;
+  function setOpen(open) {
+    links.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  }
+  btn.addEventListener("click", function () { setOpen(!links.classList.contains("open")); });
+  links.addEventListener("click", function (e) { if (e.target.closest("a")) setOpen(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setOpen(false); });
+})();
+</script>
 </body>
 </html>

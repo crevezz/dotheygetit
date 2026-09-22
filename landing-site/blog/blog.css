@@ -76,10 +76,33 @@ footer .brand{margin-bottom:12px}
 footer p{color:var(--muted);margin:0;font-size:15px}
 footer .fine{margin-top:14px;font-size:14px}
 
-@media(max-width:620px){
+.navtoggle{
+  display:none;width:44px;height:44px;padding:0;border-radius:12px;flex:0 0 44px;
+  border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff;cursor:pointer;
+  align-items:center;justify-content:center;
+}
+.navtoggle svg{display:block}
+.navtoggle .x{display:none}
+.navtoggle[aria-expanded="true"] .bars{display:none}
+.navtoggle[aria-expanded="true"] .x{display:block}
+nav .wrap{position:relative}
+a:focus-visible,button:focus-visible,.navcta:focus-visible{outline:2px solid #8fb4ff;outline-offset:3px}
+
+@media(max-width:720px){
   nav .wrap{height:60px}
-  .navlinks{gap:14px}
-  .navlinks a:not(.navcta){display:none}
+  .brand small{display:none}
+  .navtoggle{display:inline-flex}
+  .navlinks{
+    display:none;position:absolute;left:12px;right:12px;top:68px;z-index:60;
+    flex-direction:column;align-items:stretch;gap:4px;
+    padding:10px;border-radius:16px;
+    background:rgba(11,17,34,.98);border:1px solid var(--line);
+    box-shadow:0 24px 60px rgba(0,0,0,.45);
+  }
+  .navlinks.open{display:flex}
+  .navlinks a{padding:12px 14px;font-size:16px;color:var(--text)}
+  .navlinks a:hover{text-decoration:none}
+  .navlinks .navcta{width:100%;text-align:center;margin-top:4px;color:#fff}
   header.post{padding:44px 0 8px}
   .band{padding:30px 22px}
   .card{padding:22px 20px}

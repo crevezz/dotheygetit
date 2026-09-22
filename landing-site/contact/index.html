@@ -61,9 +61,25 @@
   .navlinks{display:flex;align-items:center;gap:24px;font-size:15.5px;font-weight:600}
   .navlinks a{color:var(--muted)}
   .navlinks a:hover{color:var(--text);text-decoration:none}
-  .navcta{background:var(--accent);color:#fff !important;padding:10px 18px;border-radius:11px}
+  .navcta{background:var(--accent);color:#fff !important;padding:10px 18px;border-radius:11px;min-height:44px;display:inline-flex;align-items:center}
   .navcta:hover{background:#6a9dff}
-  @media(max-width:640px){ .navlinks a:not(.navcta){display:none} }
+  .navtoggle{display:none;width:44px;height:44px;padding:0;border-radius:12px;flex:0 0 44px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff;cursor:pointer;align-items:center;justify-content:center}
+  .navtoggle svg{display:block}
+  .navtoggle .x{display:none}
+  .navtoggle[aria-expanded="true"] .bars{display:none}
+  .navtoggle[aria-expanded="true"] .x{display:block}
+  nav .wrap{position:relative}
+  a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #8fb4ff;outline-offset:3px}
+  @media(max-width:720px){
+    .brand small{display:none}
+    .navtoggle{display:inline-flex}
+    .navlinks{display:none;position:absolute;left:12px;right:12px;top:74px;z-index:30;flex-direction:column;align-items:stretch;gap:4px;padding:10px;border-radius:16px;background:rgba(11,17,34,.98);border:1px solid var(--line);box-shadow:0 24px 60px rgba(0,0,0,.45)}
+    .navlinks.open{display:flex}
+    .navlinks a{padding:12px 14px;font-size:16px;color:var(--text)}
+    .navlinks .navcta{width:100%;justify-content:center;margin-top:4px}
+    h1{font-size:34px}
+    header{padding:40px 0 4px}
+  }
 
   header{padding:64px 0 8px;max-width:660px}
   h1{font-size:46px;line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:800}
@@ -108,7 +124,7 @@
 </head>
 <body>
 
-<nav>
+<nav aria-label="Main">
   <div class="wrap">
     <a class="brand" href="/">
       <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
@@ -120,7 +136,11 @@
       </svg>
       <span>Get It?<small>Do they get it?</small></span>
     </a>
-    <div class="navlinks">
+        <button class="navtoggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navlinks">
+      <svg class="bars" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>
+      <svg class="x" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg>
+    </button>
+    <div class="navlinks" id="navlinks">
       <a href="/blog/">Blog</a>
       <a href="/#pricing">Free</a>
       <a href="/#how">How it works</a>
@@ -245,5 +265,20 @@ form.addEventListener('submit', function(e){
 });
 </script>
 
+<script>
+(function () {
+  var btn = document.querySelector(".navtoggle");
+  var links = document.getElementById("navlinks");
+  if (!btn || !links) return;
+  function setOpen(open) {
+    links.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  }
+  btn.addEventListener("click", function () { setOpen(!links.classList.contains("open")); });
+  links.addEventListener("click", function (e) { if (e.target.closest("a")) setOpen(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setOpen(false); });
+})();
+</script>
 </body>
 </html>

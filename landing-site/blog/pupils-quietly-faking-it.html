@@ -14,7 +14,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>How to spot the pupils who are quietly faking it | Get It?</title>
 <link rel="canonical" href="https://dotheygetit.app/blog/pupils-quietly-faking-it"/>
-<meta name="description" content="The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone."/>
+<meta name="description" content="The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone. For KS3, KS4 and GCSE."/>
 <link rel="icon" href="/favicon.ico" sizes="any"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"/>
@@ -23,7 +23,7 @@
 <meta property="og:type" content="article"/>
 <meta property="og:site_name" content="Get It?"/>
 <meta property="og:title" content="How to spot the pupils who are quietly faking it | Get It?"/>
-<meta property="og:description" content="The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone."/>
+<meta property="og:description" content="The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone. For KS3, KS4 and GCSE."/>
 <meta property="og:url" content="https://dotheygetit.app/blog/pupils-quietly-faking-it"/>
 <meta property="og:image" content="https://dotheygetit.app/og-image.png"/>
 <meta property="og:image:width" content="1200"/>
@@ -43,13 +43,17 @@
 </head>
 <body>
 
-<nav>
+<nav aria-label="Main">
   <div class="wrap">
     <a class="brand" href="/">
       <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg></span>
       <span>Get It?<small>Do they get it?</small></span>
     </a>
-    <div class="navlinks">
+        <button class="navtoggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navlinks">
+      <svg class="bars" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>
+      <svg class="x" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg>
+    </button>
+    <div class="navlinks" id="navlinks">
       <a href="/blog/">Blog</a>
       <a href="/contact/">Contact</a>
       <a href="/#pricing">Free</a>
@@ -62,7 +66,7 @@
   <div class="wrap">
     <div class="kicker">Teaching</div>
     <h1>How to spot the pupils who are <em>quietly</em> faking it</h1>
-    <p class="lede">They never cause trouble, never ask for help, and are not following a word of it. They have simply learned to look like they are.</p>
+    <p class="lede">They never cause trouble, never ask for help, and are not following a word of it. They have simply learned to look like they are. They're in every KS3 and KS4 class — and they're the reason a two-minute AfL check beats a marking pile.</p>
     <p class="byline">7 min read &middot; Updated 2026-09-20</p>
   </div>
 </header>
@@ -160,5 +164,20 @@
   </div>
 </footer>
 
+<script>
+(function () {
+  var btn = document.querySelector(".navtoggle");
+  var links = document.getElementById("navlinks");
+  if (!btn || !links) return;
+  function setOpen(open) {
+    links.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  }
+  btn.addEventListener("click", function () { setOpen(!links.classList.contains("open")); });
+  links.addEventListener("click", function (e) { if (e.target.closest("a")) setOpen(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setOpen(false); });
+})();
+</script>
 </body>
 </html>
