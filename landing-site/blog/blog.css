@@ -35,7 +35,18 @@ header.post .kicker{font-size:13px;font-weight:700;letter-spacing:.09em;text-tra
 h1{font-size:clamp(31px,5.4vw,46px);line-height:1.1;letter-spacing:-.03em;font-weight:800;margin:0 0 20px}
 h1 em{font-style:normal;background:linear-gradient(100deg,#8fc0ff,#4f8cff 45%,#a98bff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .lede{font-size:20px;color:#c3d0ea;margin:0 0 26px}
-.byline{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px;margin:0}
+.byline{
+  display:flex;align-items:center;gap:12px;
+  font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px;margin:0;
+}
+.byline .avatar{
+  width:36px;height:36px;border-radius:50%;flex:0 0 36px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-weight:700;font-size:13px;letter-spacing:.02em;
+  display:grid;place-items:center;
+}
+.byline .who b{color:var(--text);font-weight:700}
+.byline .who span{display:block;font-size:12.5px;color:var(--muted)}
 
 article{padding:14px 0 30px}
 article h2{font-size:26px;line-height:1.22;letter-spacing:-.02em;font-weight:800;margin:44px 0 14px}
