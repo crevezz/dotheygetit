@@ -70,6 +70,16 @@ article blockquote{margin:26px 0;padding:16px 20px;border-left:3px solid var(--a
   padding:14px 28px;border-radius:13px;box-shadow:0 12px 30px rgba(79,140,255,.32)}
 .btn:hover{text-decoration:none;filter:brightness(1.08)}
 
+/* ------------------------------- faq -------------------------------- */
+article h2 + .faqlist{margin-top:-4px}
+.faqlist{display:flex;flex-direction:column;gap:12px;margin:0 0 40px}
+.faqitem{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 20px}
+.faqitem summary{cursor:pointer;list-style:none;padding:15px 26px 15px 0;position:relative;font-weight:700;font-size:16px;color:var(--text)}
+.faqitem summary::-webkit-details-marker{display:none}
+.faqitem summary::after{content:"+";position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:20px;font-weight:400;color:var(--accent);transition:transform .2s ease}
+.faqitem[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+.faqitem p{margin:0 0 16px;color:#c3d0ea;font-size:15px;line-height:1.6}
+
 .next{margin:44px 0 0;padding-top:30px;border-top:1px solid var(--line)}
 .next h3{font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 16px;font-weight:700}
 
