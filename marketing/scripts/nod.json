@@ -1,0 +1,42 @@
+{
+  "id": "nod",
+  "total_seconds": 20,
+  "beats": [
+    {
+      "seconds": 3,
+      "onscreen": "\"Any questions?\" Silence.",
+      "vo": "Any questions? Silence. Leo nods. Mia nods. Sam nods.",
+      "visual": "chips"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "A nod isn't an answer.",
+      "vo": "Next lesson, Leo writes three x plus four.",
+      "visual": "chips quiet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Type a topic. It writes the questions.",
+      "vo": "Get It? You type the topic. It writes the questions.",
+      "visual": "laptop"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Every pupil answers. Any device.",
+      "vo": "Every pupil answers privately, on any device. Nobody can nod.",
+      "visual": "tablet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Marked. Sorted. By name.",
+      "vo": "It marks every answer. Mia got it. Sam is unsure. Leo needs help.",
+      "visual": "results"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "dotheygetit.app",
+      "vo": "Free. Nothing to install. dotheygetit dot app.",
+      "visual": "end card"
+    }
+  ]
+}

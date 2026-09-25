@@ -1,0 +1,42 @@
+{
+  "id": "quiet",
+  "total_seconds": 20,
+  "beats": [
+    {
+      "seconds": 3,
+      "onscreen": "Hands up. Always them.",
+      "vo": "Same three hands. Ellie. Sam. Noah.",
+      "visual": "chips"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "The answer nobody heard.",
+      "vo": "Maya knows the answer. She would never say it out loud.",
+      "visual": "chips quiet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Type a topic. It writes the questions.",
+      "vo": "Get It? You type the topic. It writes the questions.",
+      "visual": "laptop"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Every pupil answers. Any device.",
+      "vo": "Every pupil answers privately, on any device.",
+      "visual": "tablet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Marked. Sorted. Instantly.",
+      "vo": "It marks every answer. Maya got it. Sam is unsure. Noah needs help.",
+      "visual": "results"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "dotheygetit.app",
+      "vo": "Free. Nothing to install. dotheygetit dot app.",
+      "visual": "end card"
+    }
+  ]
+}

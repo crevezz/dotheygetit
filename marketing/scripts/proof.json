@@ -1,0 +1,42 @@
+{
+  "id": "proof",
+  "total_seconds": 20,
+  "beats": [
+    {
+      "seconds": 3,
+      "onscreen": "\"How do you know they got it?\"",
+      "vo": "How do you know they got it? Your head of department.",
+      "visual": "chips"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "\"They seemed fine\" isn't proof.",
+      "vo": "They seemed fine is not an answer. Did Oscar get it?",
+      "visual": "chips quiet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Type a topic. It writes the questions.",
+      "vo": "Get It? You type the topic. It writes the questions.",
+      "visual": "laptop"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Every pupil answers. Any device.",
+      "vo": "Every pupil answers privately, on any device.",
+      "visual": "tablet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Evidence. By name.",
+      "vo": "It marks every answer. Amelia got it. Oscar is unsure. Daniel needs help.",
+      "visual": "results"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "dotheygetit.app",
+      "vo": "Free. Nothing to install. dotheygetit dot app.",
+      "visual": "end card"
+    }
+  ]
+}

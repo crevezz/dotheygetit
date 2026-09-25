@@ -1,0 +1,42 @@
+{
+  "id": "twominutes",
+  "total_seconds": 20,
+  "beats": [
+    {
+      "seconds": 3,
+      "onscreen": "Exit tickets. Read at 10pm.",
+      "vo": "Exit tickets. Read at ten p.m. Zara. Ben. Finn.",
+      "visual": "chips"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Useless by then.",
+      "vo": "By then, Finn has gone home confused.",
+      "visual": "chips quiet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Type a topic. It writes the questions.",
+      "vo": "Get It? You type the topic. It writes the questions.",
+      "visual": "laptop"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Every pupil answers. Any device.",
+      "vo": "Every pupil answers privately, on any device. Mid-lesson.",
+      "visual": "tablet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Marked. Sorted. By name.",
+      "vo": "It marks every answer. Zara got it. Ben is unsure. Finn needs help.",
+      "visual": "results"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "dotheygetit.app",
+      "vo": "Free. Nothing to install. dotheygetit dot app.",
+      "visual": "end card"
+    }
+  ]
+}

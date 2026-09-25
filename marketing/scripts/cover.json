@@ -1,0 +1,42 @@
+{
+  "id": "cover",
+  "total_seconds": 20,
+  "beats": [
+    {
+      "seconds": 3,
+      "onscreen": "Cover lesson. Not your subject.",
+      "vo": "Cover lesson. Not your subject. One sticky note.",
+      "visual": "chips"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Did they get it? No idea.",
+      "vo": "Did Poppy get it? You will never know.",
+      "visual": "chips quiet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Type a topic. It writes the questions.",
+      "vo": "Get It? You type the topic. It writes the questions.",
+      "visual": "laptop"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Every pupil answers. Any device.",
+      "vo": "Every pupil answers privately, on any device.",
+      "visual": "tablet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Marked. Sorted. By name.",
+      "vo": "It marks every answer. Ethan got it. Poppy is unsure. Alfie needs help.",
+      "visual": "results"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "dotheygetit.app",
+      "vo": "Free. Nothing to install. dotheygetit dot app.",
+      "visual": "end card"
+    }
+  ]
+}

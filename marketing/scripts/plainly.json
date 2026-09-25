@@ -1,0 +1,42 @@
+{
+  "id": "plainly",
+  "total_seconds": 20,
+  "beats": [
+    {
+      "seconds": 3,
+      "onscreen": "Cold calling.",
+      "vo": "Cold calling. Aisha. Tom. Grace.",
+      "visual": "chips"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Without the cold.",
+      "vo": "Tom freezes. Everyone watches.",
+      "visual": "chips quiet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Type a topic. It writes the questions.",
+      "vo": "Get It? You type the topic. It writes the questions.",
+      "visual": "laptop"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Every pupil answers. Any device.",
+      "vo": "Every pupil answers privately, on any device. Nobody on the spot.",
+      "visual": "tablet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Marked. Sorted. By name.",
+      "vo": "It marks every answer. Aisha got it. Tom is unsure. Grace needs help.",
+      "visual": "results"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "dotheygetit.app",
+      "vo": "Free. Nothing to install. dotheygetit dot app.",
+      "visual": "end card"
+    }
+  ]
+}

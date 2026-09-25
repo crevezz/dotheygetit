@@ -1,0 +1,17 @@
+{
+  "id": "explainer",
+  "total_seconds": 65,
+  "beats": [
+    { "seconds": 3, "onscreen": "\"Any questions?\" Same three hands.", "vo": "Any questions? Same three hands. Ellie. Sam. Noah.", "visual": "chips" },
+    { "seconds": 3, "onscreen": "Who actually got it?", "vo": "Lesson's over. And you still don't know who actually got it.", "visual": "chips quiet" },
+    { "seconds": 3, "onscreen": "This is Get It?", "vo": "This is Get It? A free website that checks what your class has just learned, in about two minutes.", "visual": "text" },
+    { "seconds": 4, "onscreen": "Type a topic. It writes the questions.", "vo": "You type the topic. It writes the questions for you.", "visual": "laptop" },
+    { "seconds": 3, "onscreen": "Class code. Link. Or QR.", "vo": "Pupils join with your class code, a link, or a QR code. No logins. No accounts. Nothing to install.", "visual": "text" },
+    { "seconds": 4, "onscreen": "Every pupil answers. Any device.", "vo": "Every pupil answers privately, on any device, in their own words. No multiple choice. Nothing to guess.", "visual": "tablet" },
+    { "seconds": 4, "onscreen": "Won't write it? Say it.", "vo": "Won't write it down? They can say it. Speech to text turns it into their answer.", "visual": "tablet speak" },
+    { "seconds": 5, "onscreen": "Got it. Unsure. Needs help.", "vo": "It marks every answer, by name. Maya got it. Sam is unsure. Noah needs help.", "visual": "results" },
+    { "seconds": 3, "onscreen": "Not at 10pm. In the lesson.", "vo": "No exit tickets at ten at night. No stack of books. You know while you can still reteach it.", "visual": "text" },
+    { "seconds": 3, "onscreen": "Any subject. Year 5 to college.", "vo": "Any subject. Year 5 right through to college.", "visual": "text" },
+    { "seconds": 4, "onscreen": "dotheygetit.app", "vo": "Free during beta. No card. dotheygetit dot app.", "visual": "end card" }
+  ]
+}

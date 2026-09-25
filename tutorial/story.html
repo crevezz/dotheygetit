@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Get It? story advert</title>
+<style>
+html,body{margin:0;background:#000;overflow:hidden}
+*{box-sizing:border-box}
+#stage{
+  /* One unit drives every size in this design. 1080x1920 is the reference, so at
+     9:16 --u is exactly 1. At 4:5, 1:1 or 16:9 the whole design scales together
+     instead of being cut - cropping a vertical design to a landscape frame
+     decapitates the type. */
+  --u:min(calc(100vw / 1080), calc(100vh / 1920));
+  position:fixed;left:0;top:0;width:100vw;height:100vh;overflow:hidden;
+  font-family:"Segoe UI",Inter,system-ui,-apple-system,sans-serif;color:#fff;
+  background:
+    radial-gradient(1150px 900px at 16% 8%,  rgba(79,140,255,.30), transparent 62%),
+    radial-gradient(1050px 950px at 88% 92%, rgba(139,92,255,.28), transparent 64%),
+    linear-gradient(163deg,#0b1224 0%,#05070f 52%,#080d1a 100%);
+}
+.blob{position:absolute;border-radius:50%;filter:blur(110px);pointer-events:none}
+.b1{width:900px;height:900px;left:-260px;top:-220px;background:rgba(79,140,255,.30)}
+.b2{width:820px;height:820px;right:-240px;bottom:-180px;background:rgba(139,92,255,.30)}
+#grain{position:absolute;inset:0;opacity:.055;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>")}
+#vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%)}
+
+.shot{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;opacity:0;transition:opacity .4s ease}
+.shot.on{opacity:1}
+
+.ln{font-weight:800;letter-spacing:-.035em;line-height:1.02;text-align:center;
+  font-size:124px;max-width:960px;
+  opacity:0;transform:translateY(52px) scale(.94);filter:blur(16px);
+  transition:opacity .62s cubic-bezier(.16,1,.3,1),transform .62s cubic-bezier(.16,1,.3,1),filter .62s cubic-bezier(.16,1,.3,1)}
+.shot.on .ln{opacity:1;transform:none;filter:blur(0)}
+.shot.timed .ln{opacity:0;transform:translateY(52px) scale(.94);filter:blur(16px)}
+.shot.timed .ln.lit{opacity:1;transform:none;filter:blur(0)}
+.ln.grad{background:linear-gradient(100deg,#8fc0ff,#4f8cff 40%,#a98bff);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.ln.red{color:#ff5a6a;text-shadow:0 0 60px rgba(255,90,106,.45)}
+.ln.md{font-size:106px}
+
+.bgwrap{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity .55s ease}
+.bgwrap.on{opacity:1}
+.bgwrap video{width:100%;height:100%;object-fit:cover;display:block}
+.bgwrap .scrim{position:absolute;inset:0;
+  background:
+    radial-gradient(80% 34% at 50% 51%, rgba(5,7,15,.62), transparent 74%),
+    linear-gradient(180deg,rgba(5,7,15,.44) 0%,rgba(5,7,15,.28) 26%,
+               rgba(5,7,15,.34) 74%,rgba(5,7,15,.54) 100%)}
+.bgwrap.ghost.on{opacity:.5}
+.bgwrap.ghost video{filter:blur(9px) saturate(.72) brightness(.9)}
+.bgwrap.ghost .scrim{background:
+    radial-gradient(80% 40% at 50% 51%, rgba(5,7,15,.58), transparent 76%),
+    linear-gradient(180deg,rgba(5,7,15,.62) 0%,rgba(5,7,15,.50) 30%,
+               rgba(5,7,15,.56) 72%,rgba(5,7,15,.74) 100%)}
+
+.phone{
+  width:700px;height:1512px;border-radius:72px;overflow:hidden;position:relative;
+  background:#05070f;
+  box-shadow:
+    0 70px 130px rgba(0,0,0,.66),
+    0 0 0 1.5px rgba(255,255,255,.10),
+    0 0 90px rgba(79,140,255,.22);
+  opacity:0;transform:translateY(70px) scale(.96);
+  transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1);
+}
+.shot.on .phone{opacity:1;transform:none}
+.phone video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.phone video.live{display:block}
+.shot.on .phone video.live{animation:kb 6s linear forwards}
+@keyframes kb{from{transform:scale(1.07)}to{transform:scale(1)}}
+
+.head{font-size:62px;line-height:1.08;letter-spacing:-.03em;font-weight:800;
+  text-align:center;max-width:940px;margin-bottom:22px}
+.head em{font-style:normal;background:linear-gradient(100deg,#8fc0ff,#a98bff);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+
+.shot.endcard{gap:0}
+.badge{width:250px;height:250px;border-radius:60px;box-shadow:0 40px 90px rgba(79,140,255,.45);
+  opacity:0;transform:scale(.8);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.shot.on .badge{opacity:1;transform:none}
+.wordmark{font-size:168px;font-weight:800;letter-spacing:-.05em;margin-top:40px;
+  background:linear-gradient(100deg,#ffffff,#c9dcff 45%,#a98bff);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.url{margin-top:24px;font-size:60px;font-weight:700;letter-spacing:-.01em;color:#4f8cff}
+.free{margin-top:22px;font-size:44px;font-weight:700;color:#dbe4f7;letter-spacing:-.01em}
+.link{margin-top:30px;font-size:58px;font-weight:800;color:#fff;letter-spacing:-.01em;
+  padding:22px 54px;border-radius:999px;
+  background:linear-gradient(100deg,#4f8cff,#a98bff);
+  box-shadow:0 26px 70px rgba(79,140,255,.55),inset 0 0 0 3px rgba(255,255,255,.16);
+  opacity:0;transform:translateY(26px) scale(.94);
+  transition:opacity .6s cubic-bezier(.16,1,.3,1) .5s,transform .6s cubic-bezier(.16,1,.3,1) .5s}
+.shot.on .link{opacity:1;transform:none}
+
+#cover{position:fixed;inset:0;background:#000;z-index:999}
+
+/* burned-in captions - the advert has to read with the sound off, because that
+   is how a feed autoplays. One line at a time, bottom-centre, like a native ad. */
+#caps{position:absolute;left:0;right:0;bottom:calc(210 * var(--u));display:flex;justify-content:center;
+  pointer-events:none;z-index:6}
+#caps span{max-width:calc(880 * var(--u));text-align:center;font-weight:800;
+  font-size:calc(54 * var(--u));line-height:1.12;letter-spacing:-.02em;color:#fff;
+  padding:calc(16 * var(--u)) calc(30 * var(--u));border-radius:calc(20 * var(--u));
+  background:rgba(4,6,14,.6);text-shadow:0 2px 14px rgba(0,0,0,.95);
+  opacity:0;transition:opacity .12s ease}
+#caps span.on{opacity:1}
+
+/* one design, every frame - each value is its 1080x1920 size x --u */
+.ln{font-size:calc(124 * var(--u));max-width:calc(960 * var(--u))}
+.ln.md{font-size:calc(106 * var(--u))}
+.head{font-size:calc(62 * var(--u));max-width:calc(940 * var(--u));margin-bottom:calc(22 * var(--u))}
+.phone{width:calc(700 * var(--u));height:calc(1512 * var(--u));border-radius:calc(72 * var(--u))}
+.badge{width:calc(250 * var(--u));height:calc(250 * var(--u));border-radius:calc(60 * var(--u))}
+.wordmark{font-size:calc(168 * var(--u));margin-top:calc(40 * var(--u))}
+.url{font-size:calc(60 * var(--u));margin-top:calc(24 * var(--u))}
+.free{font-size:calc(44 * var(--u));margin-top:calc(22 * var(--u))}
+.link{font-size:calc(58 * var(--u));margin-top:calc(30 * var(--u));
+  padding:calc(22 * var(--u)) calc(54 * var(--u))}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div id="grain"></div>
+  <div id="vig"></div>
+  <div id="caps"><span></span></div>
+</div>
+<div id="cover"></div>
+
+<script>
+/* The shots are not written here. story-voice.js reads the real line starts off
+   the voice track and writes timeline.json; story-film.js hands the shots to the
+   page before it loads. So the picture can only ever land on the voice - change
+   a sentence in stories.json and the timing follows on its own. */
+var SHOTS = window.SHOTS || [];
+var timers = [];
+function at(ms, fn){ timers.push(setTimeout(fn, ms)); }
+function el(tag, cls){ var d = document.createElement(tag); if (cls) d.className = cls; return d; }
+
+var stage = document.getElementById('stage');
+
+SHOTS.forEach(function(s, i){
+  var div = el('div', 'shot');
+  div.id = 's' + i;
+
+  if (s.kind === 'end'){
+    div.classList.add('endcard');
+    var b = el('img', 'badge'); b.src = '../public/favicon.svg';
+    var w = el('div', 'wordmark'); w.textContent = 'Get It?';
+    var u = el('div', 'url'); u.textContent = 'dotheygetit.app';
+    var f = el('div', 'free'); f.textContent = '100% free for a limited time.';
+    var k = el('div', 'link'); k.textContent = 'Link in comments';
+    div.appendChild(b); div.appendChild(w); div.appendChild(u); div.appendChild(f); div.appendChild(k);
+  } else if (s.kind === 'phone'){
+    var h = el('div', 'ln head'); h.innerHTML = s.head || '';
+    var ph = el('div', 'phone');
+    var v = el('video'); v.muted = true; v.setAttribute('playsinline', '');
+    if (s.src) v.src = s.src;
+    ph.appendChild(v);
+    div.appendChild(h); div.appendChild(ph);
+  } else {
+    /* plate (full, behind type) or ghost (soft, behind type-only shots) */
+    var wrap = el('div', 'bgwrap' + (s.kind === 'ghost' ? ' ghost' : ''));
+    var bv = el('video'); bv.muted = true; bv.setAttribute('playsinline', '');
+    if (s.src) bv.src = s.src;
+    var sc = el('div', 'scrim');
+    wrap.appendChild(bv); wrap.appendChild(sc);
+    div.appendChild(wrap);
+    /* each line lands on its own clause in the voice - so four lines can be one
+       thought arriving, instead of a block appearing all at once */
+    div.classList.add('timed');
+    (s.lines || []).forEach(function(L){
+      var ln = el('div', 'ln ' + (L.c || 'md'));
+      ln.textContent = L.text;
+      ln.dataset.t = L.t;
+      div.appendChild(ln);
+    });
+  }
+  stage.appendChild(div);
+});
+
+window.__len = (window.TOTAL || 0);
+window.__go = function(){
+  document.getElementById('cover').style.display = 'none';
+  function play(v, on){
+    if (!v) return;
+    var wrap = v.closest ? v.closest('.bgwrap') : null;
+    if (wrap) wrap.classList.toggle('on', on); else v.classList.toggle('live', on);
+    if (on) { try { v.play(); } catch (e) {} } else v.pause();
+  }
+  function stopAll(){ document.querySelectorAll('.phone video, .bgwrap video').forEach(function(v){ play(v, false); }); }
+
+  /* the captions run off the voice alignment, so they land on the words */
+  var CAPS = window.CAPTIONS || [];
+  if (CAPS.length){
+    var capEl = document.querySelector('#caps span');
+    var cur = -1;
+    CAPS.forEach(function(c, i){
+      at(c.t * 1000, function(){ cur = i; capEl.textContent = c.text; capEl.classList.add('on'); });
+      at(c.e * 1000, function(){ if (cur === i) capEl.classList.remove('on'); });
+    });
+  }
+
+  SHOTS.forEach(function(s, i){
+    var div = document.getElementById('s' + i);
+    var plate = div.querySelector('.bgwrap video');
+    var inside = div.querySelector('.phone video');
+    at(s.t * 1000, function(){
+      stopAll();
+      if (inside){ if (s.ss !== null && s.ss !== undefined) inside.currentTime = s.ss; play(inside, true); }
+      if (plate){ plate.currentTime = 0; }
+      div.classList.add('on');
+      (div.querySelectorAll('.ln')).forEach(function(ln){
+        if (ln.dataset.t !== undefined) at(Math.max(0, (parseFloat(ln.dataset.t) - s.t) * 1000), function(){ ln.classList.add('lit'); });
+      });
+    });
+    at(s.e * 1000, function(){
+      div.classList.remove('on');
+      if (plate) play(plate, false);
+      if (inside) play(inside, false);
+    });
+  });
+};
+</script>
+</body>
+</html>

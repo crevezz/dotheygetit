@@ -1,0 +1,42 @@
+{
+  "id": "middle",
+  "total_seconds": 20,
+  "beats": [
+    {
+      "seconds": 3,
+      "onscreen": "You know your top five and bottom five.",
+      "vo": "You know your top five. You know your bottom five.",
+      "visual": "chips"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Name the middle.",
+      "vo": "Now name the middle. Harry?",
+      "visual": "chips quiet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Type a topic. It writes the questions.",
+      "vo": "Get It? You type the topic. It writes the questions.",
+      "visual": "laptop"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "Every pupil answers. Any device.",
+      "vo": "Every pupil answers privately, on any device.",
+      "visual": "tablet"
+    },
+    {
+      "seconds": 4,
+      "onscreen": "Marked. Sorted. By name.",
+      "vo": "It marks every answer. Ava got it. Harry is unsure. Jake needs help.",
+      "visual": "results"
+    },
+    {
+      "seconds": 3,
+      "onscreen": "dotheygetit.app",
+      "vo": "Free. Nothing to install. dotheygetit dot app.",
+      "visual": "end card"
+    }
+  ]
+}

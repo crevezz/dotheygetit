@@ -5,7 +5,11 @@
   "description": "Prove a person really learned something, when AI can fake the work.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "ads": "node marketing/ad.js",
+    "adfilm": "node marketing/ad-film.js",
+    "story": "node tutorial/story-voice.js",
+    "storyfilm": "node tutorial/story-film.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",

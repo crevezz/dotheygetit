@@ -39,3 +39,19 @@ tutorial/ERROR
 
 # the advert music - an asset, not source, and possibly licensed
 tutorial/bg.mp3
+marketing/_shotpage.js)  
+
+# tiktok uploader - the browser profile holds a live logged-in session. never commit.
+tutorial/tiktok_profile/
+tutorial/tiktok_state.json
+tutorial/tiktok_posted.png
+tutorial/tiktok_error.png
+
+# renders are regenerable, not source (same rule as tutorial/out and brand/out)
+marketing/out/
+marketing/mock/
+marketing/_f/
+marketing/scripts_old/
+marketing/_ex.txt
+marketing/_shotpage.js
+
