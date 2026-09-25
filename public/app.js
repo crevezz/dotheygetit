@@ -1056,6 +1056,79 @@ async function nextTurn() {
 $('#btnSend').addEventListener('click', sendAnswer);
 $('#answer').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendAnswer(); });
 
+/* ---- answer by speaking ------------------------------------------------
+   Press the mic, talk, press it again to stop. The clip goes to /api/stt (which
+   hands it to ElevenLabs); only the words come back and they land in the box for
+   the pupil to fix. Nothing is sent on until they press Send.
+   A pupil who would rather say it than type it is the whole point of this. For a
+   teacher it only earns its place where they are writing real prose, so it is
+   wired to the feedback box and not to the short fields. */
+const canRecord = !!(navigator.mediaDevices && window.MediaRecorder);
+
+function attachMic(sel, opts) {
+  const btn = $(sel.btn), box = $(sel.input), status = sel.status ? $(sel.status) : null;
+  if (!btn || !box) return null;
+  if (!canRecord) { btn.style.display = 'none'; return null; }
+  const say = (s) => { if (status) status.textContent = s; };
+  let rec = null, chunks = [], recording = false, busy = false;
+
+  btn.addEventListener('click', () => {
+    if (busy || (opts && opts.blocked && opts.blocked())) return;
+    if (recording) stopRec(); else startRec();
+  });
+
+  async function startRec() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunks = [];
+      const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); transcribe(); };
+      rec.start();
+      recording = true;
+      btn.classList.add('recording');
+      say('Listening... press the mic again when you have finished.');
+    } catch (e) {
+      say('No microphone here. You can still type.');
+    }
+  }
+
+  function stopRec() {
+    recording = false;
+    btn.classList.remove('recording');
+    say('Reading that back...');
+    try { rec.stop(); } catch { say('That did not work. Try again, or type it.'); }
+  }
+
+  async function transcribe() {
+    busy = true;
+    try {
+      const type = (chunks[0] && chunks[0].type) || 'audio/webm';
+      const blob = new Blob(chunks, { type });
+      if (blob.size < 1200) { say('That was too short to hear. Try again.'); return; }
+      const r = await fetch('/api/stt', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': type }, body: blob
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Could not hear that one.');
+      box.value = (box.value.trim() ? box.value.trim() + ' ' : '') + j.text;
+      box.focus();
+      say('Have a read - fix anything it got wrong.');
+    } catch (e) {
+      say(e.message || 'Could not hear that one. Try again, or type it.');
+    } finally {
+      busy = false; chunks = [];
+    }
+  }
+
+  return { hide: () => { btn.disabled = true; btn.style.display = 'none'; say(''); } };
+}
+
+const micAnswer = attachMic({ btn: '#btnMic', input: '#answer', status: '#micMsg' }, { blocked: () => chat.done });
+attachMic({ btn: '#fbMic', input: '#fbMsg', status: '#fbMsgStatus' });
+
 async function sendAnswer() {
   const text = $('#answer').value.trim();
   if (!text || chat.done || sending) return;
@@ -1075,6 +1148,8 @@ async function finish() {
     .join('\n');
   $('#answer').disabled = true;
   $('#btnSend').disabled = true;
+  if (micAnswer) micAnswer.hide();
+
   $('#chatMsg').textContent = '';
   try {
     const j = await post('/api/verdict', { topic: chat.topic, transcript, code: chat.code, questions: chat.questions, marks: chat.marks || [] });

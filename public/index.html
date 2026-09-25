@@ -202,7 +202,11 @@
     </p>
     <div id="fbBox" class="hidden">
       <textarea id="fbMsg" placeholder="What happened? And what did you expect instead?"></textarea>
-      <button id="fbSend" class="ghost" style="align-self:flex-start">Send it</button>
+      <div class="row" style="margin-top:8px">
+        <button id="fbMic" class="mic" type="button" title="Say it (or type it)" aria-label="Say it (or type it)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <button id="fbSend" class="ghost">Send it</button>
+      </div>
+      <p class="msg" id="fbMsgStatus"></p>
     </div>
 
     <p class="sitenote" style="text-align:center;margin-top:20px">
@@ -228,7 +232,7 @@
         <label>Your name</label>
         <input id="studentName" placeholder="e.g. Amira K" autocomplete="off" data-tip="So your teacher knows it's you."/>
       </div>
-      <label class="consent"><input type="checkbox" id="consent"/> I understand my answers go to my teacher, and to an AI that helps them read them. <a href="/privacy" target="_blank" rel="noopener">Privacy</a></label>
+      <label class="consent"><input type="checkbox" id="consent"/> I understand my answers go to my teacher, and to an AI that helps them read them. If I speak my answer, that AI turns it into text first. <a href="/privacy" target="_blank" rel="noopener">Privacy</a></label>
       <button id="btnJoin" class="primary wide" data-tip="No right or wrong answers - just explain it in your own words.">Start</button>
       <p class="msg" id="joinMsg"></p>
       <p class="muted tiny">Your answers go to your teacher, and to an AI that helps them read them. <a href="/privacy">Privacy</a>.</p>
@@ -242,8 +246,10 @@
       <div id="chat"></div>
       <div class="row stick">
         <input id="answer" placeholder="Type your answer..." autocomplete="off" autofocus/>
+        <button id="btnMic" class="mic" type="button" title="Answer by speaking" data-tip="Rather say it than type it? Press, talk, press again." aria-label="Answer by speaking"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button id="btnSend" class="primary" data-tip="Send (or press Enter).">Send</button>
       </div>
+      <p class="msg" id="micMsg"></p>
       <p class="msg" id="chatMsg"></p>
     </div>
 

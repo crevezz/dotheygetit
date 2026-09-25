@@ -35,6 +35,20 @@ function readKey() {
   catch { return process.env.OPENROUTER_API_KEY || ''; }
 }
 const API_KEY = readKey();
+
+/* Speech-to-text runs on the same ElevenLabs account as the tutorial voiceover, so it
+   reuses the key that is already in the repo for local work. On the host the env var
+   wins. Empty means the mic route politely refuses rather than 500s. */
+function readElevenKey() {
+  const env = process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_KEY;
+  if (env && env.trim()) return env.trim();
+  for (const f of ['.eleven.key', path.join('tutorial', '.eleven.key')]) {
+    try { return fs.readFileSync(path.join(ROOT, f), 'utf8').trim(); } catch {}
+  }
+  return '';
+}
+const ELEVEN_KEY = readElevenKey();
+
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'craigokelly121@hotmail.com').toLowerCase();
 
 /* the address pupils scan to - printed QRs and old links must keep working, so it
@@ -1178,6 +1192,20 @@ function readBody(req) {
     req.on('end', () => { try { resolve(JSON.parse(d || '{}')); } catch { resolve({}); } });
   });
 }
+/* Same as readBody but leaves the bytes alone, for an uploaded recording. */
+function readRaw(req, limit) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    let n = 0;
+    req.on('data', c => {
+      n += c.length;
+      if (n > (limit || 8e6)) { req.destroy(); return resolve(null); }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', () => resolve(null));
+  });
+}
 function parseJson(raw) {
   if (!raw) return null;
   let s = String(raw).trim();
@@ -1239,7 +1267,7 @@ const server = http.createServer(async (req, res) => {
     if (!p.startsWith('/api/')) return serveStatic(req, res, p);
 
     // ---- health
-    if (p === '/api/health') return sendJson(res, { ok: true, hasKey: !!API_KEY, model: cfg.model });
+    if (p === '/api/health') return sendJson(res, { ok: true, hasKey: !!API_KEY, model: cfg.model, hasSpeech: !!ELEVEN_KEY });
 
     // ---- QR code for a class, for the whiteboard or a printed sheet
     if (p === '/api/qr' && req.method === 'GET') {
@@ -1640,6 +1668,37 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
     }
 
     // ---- student chat
+    // ---- speech to text
+    /* A pupil who would rather say it than type it. The clip is handed to ElevenLabs and
+       only the words come back; we keep no audio. The transcript goes into the answer box
+       for the pupil to check, so what reaches the teacher is still their own words. */
+    if (p === '/api/stt' && req.method === 'POST') {
+      if (!ELEVEN_KEY) return sendErr(res, 'Speaking is not switched on for this server. Type your answer instead.', 503);
+      const audio = await readRaw(req, 6e6);
+      if (!audio || audio.length < 1200) return sendErr(res, 'That was too short to hear. Hold it a moment longer and try again.');
+      const type = String(req.headers['content-type'] || '').split(';')[0].trim() || 'audio/webm';
+      try {
+        const fd = new FormData();
+        fd.append('file', new Blob([audio], { type }), type.includes('mp4') ? 'answer.mp4' : 'answer.webm');
+        fd.append('model_id', 'scribe_v1');
+        const r = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+          method: 'POST', headers: { 'xi-api-key': ELEVEN_KEY }, body: fd
+        });
+        const raw = await r.text();
+        if (!r.ok) {
+          logError('/api/stt', r.status + ' ' + raw.slice(0, 200));
+          return sendErr(res, 'Could not hear that one. Try again, or type it.');
+        }
+        const j = parseJson(raw) || {};
+        const text = String(j.text || '').replace(/\s+/g, ' ').trim();
+        if (!text) return sendErr(res, 'Nothing was picked up. Try again, or type it.');
+        return sendJson(res, { text });
+      } catch (e) {
+        logError('/api/stt', e.message || String(e));
+        return sendErr(res, 'Could not hear that one. Try again, or type it.');
+      }
+    }
+
     if (p === '/api/chat' && req.method === 'POST') {
       const b = await readBody(req);
       const topic = String(b.topic || '').trim();

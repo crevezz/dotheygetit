@@ -307,6 +307,20 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .bubble.typing{color:var(--muted);font-style:italic;letter-spacing:.15em}
 .row.stick{position:sticky;bottom:0}
 
+/* the answer-by-speaking button, sitting next to Send */
+.mic{
+  flex:none;display:grid;place-items:center;width:46px;height:46px;padding:0;
+  border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.mic:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.mic.recording{
+  border-color:#ff5d5d;background:rgba(255,93,93,.18);color:#ff8b8b;
+  animation:micpulse 1.1s ease-in-out infinite;
+}
+@keyframes micpulse{50%{box-shadow:0 0 0 6px rgba(255,93,93,.12)}}
+
 .endline{
   align-self:center;text-align:center;font-size:14px;font-weight:600;color:var(--green);
   background:rgba(61,220,132,.09);border:1px solid rgba(61,220,132,.35);
