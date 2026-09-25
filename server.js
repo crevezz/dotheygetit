@@ -915,7 +915,21 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
       }
     }
   }
-  const bare = answers.filter(a => /^[\s\d\/.,+-]+$/.test(a));
+  /* Was this answer JUST a value - a bare "12", a "3/8", or the same number said out loud
+     as a word? nums() already reads number words, but this test was digits-only, so a pupil
+     who SPOKE their answer ("Twelve", "Seven", "Fourteen") was treated as if they had
+     written a sentence. The nets below that credit the operation beside a bare number then
+     never fired, and they lost the working point the typed pupil kept - same answers,
+     different marks, purely because of the spelling. */
+  const BARE_FILLER = /^(?:and|a|an)$/;
+  const isBareValue = (s) => {
+    const v = String(s || '').trim().toLowerCase();
+    if (!v) return false;
+    if (/^[\s\d\/.,+-]+$/.test(v)) return true;
+    const words = v.split(/[\s-]+/).filter(Boolean);
+    return words.length > 0 && words.every(w => WORD_NUM[w] !== undefined || BARE_FILLER.test(w));
+  };
+  const bare = answers.filter(isBareValue);
   for (let qi = 0; qi < marks.length; qi++) {
     const ps = (marks[qi] || []).filter(Boolean);
     if (!ps.length) continue;
@@ -983,7 +997,7 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
       const h = hit.get(lo + k);
       if (h == null) continue;
       const wholeFraction = echoWords(h).length <= 3 && fracs(h).length === 1;
-      if (/^[\s\d\/.,+-]+$/.test(h) || wholeFraction) { quote = h; break; }
+      if (isBareValue(h) || wholeFraction) { quote = h; break; }
     }
     if (!quote) continue;
     for (let k = 0; k < ps.length; k++) {
