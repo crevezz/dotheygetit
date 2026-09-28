@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
+
+<!-- Google Analytics (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HT4BJ8KBY1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-HT4BJ8KBY1');
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>The New Teacher Survival Pack — free for ECTs, NQTs &amp; trainees</title>
 <link rel="canonical" href="https://dotheygetit.app/new-teacher-pack/"/>
@@ -446,6 +456,66 @@ Best wishes,
     <p style="margin-top:14px;font-size:14px"><a href="https://dotheygetit.app/">Home</a> &middot; <a href="https://dotheygetit.app/blog/">Blog</a> &middot; <a href="https://dotheygetit.app/contact/">Contact</a> &middot; <a href="https://app.dotheygetit.app/privacy">Privacy</a></p>
   </div>
 </footer>
+
+<script>
+/* ---------------------------------------------------------------------------
+   Measurement. The whole point of this page is the click through to the app,
+   so that click is an event with a label - you can see which CTA earns it.
+   --------------------------------------------------------------------------- */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('a');
+  if (!a || typeof gtag !== 'function') return;
+
+  var href = a.getAttribute('href') || '';
+
+  // Outbound to the app (the conversion this page exists to produce).
+  if (href.indexOf('app.dotheygetit.app') > -1) {
+    var sec = a.closest('section');
+    gtag('event', 'click_to_app', {
+      source_page: 'new_teacher_pack',
+      cta_section: sec ? (sec.id || 'unknown') : 'topbar',
+      cta_text: (a.textContent || '').trim(),
+      link_url: href
+    });
+    return;
+  }
+
+  // Back to the marketing site.
+  if (href.indexOf('dotheygetit.app') > -1) {
+    gtag('event', 'pack_to_site', {
+      link_text: (a.textContent || '').trim(),
+      link_url: href
+    });
+  }
+});
+
+/* Print / save-as-PDF - the strongest "this was useful" signal on the page. */
+var printBtn = document.querySelector('[onclick*="window.print"]');
+if (printBtn) {
+  printBtn.addEventListener('click', function () {
+    if (typeof gtag === 'function') {
+      gtag('event', 'print_pack', { source_page: 'new_teacher_pack' });
+    }
+  });
+}
+
+/* How far they read, in quarters. Tells you which parts earn attention. */
+(function () {
+  var hit = {}, marks = [25, 50, 75, 100];
+  window.addEventListener('scroll', function () {
+    var d = document.documentElement;
+    var pct = ((window.scrollY + window.innerHeight) / d.scrollHeight) * 100;
+    marks.forEach(function (m) {
+      if (pct >= m && !hit[m]) {
+        hit[m] = 1;
+        if (typeof gtag === 'function') {
+          gtag('event', 'scroll_depth', { source_page: 'new_teacher_pack', percent: m });
+        }
+      }
+    });
+  }, { passive: true });
+})();
+</script>
 
 </body>
 </html>
