@@ -12,6 +12,21 @@ const PUBLIC = path.join(ROOT, 'public');
 const DATA_DIR = process.env.DATA_DIR || ROOT;
 try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
 const DATA = path.join(DATA_DIR, 'data.json');
+/* Nightly backup: copy data.json into DATA_DIR/backups once a day, keep the last 14. */
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+function backupData() {
+  try {
+    if (!fs.existsSync(DATA)) return;
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const day = new Date().toISOString().slice(0, 10);
+    const dest = path.join(BACKUP_DIR, 'data-' + day + '.json');
+    if (!fs.existsSync(dest)) fs.copyFileSync(DATA, dest);
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => /^data-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort();
+    while (files.length > 14) fs.unlinkSync(path.join(BACKUP_DIR, files.shift()));
+  } catch (e) { console.error('backup failed', e.message); }
+}
+setTimeout(backupData, 60 * 1000);
+setInterval(backupData, 60 * 60 * 1000);
 const CLOSING = 'Great — that is everything I needed. Thank you for thinking it through!';
 /* The greeting lands in the transcript the teacher reads, so it stays in the same plain
    register as the questions. "Let's find out how well you understand this" is a form
