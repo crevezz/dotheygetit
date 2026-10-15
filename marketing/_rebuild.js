@@ -24,7 +24,8 @@ const ads = {
   plainly: { h: [['Cold calling.', 'Cold calling. Aisha. Tom. Grace.', ['Aisha','Tom','Grace']], ['Without the cold.', 'Tom freezes. Everyone watches.', ['Tom']]],
     ans: 'Every pupil answers privately, on any device. Nobody on the spot.', q: 'Which way does the water move?', a: 'From more water to less water.', res: ['Aisha','Tom','Grace'] },
 };
-let over = 'const OVERRIDES = {\n', par = 'const PARAMS = {\n', names = {};
+// puzzle ad: kept on every rebuild (script is hand-written; names come from per.puzzle.names)
+let over = 'const OVERRIDES = {\n  puzzle: { 0: \'text\', 1: \'text\', 2: \'results\', 3: \'results\', 4: \'domain\' },\n', par = 'const PARAMS = {\n  puzzle: {"2":{"neutral":1,"foot":\'Answers split three ways.\'},"3":{"neutral":1,"foot":\'Before the bell.\',"hl":[\'Jay\',\'Tyler\',\'Ben\']},"4":{"min":1}},\n', names = {};
 for (const [id, d] of Object.entries(ads)) {
   const [g, a, r] = d.res;
   const beats = [

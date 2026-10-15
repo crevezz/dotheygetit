@@ -518,6 +518,14 @@ footer .brand{justify-content:center;margin-bottom:12px}
   ]
 }
 </script>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1200765335594050');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1200765335594050&ev=PageView&noscript=1"/></noscript>
+<!-- End Meta Pixel Code -->
 </head>
 <body>
 
@@ -535,7 +543,7 @@ footer .brand{justify-content:center;margin-bottom:12px}
       <a href="/blog/">Blog</a>
       <a href="/contact/">Contact</a>
       <a href="#pricing">Free</a>
-      <a class="navcta" href="https://app.dotheygetit.app/">Try it free</a>
+      <a class="navcta" href="/thank-you/">Try it free</a>
     </div>
   </div>
 </nav>
@@ -723,7 +731,7 @@ footer .brand{justify-content:center;margin-bottom:12px}
           <li>Results, answers and next steps</li>
           <li>Take the record away whenever you like</li>
         </ul>
-        <a class="btn primary" href="https://app.dotheygetit.app/">Start free</a>
+        <a class="btn primary" href="/thank-you/">Start free</a>
       </div>
     </div>
     <p class="microcopy center rv" style="text-align:center;margin-top:32px;">
@@ -789,7 +797,7 @@ footer .brand{justify-content:center;margin-bottom:12px}
       <h2>Try it on one class.</h2>
       <p>Five minutes with one lesson. If it doesn't tell you something you didn't know, walk away.</p>
       <div class="cta-row">
-        <a class="btn primary" href="https://app.dotheygetit.app/">Try it free</a>
+        <a class="btn primary" href="/thank-you/">Try it free</a>
       </div>
       <p class="microcopy" style="color:#a9b8d8">No card. No setup. Students just need the code.</p>
     </div>
@@ -848,7 +856,7 @@ function submitSignup(){
   document.getElementById('signup').classList.add('sent');
 }
 /* Every "try" button goes straight to the live app. */
-var APP_URL = 'https://app.dotheygetit.app';
+var APP_URL = '/thank-you/';
 function toApp(){ window.location.href = APP_URL; }
 document.querySelectorAll('button').forEach(function(b){
   var t = (b.textContent || '').trim().toLowerCase();

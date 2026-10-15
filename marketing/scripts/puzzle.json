@@ -1,0 +1,11 @@
+{
+  "id": "puzzle",
+  "total_seconds": 17,
+  "beats": [
+    { "seconds": 3, "onscreen": "8 ÷ 2(2 + 2) | Your Year 9s got this wrong. Would you?", "vo": "Your Year 9s got this wrong. Would you?", "visual": "text" },
+    { "seconds": 3, "onscreen": "3 seconds. Go.", "vo": "", "visual": "text" },
+    { "seconds": 4, "onscreen": "Half said 16. Half said 1.", "vo": "Half the class said sixteen. Half said one.", "visual": "results" },
+    { "seconds": 4, "onscreen": "The teacher knew who. By name.", "vo": "The teacher knew who, by name, before the bell.", "visual": "results" },
+    { "seconds": 3, "onscreen": "dotheygetit.app", "vo": "Free. Any device. dotheygetit dot app.", "visual": "end card" }
+  ]
+}

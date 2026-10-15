@@ -238,11 +238,27 @@ const per = {
     resFoot: '16 got it. 39 need help. What about the 35 in between?',
     counts: { g: 16, a: 35, r: 39 },
   },
+  /* Engagement puzzle: order of operations. Beat 2 relabels the columns as the class's split; it never says which is right. */
+  puzzle: {
+    topic: 'Order of operations',
+    board: 'order of operations',
+    typed: 'Order of operations',
+    questions: ['Work out 8 ÷ 2(2 + 2).','Work out 3 + 4 × 2.','Work out (6 - 2)² ÷ 4.','Work out 20 - 3 × (1 + 4).'],
+    mode: 'type',
+    answer: '',
+    resTopic: 'Order of operations',
+    resSub: 'Year 9 · 30 pupils',
+    resFoot: 'Two minutes. Every name.',
+    names: { g: ['Aria','Tyler','Layla','Kai','Grace'], a: ['Jay','Isla','Nia','Omar','Freya'], r: ['Ben','Sofia','Idris','Priya'] },
+    counts: { g: 14, a: 12, r: 4 },
+    labels: { g: 'Said 16', a: 'Said 1', r: 'Other' },
+  },
 };
 
 /* Scenes are picked from the beat's own description; these are the beats where
    the description is ambiguous, or where a visual reads better a different way. */
 const OVERRIDES = {
+  puzzle: { 0: 'text', 1: 'text', 2: 'results', 3: 'results', 4: 'domain' },
   explainer: { 0: 'chips', 1: 'chips', 2: 'text', 3: 'laptop', 4: 'text', 5: 'phone', 6: 'phone', 7: 'results', 8: 'text', 9: 'text', 10: 'domain' },
   quiet: { 0: 'chips', 1: 'chips', 2: 'laptop', 3: 'phone', 4: 'results', 5: 'domain' },
   nod: { 0: 'chips', 1: 'chips', 2: 'laptop', 3: 'phone', 4: 'results', 5: 'domain' },
@@ -260,6 +276,7 @@ const OVERRIDES = {
    takes its board from the ad's own topic, so the board always matches the
    questions and the results. */
 const PARAMS = {
+  puzzle: {"2":{"neutral":1,"foot":'Answers split three ways.'},"3":{"neutral":1,"foot":'Before the bell.',"hl":['Jay','Tyler','Ben']},"4":{"min":1}},
   explainer: {"0":{"chips":["Ellie","Sam","Noah"],"icon":"hand","hand":1},"1":{"chips":["Maya"],"quiet":1},"5":{"q":"Why does it eventually rain?","answer":"The droplets get too heavy.","mode":"type","tab":1},"6":{"q":"Where do clouds come from?","answer":"Water evaporates and then condenses.","mode":"speak","tab":1},"7":{"hl":["Maya","Sam","Noah"]},"10":{"min":1}},
   quiet: {"0":{"chips":["Ellie","Sam","Noah"],"icon":"hand","hand":1},"1":{"chips":["Maya"],"quiet":1},"3":{"q":"Why does it eventually rain?","answer":"The droplets get too heavy.","mode":"type","tab":1},"4":{"hl":["Maya","Sam","Noah"]},"5":{"min":1}},
   nod: {"0":{"chips":["Leo","Mia","Sam"],"icon":"thumb"},"1":{"chips":["Leo"],"quiet":1,"icon":"cross"},"3":{"q":"Expand 3(x + 4)","answer":"3x + 12","mode":"type","tab":1},"4":{"hl":["Mia","Sam","Leo"]},"5":{"min":1}},
@@ -276,6 +293,7 @@ const PARAMS = {
 const NAMES_OVR = {"quiet":{"g":["Maya","Isla","Omar","Kai","Priya"],"a":["Sam","Layla","Idris","Elsie","Nia"],"r":["Noah","Sofia","Grace","Tyler","Freya"]},"nod":{"g":["Mia","Isla","Omar","Kai","Priya"],"a":["Sam","Layla","Idris","Elsie","Nia"],"r":["Leo","Sofia","Grace","Tyler","Freya"]},"ninepm":{"g":["Ella","Isla","Omar","Kai","Priya"],"a":["Josh","Layla","Idris","Elsie","Nia"],"r":["Ruby","Sofia","Grace","Tyler","Freya"]},"twominutes":{"g":["Zara","Isla","Omar","Kai","Priya"],"a":["Ben","Layla","Idris","Elsie","Nia"],"r":["Finn","Sofia","Grace","Tyler","Freya"]},"middle":{"g":["Ava","Isla","Omar","Kai","Priya"],"a":["Harry","Layla","Idris","Elsie","Nia"],"r":["Jake","Sofia","Grace","Tyler","Freya"]},"cover":{"g":["Ethan","Isla","Omar","Kai","Priya"],"a":["Poppy","Layla","Idris","Elsie","Nia"],"r":["Alfie","Sofia","Grace","Tyler","Freya"]},"proof":{"g":["Amelia","Isla","Omar","Kai","Priya"],"a":["Oscar","Layla","Idris","Elsie","Nia"],"r":["Daniel","Sofia","Grace","Tyler","Freya"]},"before":{"g":["Evie","Isla","Omar","Kai","Priya"],"a":["Jess","Layla","Idris","Elsie","Nia"],"r":["Kyle","Sofia","Grace","Tyler","Freya"]},"speak":{"g":["Callum","Isla","Omar","Kai","Priya"],"a":["Nia","Layla","Idris","Elsie"],"r":["Rhys","Sofia","Grace","Tyler","Freya"]},"plainly":{"g":["Aisha","Isla","Omar","Kai","Priya"],"a":["Tom","Layla","Idris","Elsie","Nia"],"r":["Grace","Sofia","Tyler","Freya"]}};
 per.explainer = Object.assign({}, per.quiet);
 NAMES_OVR.explainer = NAMES_OVR.quiet;
+NAMES_OVR.puzzle = per.puzzle.names;
 function cfgFor(id) {
   const c = Object.assign({}, base, per[id] || {});
   if (NAMES_OVR[id]) c.names = NAMES_OVR[id];

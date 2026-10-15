@@ -312,6 +312,7 @@ ${size.id === 'hd' ? `.scene:not(.centre){flex-direction:row;align-items:center;
 .col.a{border-top-color:${c.amber}}
 .col.r{border-top-color:${c.red}}
 .cn{font-size:calc(var(--u) * 4.6);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.res.nt .col{border-top-color:#8a9bbd}.res.nt .col .cn{color:#dbe3f3}
 .col.g .cn{color:${c.green}}.col.a .cn{color:${c.amber}}.col.r .cn{color:${c.red}}
 .cl{font-size:calc(var(--u) * 2.1);font-weight:800;color:#fff;margin-top:calc(var(--u) * .8)}
 .ul{margin:calc(var(--u) * 1.2) 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:calc(var(--u) * .8)}
@@ -608,7 +609,7 @@ const SCENES = {
 
   results: (b, cfg) => ({
     cap: 'top',
-    html: `<div class="res">
+    html: `<div class="res${cfg.neutral ? ' nt' : ''}">
       <div class="rtop">
         <div><div class="rtopic">${esc(cfg.topic || '')}</div><div class="rsub">${esc(cfg.sub || '')}</div></div>
         <div class="rpct">2 min</div>
@@ -647,7 +648,7 @@ const SCENES = {
       qs('.ul li.hl').forEach(function (el, i) {
         var h = e3((p - 0.25 - i * 0.22) / 0.1);
         var k = el.getAttribute('data-k');
-        var col = k === 'g' ? '46,204,113' : k === 'r' ? '255,92,92' : '255,196,61';
+        var col = root.querySelector('.res.nt') ? '138,155,189' : k === 'g' ? '46,204,113' : k === 'r' ? '255,92,92' : '255,196,61';
         el.style.opacity = Math.max(+el.style.opacity, h).toFixed(3);
         el.style.background = 'rgba(' + col + ',' + (0.28 * h).toFixed(3) + ')';
         el.style.boxShadow = '0 0 0 ' + (3 * h).toFixed(1) + 'px rgba(' + col + ',' + (0.9 * h).toFixed(3) + ')';

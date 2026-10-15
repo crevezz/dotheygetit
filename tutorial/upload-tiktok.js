@@ -171,7 +171,7 @@ function getLatestVideoLegacy() {
    daily task just posts the next one and does nothing when the list is done.
    Force one ad:  node upload-tiktok.js nod          Preview only:  --dry */
 const STATE_PATH = path.join(__dirname, 'tiktok_state.json');
-const MIN_GAP_HOURS = 20;   // one post per day, hard floor. Never spam.
+const MIN_GAP_HOURS = 3; // only guards against rapid re-runs; tiktok_state.json is what stops repeats   // one post per day, hard floor. Never spam.
 const AD_ORDER = ['nod', 'ninepm', 'twominutes', 'middle', 'cover', 'proof', 'before', 'speak', 'plainly', 'sayit'];
 
 function readState() {
@@ -247,6 +247,12 @@ function getLatestVideo() {
 
 /* One caption per ad, keyed by the ad id. Kept to a single line. */
 const CAPTIONS = {
+    explainer:
+        'Get It? - find out who ACTUALLY got the lesson, in 2 minutes.\n' +
+        'Type a topic, it writes the questions. Every pupil answers privately on any ' +
+        'device - typed or spoken. You see who got it, by name.\n' +
+        'Free while we are in beta, no login for pupils: dotheygetit.app\n' +
+        '#ukteachers #teachersoftiktok #afl #edutwitter #teachingideas',
     sayit: 'Not every pupil will write an answer. They can just say it out loud - Get It? turns speech into text, so you still see who understood. Free for teachers: dotheygetit.app  #teachersoftiktok #ukteachers #edtech #primaryteacher #assessment #send #eal',
     plainly: 'Half the class nodded. You still do not know who actually got it. Get It? is a free website that checks what your class has just learned - type a topic, it writes the questions, pupils answer privately on any device. dotheygetit.app  #ukteachers #teachersoftiktok #edtech #assessment #ks2 #ks3',
     ninepm: '9pm. Thirty books still to mark. And you still do not know who got it. Get It? writes a quick quiz on your topic and shows you who understood, in two minutes. Free. dotheygetit.app  #teachersoftiktok #ukteachers #marking #workload #teacherlife',
