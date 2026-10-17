@@ -100,7 +100,7 @@ stop guessing:
 So a chapter can only ever be wrong if the words are wrong — never because the
 audio slid.
 
-Result: 14 chapters, 8 min 50 s laptop (rebuilt 17 Oct 2026, ~116 MB) / 7 min 41 s phone (~15 MB).
+Result: 14 chapters, 8 min 50 s on both sets (rebuilt 17–18 Oct 2026).
 
 Speed stays near 1× wherever the scene is roughly as long as the words. The two
 slowest (0.83× and 0.84×) are chapters whose scene is *shorter* than the
