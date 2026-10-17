@@ -116,7 +116,7 @@
         <option value="1.75">1.75×</option>
         <option value="2">2×</option>
       </select>
-      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (8 min)</a>
+      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (9 min)</a>
     </div>
   </div>
 
@@ -133,20 +133,20 @@
 
 <script>
 const CHAPTERS = [
-  { n:1,  id:'01-what-get-it-is',            title:'What Get It? is',          sub:'The bit behind it',                     d:'Why a right answer on paper can still hide a gap.', len:'0:27', secs:27.1 },
-  { n:2,  id:'02-create-your-account',       title:'Create your account',      sub:'Takes about a minute',                  d:'Email, password, done. Your classes follow you to any computer.', len:'0:27', secs:27.0 },
-  { n:3,  id:'03-set-up-your-class',         title:'Set up your class',        sub:'One code, lasts all year',              d:'Name the class, then paste your list straight from SIMS or Arbor.', len:'0:35', secs:34.6 },
-  { n:4,  id:'03b-put-the-code-on-the-wall', title:'Put the code on the wall', sub:'Or on the board',                       d:'Copy the code, copy the link, or show the QR and print it.', len:'0:31', secs:31.1 },
-  { n:5,  id:'03c-the-year-group',           title:'Tell it the year group',   sub:'So the marking expects the right amount',d:'Optional. It changes how much explaining the marking expects - not the questions.', len:'0:23', secs:23.0 },
-  { n:6,  id:'04-write-the-questions',       title:'Write the questions',      sub:'You type the topic. That is it.',       d:'Generate, rewrite, add, delete. No Sunday evening.', len:'0:40', secs:40.2 },
-  { n:7,  id:'05-how-pupils-join',           title:'How pupils join',          sub:'Play this one on the whiteboard',       d:'The whole pupil journey: code, name, explain it in their own words, send.', len:'0:52', secs:51.6 },
-  { n:8,  id:'05b-what-the-pupil-sees',      title:'What the pupil sees',      sub:'Worth watching once',                   d:'Their screen: pick your name, answer in your own words, send.', len:'0:31', secs:31.3 },
-  { n:9,  id:'06-read-your-results',         title:'Read your results',        sub:'Who got it, who did not',               d:'Green, amber, red - and what each pupil actually said.', len:'0:38', secs:38.4 },
-  { n:10, id:'07-change-a-colour',           title:'Change a colour yourself', sub:'You decide, not the AI',                d:'The AI can be wrong. Click the colour you would give, and it sticks.', len:'0:26', secs:25.5 },
-  { n:11, id:'08-spot-the-pattern',          title:'Spot the pattern',         sub:'The record builds itself',              d:'A dot per pupil per check. Two in a row is a pattern.', len:'0:30', secs:29.9 },
-  { n:12, id:'06b-take-the-record-away',     title:'Take the record away',     sub:'A pupil, or the whole class',           d:'Open one pupil’s record, or export the whole class as a spreadsheet.', len:'0:34', secs:33.9 },
-  { n:13, id:'09-your-data',                 title:'Your data, and theirs',    sub:'In plain English',                      d:'What is kept, who sees it, what is exported, what is deleted.', len:'0:43', secs:42.5 },
-  { n:14, id:'09b-if-it-gets-it-wrong',      title:'If it gets it wrong',      sub:'Tell me, and it gets better',           d:'A lesson it marked wrong? Say so, in a sentence.', len:'0:25', secs:24.5 }
+  { n:1,  id:'01-what-get-it-is',            title:'What Get It? is',          sub:'The bit behind it',                     d:'Why a right answer on paper can still hide a gap.', len:'0:32', secs:31.7 },
+  { n:2,  id:'02-create-your-account',       title:'Create your account',      sub:'Takes about a minute',                  d:'Email, password, done. Your classes follow you to any computer.', len:'0:32', secs:31.9 },
+  { n:3,  id:'03-set-up-your-class',         title:'Set up your class',        sub:'One code, lasts all year',              d:'Name the class, then paste your list straight from SIMS or Arbor.', len:'0:40', secs:39.7 },
+  { n:4,  id:'03b-put-the-code-on-the-wall', title:'Put the code on the wall', sub:'Or on the board',                       d:'Copy the code, copy the link, or show the QR and print it.', len:'0:36', secs:36.1 },
+  { n:5,  id:'03c-the-year-group',           title:'Tell it the year group',   sub:'So the marking expects the right amount',d:'Optional. It changes how much explaining the marking expects - not the questions.', len:'0:28', secs:28.0 },
+  { n:6,  id:'04-write-the-questions',       title:'Write the questions',      sub:'You type the topic. That is it.',       d:'Generate, rewrite, add, delete. No Sunday evening.', len:'0:45', secs:45.3 },
+  { n:7,  id:'05-how-pupils-join',           title:'How pupils join',          sub:'Play this one on the whiteboard',       d:'The whole pupil journey: code, name, explain it in their own words, send.', len:'0:57', secs:56.6 },
+  { n:8,  id:'05b-what-the-pupil-sees',      title:'What the pupil sees',      sub:'Worth watching once',                   d:'Their screen: pick your name, answer in your own words, send.', len:'0:36', secs:36.4 },
+  { n:9,  id:'06-read-your-results',         title:'Read your results',        sub:'Who got it, who did not',               d:'Green, amber, red - and what each pupil actually said.', len:'0:43', secs:43.4 },
+  { n:10, id:'07-change-a-colour',           title:'Change a colour yourself', sub:'You decide, not the AI',                d:'The AI can be wrong. Click the colour you would give, and it sticks.', len:'0:30', secs:30.1 },
+  { n:11, id:'08-spot-the-pattern',          title:'Spot the pattern',         sub:'The record builds itself',              d:'A dot per pupil per check. Two in a row is a pattern.', len:'0:35', secs:34.8 },
+  { n:12, id:'06b-take-the-record-away',     title:'Take the record away',     sub:'A pupil, or the whole class',           d:'Open one pupil’s record, or export the whole class as a spreadsheet.', len:'0:39', secs:38.9 },
+  { n:13, id:'09-your-data',                 title:'Your data, and theirs',    sub:'In plain English',                      d:'What is kept, who sees it, what is exported, what is deleted.', len:'0:47', secs:47.3 },
+  { n:14, id:'09b-if-it-gets-it-wrong',      title:'If it gets it wrong',      sub:'Tell me, and it gets better',           d:'A lesson it marked wrong? Say so, in a sentence.', len:'0:30', secs:29.6 }
 ];
 
 const BASE = { laptop: '/help/', phone: '/help/mobile/' };
@@ -265,7 +265,7 @@ document.getElementById('btnAll').addEventListener('click', ev => {
   ev.preventDefault();
   v.src = BASE[dev] + 'all.mp4';
   nowTitle.textContent = 'Get It? — all fourteen, in order';
-  nowSub.textContent = '7 minutes 41 seconds. Includes the title cards.';
+  nowSub.textContent = '8 minutes 50 seconds. Includes the title cards.';
   v.play().catch(() => {});
   render();
 });
