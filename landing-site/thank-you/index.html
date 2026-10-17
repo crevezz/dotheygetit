@@ -6,15 +6,21 @@
 <meta name="robots" content="noindex"/>
 <title>Thanks - opening Get It?</title>
 <link rel="icon" href="/favicon.svg"/>
-<!-- Meta Pixel Code -->
+<!-- Google Consent Mode v2: everything denied until the visitor chooses. -->
 <script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1200765335594050');
-fbq('track', 'PageView');
-fbq('track', 'CompleteRegistration');
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+    functionality_storage: 'granted',
+    security_storage: 'granted'
+  });
 </script>
-<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1200765335594050&ev=CompleteRegistration&noscript=1"/></noscript>
-<!-- End Meta Pixel Code -->
+<link rel="stylesheet" href="/consent.css"/>
+<script src="/consent.js" defer></script>
 <noscript><meta http-equiv="refresh" content="1;url=https://app.dotheygetit.app/"/></noscript>
 <style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;text-align:center}
@@ -32,8 +38,13 @@ a{color:#3ddc84}
   <h1>Thanks - opening Get It?</h1>
   <p>Taking you to the app now.</p>
   <a href="https://app.dotheygetit.app/">Not moving? Tap here</a>
+  <p style="font-size:13px;margin-top:26px"><a href="/terms/">Terms</a> &middot; <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <button type="button" class="getit-cookie-link" data-cookie-settings>Cookie settings</button></p>
 </div>
 <script>
+// Only fires if the visitor has accepted cookies (see consent.js).
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.getitTrack) window.getitTrack('CompleteRegistration');
+});
 // Give the pixel a moment to send, then go straight to the app.
 setTimeout(function(){ window.location.replace('https://app.dotheygetit.app/'); }, 1200);
 </script>

@@ -4,13 +4,21 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-HT4BJ8KBY1"></script>
+<!-- Google Consent Mode v2: everything denied until the visitor chooses. -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-HT4BJ8KBY1');
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+    functionality_storage: 'granted',
+    security_storage: 'granted'
+  });
 </script>
+<link rel="stylesheet" href="/consent.css"/>
+<script src="/consent.js" defer></script>
 
 <title>Contact us - Get It?</title>
 <link rel="canonical" href="https://dotheygetit.app/contact/"/>
@@ -121,14 +129,7 @@
   footer a{color:var(--muted);font-weight:600}
   footer a:hover{color:var(--text)}
 </style>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1200765335594050');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1200765335594050&ev=PageView&noscript=1"/></noscript>
-<!-- End Meta Pixel Code -->
+
 </head>
 <body>
 
@@ -225,7 +226,9 @@ fbq('track', 'PageView');
   <div class="wrap">
     <a href="/">Home</a> &middot; <a href="/blog/">Blog</a> &middot; <a href="/#pricing">Free</a> &middot;
     <a href="https://app.dotheygetit.app/help">How it works</a> &middot;
+    <a href="/terms/">Terms</a> &middot;
     <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot;
+    <button type="button" class="getit-cookie-link" data-cookie-settings>Cookie settings</button> &middot;
     <a href="mailto:support@dotheygetit.app">support@dotheygetit.app</a> &middot;
     Made by <a href="https://rapidwebdevs.co.uk" target="_blank" rel="noopener">RapidWeb</a>
   </div>

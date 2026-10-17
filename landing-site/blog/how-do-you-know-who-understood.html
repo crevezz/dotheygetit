@@ -3,14 +3,21 @@
 <head>
 <meta charset="utf-8"/>
 
-<!-- Google Analytics (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-HT4BJ8KBY1"></script>
+<!-- Google Consent Mode v2: everything denied until the visitor chooses. -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-HT4BJ8KBY1');
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+    functionality_storage: 'granted',
+    security_storage: 'granted'
+  });
 </script>
+<link rel="stylesheet" href="/consent.css"/>
+<script src="/consent.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>How do you know who actually understood the lesson? | Get It?</title>
 <link rel="canonical" href="https://dotheygetit.app/blog/how-do-you-know-who-understood"/>
@@ -48,14 +55,7 @@
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://dotheygetit.app/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://dotheygetit.app/blog/"},{"@type":"ListItem","position":3,"name":"How do you know who actually understood the lesson?","item":"https://dotheygetit.app/blog/how-do-you-know-who-understood"}]}
 </script>
 
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1200765335594050');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1200765335594050&ev=PageView&noscript=1"/></noscript>
-<!-- End Meta Pixel Code -->
+
 </head>
 <body>
 
@@ -196,7 +196,7 @@ fbq('track', 'PageView');
   <div class="wrap">
     <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg></span><span>Get It?<small>Do they get it?</small></span></div>
     <p>Know who got it &mdash; before the test does.</p>
-    <p class="fine"><a href="/blog/">Blog</a> &middot; <a href="https://app.dotheygetit.app/help">How it works</a> &middot; <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="mailto:support@dotheygetit.app">Contact</a> &middot; Made by <a href="https://rapidwebdevs.co.uk" target="_blank" rel="noopener">RapidWeb</a></p>
+    <p class="fine"><a href="/blog/">Blog</a> &middot; <a href="https://app.dotheygetit.app/help">How it works</a> &middot; <a href="/terms/">Terms</a> &middot; <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <button type="button" class="getit-cookie-link" data-cookie-settings>Cookie settings</button> &middot; <a href="mailto:support@dotheygetit.app">Contact</a> &middot; Made by <a href="https://rapidwebdevs.co.uk" target="_blank" rel="noopener">RapidWeb</a></p>
   </div>
 </footer>
 
