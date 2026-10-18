@@ -1164,6 +1164,64 @@ async function finish() {
   d.scrollIntoView({ block: 'end', behavior: 'smooth' });
 }
 
+
+/* Analytics for teachers only. The pupil tab and a join link are never counted.
+   Same cookie choice as the public site, and nothing loads until they accept. */
+(function () {
+  var KEY = 'getit_cookie_consent';
+  function teacherOn() {
+    if (new URLSearchParams(location.search).get('join')) return false;
+    var tab = document.getElementById('tab-teacher');
+    return !!(tab && tab.classList.contains('active'));
+  }
+  function hideBar() {
+    var bar = document.getElementById('cookieBar');
+    if (bar) bar.remove();
+  }
+  function loadGA() {
+    if (!teacherOn()) return;
+    if (window.__getitGa) return;
+    window.__getitGa = true;
+    var tag = document.createElement('script');
+    tag.async = true;
+    tag.src = 'https://www.googletagmanager.com/gtag/js?id=G-HT4BJ8KBY1';
+    document.head.appendChild(tag);
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    gtag('js', new Date());
+    gtag('config', 'G-HT4BJ8KBY1', { anonymize_ip: true });
+  }
+  function banner() {
+    if (!teacherOn() || document.getElementById('cookieBar')) return;
+    var bar = document.createElement('div');
+    bar.id = 'cookieBar';
+    bar.setAttribute('role', 'dialog');
+    bar.setAttribute('aria-label', 'Cookies');
+    bar.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;z-index:80;max-width:640px;margin:0 auto;background:#17233d;color:#e8eefc;border:1px solid #2c3d66;border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 12px 40px rgba(0,0,0,.35);font-size:14px';
+    bar.innerHTML = '<span style="flex:1;min-width:220px">This page uses Google Analytics so I can see the app is being used. Pupils are not counted. <a href="/privacy" style="color:#9eb6ff">Privacy</a></span><button type="button" id="cookieNo" style="background:none;border:1px solid #3a4d78;color:#e8eefc;border-radius:10px;padding:8px 12px;font:inherit;cursor:pointer">Reject</button><button type="button" id="cookieYes" style="background:#4f8cff;border:0;color:#fff;border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer">Accept</button>';
+    document.body.appendChild(bar);
+    document.getElementById('cookieYes').onclick = function () { decide('granted'); };
+    document.getElementById('cookieNo').onclick = function () { decide('denied'); };
+  }
+  function decide(v) {
+    try { localStorage.setItem(KEY, v); } catch (e) {}
+    hideBar();
+    if (v === 'granted') loadGA();
+  }
+  function sync() {
+    if (!teacherOn()) { hideBar(); return; }
+    var choice = null;
+    try { choice = localStorage.getItem(KEY); } catch (e) {}
+    if (choice === 'granted') loadGA();
+    else if (choice !== 'denied') banner();
+  }
+  document.querySelectorAll('.tab').forEach(function (btn) {
+    btn.addEventListener('click', function () { setTimeout(sync, 0); });
+  });
+  var again = document.getElementById('cookieSettings');
+  if (again) again.addEventListener('click', function () { if (teacherOn()) banner(); });
+  sync();
+})();
+
 // ------------------------------------------------------------------- startup
 (function () {
   const join = new URLSearchParams(location.search).get('join');
