@@ -64,6 +64,21 @@
       <span class="tutnote">Fourteen short videos &middot; seven and a half minutes for the lot</span>
     </div>
 
+    
+    <script>
+    /* nudge the community button once, after the page has settled, and never again in this browser */
+    (function () {
+      var btn = document.querySelector(".tutdisc");
+      if (!btn) return;
+      try { if (localStorage.getItem("getit.fb-nudge")) return; } catch (e) {}
+      setTimeout(function () {
+        btn.classList.add("nudge");
+        try { localStorage.setItem("getit.fb-nudge", "1"); } catch (e) {}
+        btn.addEventListener("animationend", function () { btn.classList.remove("nudge"); }, { once: true });
+      }, 4000);
+    })();
+    </script>
+
     <div class="card narrow" id="signinCard">
       <h2>Teacher sign in</h2>
       <p class="muted">Your classes are saved to your account, so they follow you to any computer.</p>

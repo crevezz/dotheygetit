@@ -532,4 +532,15 @@ select {
   transition:transform .16s, border-color .16s;
 }
 .tutdisc:hover{transform:translateY(-1px);border-color:var(--accent)}
+/* one short nudge, a few seconds after load. The JS adds .nudge once per browser. */
+@keyframes tutdisc-nudge{
+  0%, 62%, 100%{transform:translateX(0)}
+  70%{transform:translateX(-3px) rotate(-1.5deg)}
+  78%{transform:translateX(3px) rotate(1.5deg)}
+  86%{transform:translateX(-2px) rotate(-1deg)}
+  94%{transform:translateX(2px) rotate(1deg)}
+}
+.tutdisc.nudge{animation:tutdisc-nudge 1.7s ease-in-out}
+.tutdisc.nudge:hover{animation:none}
+@media (prefers-reduced-motion: reduce){ .tutdisc.nudge{animation:none} }
 @media (max-width:520px){ .tutnote{display:none} .tutbtn{width:100%;justify-content:center} }
