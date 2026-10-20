@@ -489,6 +489,9 @@ select {
   max-width:760px;margin:30px auto 44px;padding:0 18px;
   font-size:12px;line-height:1.55;color:var(--muted);text-align:center;
 }
+.tiktokline{margin-top:8px;margin-bottom:8px}
+a.tiktok{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+a.tiktok svg{display:block;flex:0 0 auto}
 
 /* A pupil who has already answered is greyed out on the teacher board, so finished work
    is obvious at a glance without opening each one. */
