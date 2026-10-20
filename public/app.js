@@ -73,6 +73,8 @@ let checks = [];
 let generated = [];
 let resultFilter = 'all';
 let pollTimer = null;
+let hereTimer = null;
+let liveTimer = null;
 
 async function boot() {
   try { const j = await api('/api/me'); me = j.teacher; } catch { me = null; }
@@ -82,10 +84,31 @@ async function boot() {
     $('#whoami').textContent = me.email + (me.role === 'admin' ? ' · owner' : '');
     await loadClasses();
     loadAdmin();
+    startHere();
   } else {
+    stopHere();
+    stopLive();
     $('#signinCard').classList.remove('hidden');
     $('#dash').classList.add('hidden');
   }
+}
+
+/* While a teacher has this tab open, say so every few seconds. This is the
+   teacher's own page, after they have signed in. A pupil join link never
+   runs it, and it is not Google Analytics. */
+function stopHere() { if (hereTimer) { clearInterval(hereTimer); hereTimer = null; } }
+function startHere() {
+  stopHere();
+  if (!me) return;
+  const ping = () => {
+    if (!me || document.hidden) return;
+    if (new URLSearchParams(location.search).get('join')) return;
+    const tab = document.getElementById('tab-teacher');
+    if (!tab || !tab.classList.contains('active')) return;
+    api('/api/here').catch(() => {});
+  };
+  ping();
+  hereTimer = setInterval(ping, 20000);
 }
 
 $('#btnLogin').addEventListener('click', () => doAuth('/api/login'));
@@ -140,6 +163,8 @@ if (fbSend) fbSend.addEventListener('click', async () => {
 $('#btnLogout').addEventListener('click', async () => {
   try { await post('/api/logout'); } catch {}
   me = null; myClasses = []; activeClass = null;
+  stopHere();
+  stopLive();
   $('#adminWrap').innerHTML = '';
   $('#classPanel').classList.add('hidden');
   await boot();
@@ -764,8 +789,36 @@ function drawResults(s, students) {
 }
 
 // ------------------------------------------------------------ owner / admin
+function stopLive() { if (liveTimer) { clearInterval(liveTimer); liveTimer = null; } }
+async function refreshLive() {
+  if (!me || me.role !== 'admin') return;
+  if (!document.getElementById('liveTeachers')) return;
+  try {
+    const j = await api('/api/admin/live');
+    $('#liveTeachers').textContent = j.teachers;
+    $('#livePupils').textContent = j.pupils;
+    $('#liveChecks').textContent = j.checksRunning;
+    const t = j.today || {};
+    const piece = (n, one, many) => n + ' ' + (Number(n) === 1 ? one : many);
+    $('#liveToday').textContent = 'Today: ' + piece(t.checks, 'check started', 'checks started') + ', ' + piece(t.answers, 'answer in', 'answers in') + ', ' + piece(t.teachers, 'teacher ran a check', 'teachers ran a check') + '. Right now means the last ' + j.windowMin + ' minutes. The pupil number is anonymous: answers that just came in. It is not saved, and it names nobody.';
+    const stamp = document.getElementById('liveStamp');
+    if (stamp) stamp.textContent = 'updated ' + new Date(j.asOf).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } catch (e) {
+    const stamp = document.getElementById('liveStamp');
+    if (stamp) stamp.textContent = 'could not refresh';
+  }
+}
+function startLive() {
+  stopLive();
+  refreshLive();
+  liveTimer = setInterval(refreshLive, 15000);
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && me && me.role === 'admin') refreshLive();
+});
+
 async function loadAdmin() {
-  if (!me || me.role !== 'admin') { $('#adminWrap').innerHTML = ''; return; }
+  if (!me || me.role !== 'admin') { $('#adminWrap').innerHTML = ''; stopLive(); return; }
   try {
     const j = await api('/api/admin/overview');
     const t = j.totals;
@@ -782,7 +835,18 @@ async function loadAdmin() {
       </div>`).join('');
     $('#adminWrap').innerHTML =
       `<div class="card">
-         <div class="srow"><h3>Owner view</h3><span class="small">everyone using it - Remove teacher deletes the account and everything they made</span></div>
+         <div class="livebar tight">
+           <span class="dot"></span>
+           <span>On it right now</span>
+           <span class="small" id="liveStamp">checking…</span>
+         </div>
+         <div class="stat-row" aria-live="polite">
+           <div class="stat green"><b id="liveTeachers">–</b><span>teachers</span></div>
+           <div class="stat"><b id="livePupils">–</b><span>pupils</span></div>
+           <div class="stat amber"><b id="liveChecks">–</b><span>checks running</span></div>
+         </div>
+         <p class="muted tiny" id="liveToday">Today’s checks and answers appear here.</p>
+         <div class="srow" style="margin-top:18px"><h3>Owner view</h3><span class="small">every account, and what they have made — Remove teacher deletes the account and everything they made</span></div>
          <div class="stat-row">
            <div class="stat green"><b>${t.teachers}</b><span>teachers</span></div>
            <div class="stat amber"><b>${t.classes}</b><span>classes</span></div>
@@ -839,8 +903,10 @@ async function loadAdmin() {
           : '<p class="muted">No errors. </p>');
       } catch (e) { setMsg($('#healthMsg'), e.message); }
     });
+    startLive();
   } catch (e) {
     $('#adminWrap').innerHTML = '';
+    stopLive();
   }
 }
 

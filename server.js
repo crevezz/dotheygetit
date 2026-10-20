@@ -177,19 +177,143 @@ function cookies(req) {
   });
   return out;
 }
+
+/* Who is on the app right now. Memory only for the "right now" view: nothing
+   in this block is written to the data file, Redis, or any analytics service.
+   Teachers are the accounts already signed in. The owner already sees those.
+   Pupils are children, so the pupil figure is an anonymous total and nothing
+   else. It is the number of answers already saved on a check whose time is
+   inside the last few minutes. Those answers were stored anyway, for the
+   teacher. This count does not copy the name, the IP, a device, a cookie, or
+   a history of its own. A pupil still typing is not in the number yet.
+   Google Analytics is never involved, and pupil pages do not load it. */
+const LIVE_WINDOW_MS = 5 * 60 * 1000;
+const presence = { teachers: new Map(), checks: new Map() };
+
+function prunePresence(now) {
+  for (const map of [presence.teachers, presence.checks]) {
+    for (const [k, at] of map) if (now - at > LIVE_WINDOW_MS) map.delete(k);
+  }
+}
+setInterval(() => prunePresence(Date.now()), 60000).unref();
+
+function noteTeacher(id) {
+  if (!id) return;
+  presence.teachers.set(id, Date.now());
+}
+function forgetTeacher(id) {
+  if (id) presence.teachers.delete(id);
+}
+function noteCheck(id) {
+  if (!id) return;
+  presence.checks.set(id, Date.now());
+}
+function forgetCheck(id) {
+  if (id) presence.checks.delete(id);
+}
+function noteCheckFromCode(code) {
+  const c = String(code || '').trim().toLowerCase();
+  if (!c) return;
+  const cls = store.classes.find(x => x.code === c);
+  if (!cls) return;
+  const s = latestSessionForClass(cls.id);
+  if (s) noteCheck(s.id);
+}
+/* Anonymous. Reads only the time already stored on an answer, never the name. */
+function anonymousPupilCount(now) {
+  const cut = now - LIVE_WINDOW_MS;
+  let n = 0;
+  for (const s of store.sessions) {
+    for (const st of s.students || []) {
+      if ((st.at || 0) >= cut) n++;
+    }
+  }
+  return n;
+}
+function londonOffsetMs(utcMs) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London', hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).formatToParts(new Date(utcMs)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
+  const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return asUtc - utcMs;
+}
+function londonMidnight(now) {
+  const day = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date(now));
+  /* Noon is never the clock change, so its offset is the offset at midnight too. */
+  return Date.parse(day + 'T00:00:00Z') - londonOffsetMs(Date.parse(day + 'T12:00:00Z'));
+}
+function liveSnapshot() {
+  const now = Date.now();
+  prunePresence(now);
+  const start = londonMidnight(now);
+  let answersToday = 0, checksToday = 0;
+  const teachersToday = new Set();
+  for (const s of store.sessions) {
+    if ((s.createdAt || 0) >= start) {
+      checksToday++;
+      if (s.teacherId) teachersToday.add(s.teacherId);
+    }
+    for (const st of s.students || []) {
+      if ((st.at || 0) >= start) {
+        answersToday++;
+        if (s.teacherId) teachersToday.add(s.teacherId);
+      }
+    }
+  }
+  return {
+    windowMin: LIVE_WINDOW_MS / 60000,
+    teachers: presence.teachers.size,
+    pupils: anonymousPupilCount(now),
+    checksRunning: presence.checks.size,
+    today: { checks: checksToday, answers: answersToday, teachers: teachersToday.size },
+    asOf: now
+  };
+}
+
 function currentTeacher(req) {
   const t = cookies(req).sid;
   if (!t) return null;
   const id = store.tokens[t];
   if (!id) return null;
-  return store.teachers.find(x => x.id === id) || null;
+  const teacher = store.teachers.find(x => x.id === id) || null;
+  if (teacher) noteTeacher(teacher.id);
+  return teacher;
 }
 function publicTeacher(t) { return { id: t.id, email: t.email, role: t.role || 'teacher', name: t.name || '' }; }
 
 // ----------------------------------------------------------------------- llm
 /* Gemini first when GEMINI_API_KEY is set; OpenRouter if that call fails.
-   No Gemini key: this is the old OpenRouter call, unchanged. */
+   No Gemini key: this is the old OpenRouter call, unchanged.
+   MOCK_AI is off unless the 15-pupil test sets it. Never set it on the live
+   site: every mark would be fake. */
+function mockAiReply(messages) {
+  const blob = (messages || []).map(m => String((m && m.content) || '')).join('\n');
+  if (/Reply with exactly:\s*OK/i.test(blob)) return 'OK';
+  if (/"followup"/.test(blob)) return JSON.stringify({ followup: false, question: '' });
+  if (/"shown"/.test(blob)) return JSON.stringify({ shown: [1], reason: true });
+  if (/gotRight/.test(blob)) {
+    return JSON.stringify({
+      gotRight: ['the main idea'],
+      level: 'amber',
+      gets: 'the main idea',
+      shaky: 'why it works',
+      faked: false,
+      notes: 'Test mark, not a real model.',
+      nextStep: 'Has the idea, thin on why.'
+    });
+  }
+  if (/"marks"/.test(blob)) return JSON.stringify({ marks: [['says the idea', 'says why']] });
+  if (/"level"/.test(blob)) return JSON.stringify({ level: 'amber', why: 'test mark' });
+  if (/"question"/.test(blob)) return JSON.stringify({ question: 'What is one thing you remember?' });
+  return 'OK';
+}
+
 async function llm(messages, opts = {}) {
+  if (process.env.MOCK_AI === '1') return mockAiReply(messages);
   return chatComplete(messages, {
     model: opts.model || cfg.model,
     temperature: opts.temperature,
@@ -1437,9 +1561,21 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/logout' && req.method === 'POST') {
       const tok = cookies(req).sid;
-      if (tok) delete store.tokens[tok];
+      if (tok) {
+        const id = store.tokens[tok];
+        delete store.tokens[tok];
+        if (id && !Object.values(store.tokens).includes(id)) forgetTeacher(id);
+      }
       saveStore();
       return sendJson(res, { ok: true }, { 'Set-Cookie': 'sid=; HttpOnly; Path=/; Max-Age=0' });
+    }
+
+    /* Teacher pages ping this while the dashboard is open, so a teacher who is
+       reading the screen still counts as here. Pupil pages never call it. */
+    if (p === '/api/here' && req.method === 'GET') {
+      const t = currentTeacher(req);
+      if (!t) return sendErr(res, 'Not logged in.', 401);
+      return sendJson(res, { ok: true }, { 'Cache-Control': 'no-store' });
     }
 
     if (p === '/api/me') {
@@ -1485,6 +1621,7 @@ const server = http.createServer(async (req, res) => {
          pupil cannot sit it twice - they get a done screen instead of the chat. */
       const who = String(url.searchParams.get('name') || '').trim().toLowerCase();
       const done = !!who && s.students.some(st => String(st.name).trim().toLowerCase() === who);
+      noteCheck(s.id);
       return sendJson(res, { className: c.name, check: { id: s.id, topic: s.topic, questions: s.questions || [] }, names, done });
     }
 
@@ -1579,6 +1716,7 @@ const server = http.createServer(async (req, res) => {
       const id = url.searchParams.get('id');
       const s = store.sessions.find(x => x.id === id && x.teacherId === t.id);
       if (!s) return sendErr(res, 'Check not found.');
+      noteCheck(s.id);
       const c = store.classes.find(x => x.id === s.classId);
       return sendJson(res, { check: s, className: c ? c.name : '', classCode: c ? c.code : '' });
     }
@@ -1740,6 +1878,7 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       const codeIn = String(b.code || '').trim().toLowerCase();
       const cls = store.classes.find(x => x.code === codeIn);
       if (!codeIn || !cls) return sendErr(res, 'That class code is not right. Check it with your teacher.');
+      noteCheckFromCode(codeIn);
 
       const total = questions.length || cfg.maxQuestions;
       const asked = history.filter(x => x.role === 'assistant').length;
@@ -1783,6 +1922,7 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       const topic = String(b.topic || '').trim();
       const transcript = String(b.transcript || '').trim();
       if (!topic || !transcript) return sendErr(res, 'Missing topic or transcript.');
+      if (b.code) noteCheckFromCode(b.code);
       let year = String(b.year || '').trim();
 
       /* the teacher's mark points for this check - sent direct, or looked up from
@@ -1893,6 +2033,13 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       });
     }
 
+    if (p === '/api/admin/live' && req.method === 'GET') {
+      const me = currentTeacher(req);
+      if (!me) return sendErr(res, 'Not signed in.', 401);
+      if (me.role !== 'admin') return sendErr(res, 'Not allowed.', 403);
+      return sendJson(res, liveSnapshot(), { 'Cache-Control': 'no-store' });
+    }
+
     if (p === '/api/admin/overview' && req.method === 'GET') {
       const me = currentTeacher(req);
       if (!me) return sendErr(res, 'Not signed in.', 401);
@@ -1945,6 +2092,8 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       store.classes = store.classes.filter(c => c.teacherId !== t.id);
       store.sessions = store.sessions.filter(s => !ids.includes(s.classId) && s.teacherId !== t.id);
       for (const [tok, owner] of Object.entries(store.tokens)) if (owner === t.id) delete store.tokens[tok];
+      forgetTeacher(t.id);
+      theirs.forEach(s => forgetCheck(s.id));
       saveStore();
       return sendJson(res, Object.assign({ ok: true }, gone));
     }
@@ -2004,6 +2153,7 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       if (!c) return sendErr(res, 'No class found with that code.');
       const s = latestSessionForClass(c.id);
       if (!s) return sendErr(res, 'No check is ready for this class yet.');
+      noteCheck(s.id);
       s.students.push({ name, transcript: String(b.transcript || ''), verdict: b.verdict || null, at: Date.now() });
       saveStore();
       return sendJson(res, { ok: true });
@@ -2016,7 +2166,9 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       const b = await readBody(req);
       const c = store.classes.find(x => x.id === b.classId && x.teacherId === t.id);
       if (!c) return sendErr(res, 'Class not found.');
-      const gone = store.sessions.filter(s => s.classId === c.id).length;
+      const going = store.sessions.filter(s => s.classId === c.id);
+      const gone = going.length;
+      going.forEach(s => forgetCheck(s.id));
       store.classes = store.classes.filter(x => x.id !== c.id);
       store.sessions = store.sessions.filter(s => s.classId !== c.id);
       saveStore();
@@ -2030,6 +2182,7 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       const b = await readBody(req);
       const s = store.sessions.find(x => x.id === b.id && x.teacherId === t.id);
       if (!s) return sendErr(res, 'Check not found.');
+      forgetCheck(s.id);
       store.sessions = store.sessions.filter(x => x.id !== s.id);
       saveStore();
       return sendJson(res, { ok: true });
@@ -2151,7 +2304,7 @@ server.listen(cfg.port, () => {
   console.log('  Get It? is running');
   console.log('  ->  http://localhost:' + cfg.port);
   console.log('  Key loaded: ' + (API_KEY ? 'yes' : 'NO - add key.txt and restart'));
-  console.log('  AI: ' + describeProvider());
+  console.log('  AI: ' + (process.env.MOCK_AI === '1' ? 'MOCK — marks are fake. Never set MOCK_AI on the live site.' : describeProvider()));
   console.log('');
   console.log('  Keep this window open. Close it to stop.');
   console.log('');

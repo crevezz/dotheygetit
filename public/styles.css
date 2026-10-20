@@ -224,6 +224,8 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
   100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}
 }
 .livebar .small-btn{margin-left:auto}
+.livebar.tight{margin-top:0}
+.livebar.tight .small{margin-left:auto}
 
 /* --------------------------------------------------------------- results */
 .stat-row{display:flex;gap:12px;margin:18px 0 4px;flex-wrap:wrap}
