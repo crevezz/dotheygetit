@@ -312,7 +312,10 @@ function mockAiReply(messages) {
   return 'OK';
 }
 
+let markerOverride = null;
+function setMarker(fn) { markerOverride = fn || null; }
 async function llm(messages, opts = {}) {
+  if (markerOverride) return markerOverride(messages, opts);
   if (process.env.MOCK_AI === '1') return mockAiReply(messages);
   return chatComplete(messages, {
     model: opts.model || cfg.model,
@@ -781,12 +784,76 @@ const WORD_FRAC = {
   tenth: '1/10', tenths: '1/10', twelfth: '1/12', twelfths: '1/12',
   twentieth: '1/20', twentieths: '1/20'
 };
+const COUNT_WORD = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+const DENOM_WORD = {
+  half: 2, halves: 2, third: 3, thirds: 3, quarter: 4, quarters: 4, fourth: 4, fourths: 4,
+  fifth: 5, fifths: 5, sixth: 6, sixths: 6, eighth: 8, eighths: 8, ninth: 9, ninths: 9,
+  tenth: 10, tenths: 10, twelfth: 12, twelfths: 12
+};
+function countOf(w) {
+  const s = String(w || '').toLowerCase();
+  if (/^\d+$/.test(s)) return Number(s);
+  return COUNT_WORD[s];
+}
+/* "three quarters" is 3/4, not the 1/4 hiding inside the word "quarters".
+   "two quarters" is the same amount as a half. "one over two" is 1/2.
+   A bare "half" or "quarter" is still one of them. */
 function fracs(s) {
   const t = String(s || '').toLowerCase().replace(/\s*\/\s*/g, '/');
   const out = [];
-  (t.match(/\d+\s*\/\s*\d+/g) || []).forEach(f => out.push(f.replace(/\s/g, '')));
-  (t.match(/[a-z]+/g) || []).forEach(w => { if (WORD_FRAC[w]) out.push(WORD_FRAC[w]); });
+  let masked = t;
+  const eat = (re, build) => {
+    masked = masked.replace(re, (m, a, b) => {
+      const v = build(m, a, b);
+      if (v) out.push(v);
+      return ' '.repeat(m.length);
+    });
+  };
+  eat(/\d+\/\d+/g, m => m);
+  eat(/\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+over\s+(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\b/g, (m, a, b) => {
+    const n = countOf(a), d = countOf(b);
+    return n && d ? n + '/' + d : null;
+  });
+  eat(/\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(halves|half|thirds|third|quarters|quarter|fourths|fourth|fifths|fifth|sixths|sixth|eighths|eighth|ninths|ninth|tenths|tenth|twelfths|twelfth)\b/g, (m, a, b) => {
+    const n = countOf(a), d = DENOM_WORD[b];
+    return n && d ? n + '/' + d : null;
+  });
+  (masked.match(/[a-z]+/g) || []).forEach(w => { if (WORD_FRAC[w]) out.push(WORD_FRAC[w]); });
   return out;
+}
+function fractionValues(s) {
+  const out = [];
+  fracs(s).forEach(f => { const v = fracValue(f); if (v != null) out.push(v); });
+  return out;
+}
+/* The one amount a question's points are naming, if they agree.
+   "says three quarters" is 3/4. A point with no fraction is not an amount. */
+function expectedFractionValue(points) {
+  const vals = [];
+  for (const p of points) {
+    const vs = fractionValues(p);
+    if (vs.length === 1) vals.push(vs[0]);
+  }
+  const uniq = [...new Set(vals)];
+  return uniq.length === 1 ? uniq[0] : null;
+}
+/* The one whole number a non-fraction question works out to.
+   Taken from the mark point when it names the result, otherwise from the sum itself. */
+function expectedNumber(question, points) {
+  const q = String(question || '');
+  if (/\d\s*\/\s*\d/.test(q) || fractionValues((points || []).join(' ')).length) return null;
+  const asked = nums(q);
+  const spare = [];
+  for (const p of points || []) nums(p).forEach(n => { if (!asked.includes(n)) spare.push(n); });
+  const res = arith(q);
+  if (res != null && isFinite(res)) spare.push(String(Number(res)));
+  const uniq = [...new Set(spare)];
+  return uniq.length === 1 ? uniq[0] : null;
+}
+/* "I think" and "not sure" are not a firm answer. The number may still be right,
+   and the card can still show it, but it does not count as "got them all". */
+function isHedged(s) {
+  return /\b(i\s+think|not\s+sure|maybe|dunno|don'?t\s+know|i\s+guess)\b/i.test(String(s || ''));
 }
 
 /* Which thing is being called bigger or smaller. "1/2 because 2 is smaller" is NOT the
@@ -969,6 +1036,7 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
      colour. The words are quoted, never summarised. */
   const hit = new Map();
   let reasonYes = 0;
+  const whyReason = questions.map(() => false);
   for (let k = 0; paired && k < answers.length; k++) {
     const a = answers[k];
     const lo = paired ? offset[k] : 0;
@@ -985,7 +1053,7 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
         { role: 'user', content: 'The pupil answered: ' + a }
       ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
       const o = parseJson(raw);
-      if (o && o.reason === true) reasonYes++;
+      if (o && o.reason === true) { reasonYes++; if (paired) whyReason[k] = true; }
       if (o && Array.isArray(o.shown)) o.shown.forEach(n => {
         const i = Number(n) - 1;
         if (i >= 0 && i < points.length && !hit.has(i)) hit.set(i, a);
@@ -1032,25 +1100,12 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
      question with one answer's number ("23" quoted under "subtracts 12 from 30"). Working
      per question cannot do either: a question's points are only ever touched by an answer
      that carries that question's own number. */
-  /* A pupil who gives the WRONG fraction has not shown the point that names the right
-     one. "3/8" for "1/4 + 2/4" is not "says 3/4" - but the marker reads both as "a
-     fraction", ticks it, and a child who added the bottoms comes back green. Compare the
-     VALUES in code. Equal fractions written differently (2/4 and 1/2) still count. */
-  if (paired) {
-    for (let qi = 0; qi < marks.length; qi++) {
-      const ps = (marks[qi] || []).filter(Boolean);
-      if (!ps.length) continue;
-      const mine = (String(answers[qi] || '').match(/\d+\s*\/\s*\d+/g) || []).map(fracValue).filter(v => v != null);
-      if (mine.length !== 1) continue;
-      for (let k = 0; k < ps.length; k++) {
-        const at = offset[qi] + k;
-        if (!hit.has(at)) continue;
-        const theirs = fracs(ps[k]).map(fracValue).filter(v => v != null);
-        if (theirs.length !== 1) continue;
-        if (mine[0] !== theirs[0]) hit.delete(at);
-      }
-    }
-  }
+  /* A wrong amount cannot keep a mark, including the working point the model ticks
+     beside it. "1/4" is not "one half", and it is not "adds the top numbers" either.
+     The same pass credits an amount said another way: "two quarters" is a half,
+     "3/4" is three quarters. Run again after the wording nets, which can put a
+     point back onto an answer the value has already ruled out. */
+  if (paired) reconcileAnswerValues(answers, marks, questions, hit, offset);
   /* Was this answer JUST a value - a bare "12", a "3/8", or the same number said out loud
      as a word? nums() already reads number words, but this test was digits-only, so a pupil
      who SPOKE their answer ("Twelve", "Seven", "Fourteen") was treated as if they had
@@ -1210,15 +1265,29 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
     for (let k = 0; k < ps; k++) if (hit.has(offset[qi] + k)) hs.push(offset[qi] + k);
     if (hs.length > 1) hs.slice(1).forEach(x => hit.delete(x));
   }
+  if (paired) reconcileAnswerValues(answers, marks, questions, hit, offset);
   /* The BAND comes from the QUESTIONS the pupil showed something on, not from the pooled
      points. Both earlier rules failed the same way: per-question voting let a one-point
      question read green, and the pooled share parked a pupil on 36% - a number no teacher
      can call amber or red. Points are still counted, and still shown, as detail. */
   const evidence = [];
-  let base = 0, hitPool = 0, allPool = 0, blanks = 0;
+  let base = 0, hitPool = 0, allPool = 0, blanks = 0, answered = 0, valueQs = 0, valueFirm = 0, valueWrong = 0, valueHedged = 0;
   for (let qi = 0; qi < marks.length; qi++) {
     const ps = (marks[qi] || []).filter(Boolean);
     if (!ps.length) continue;
+    if (paired) {
+      const said = answers[qi] || '';
+      if (String(said).trim()) answered++;
+      const expF = expectedFractionValue(ps);
+      const expN = expF == null ? expectedNumber((questions && questions[qi]) || '', ps) : null;
+      if (expF != null || expN != null) {
+        valueQs++;
+        const has = expF != null ? fractionValues(said).some(v => v === expF) : nums(said).includes(expN);
+        if (!has) valueWrong++;
+        else if (isHedged(said)) valueHedged++;
+        else valueFirm++;
+      }
+    }
     const got = ps.filter((_, k) => hit.has(base + k)).length;
     if (!got) blanks++;
     hitPool += got;
@@ -1236,24 +1305,125 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
     base += ps.length;
   }
   if (!evidence.length) return null;
-  /* The colour is decided by QUESTIONS, not by points. A percentage always has a grey
-     zone - 36% is not obviously amber and not obviously red - and a teacher should never
-     have to argue with a number. Questions are whole numbers, so they have a cliff:
-       nothing on any question          -> red
-       something on every question, and
-       one of them answered AND explained -> green
-       anything in between               -> amber
-     A blank question therefore caps the pupil at amber on its own: they cannot have shown
-     something on every question if one of them was empty. The points still counted, and
-     are still shown, but only as detail underneath - they do not move the colour. */
   const qCount = evidence.length;
   const shownQs = evidence.filter(e => e.got > 0).length;
   const fullQs = evidence.filter(e => e.got >= e.total).length;
-  const level = !shownQs ? 'red'
-    : (shownQs === qCount) ? 'green'
+  /* Every checkable answer wrong is red, even if one why-question picked up a stray
+     point. Every checkable answer firmly right is green: green follows the answer.
+     A hedged answer ("I think", "not sure") is not firm, so it stays in the middle
+     unless the questions themselves were shown. Anything else is unchanged:
+     nothing shown is red, something on every question is green, the rest amber. */
+  const allWrong = valueQs > 0 && valueWrong === valueQs;
+  const allFirm = valueQs > 0 && valueFirm === valueQs;
+  const level = allWrong ? 'red'
+    : allFirm ? 'green'
+    : !shownQs ? 'red'
+    : (shownQs === qCount && !valueHedged) ? 'green'
     : 'amber';
-  const reason = reasonYes >= qCount;
-  return { level, hit: hitPool, total: allPool, blanks, shown: shownQs, qs: qCount, reason, evidence };
+  const whyQs = (questions || []).map((q, i) => (/why|explain|how do you know|how can you tell/i.test(q || '') ? i : -1)).filter(i => i >= 0);
+  const reason = whyQs.length ? whyQs.every(i => whyReason[i]) : reasonYes >= qCount;
+  return {
+    level, hit: hitPool, total: allPool, blanks, shown: shownQs, qs: qCount, full: fullQs,
+    reason, evidence, answered, valueQs, valueFirm, valueWrong, valueHedged
+  };
+}
+
+/* Credit an answer that states the right amount, and take every point back off an
+   answer that states a different one. Working points go with the amount: a wrong
+   fraction is not evidence that the pupil added the tops. */
+function reconcileAnswerValues(answers, marks, questions, hit, offset) {
+  const OP = /\b(add|adds|added|subtract\w*|take\w*\s+away|plus|minus|multipl\w*|divid\w*|count\w*|remove\w*|leaves|combine\w*|total)\b/i;
+  for (let qi = 0; qi < marks.length; qi++) {
+    const ps = (marks[qi] || []).filter(Boolean);
+    if (!ps.length) continue;
+    const lo = offset[qi];
+    const a = answers[qi] || '';
+    const expF = expectedFractionValue(ps);
+    const expN = expF == null ? expectedNumber((questions && questions[qi]) || '', ps) : null;
+    if (expF == null && expN == null) continue;
+    const contains = expF != null
+      ? fractionValues(a).some(v => v === expF)
+      : nums(a).includes(expN);
+    if (!contains) {
+      for (let k = 0; k < ps.length; k++) hit.delete(lo + k);
+      continue;
+    }
+    for (let k = 0; k < ps.length; k++) {
+      if (hit.has(lo + k)) continue;
+      if (expF != null) {
+        const theirs = fractionValues(ps[k]);
+        if (theirs.length === 1 && theirs[0] !== expF) continue;
+        if ((theirs.length === 1 && theirs[0] === expF) || OP.test(ps[k])) hit.set(lo + k, a);
+      } else if (nums(ps[k]).includes(expN) || OP.test(ps[k])) hit.set(lo + k, a);
+    }
+  }
+}
+
+/* The count and the whole-transcript read write one colour.
+   A full mark sheet is never pulled down. Firm right answers are not pulled down
+   to amber either — green follows the answer, and a missing explanation is the
+   noReason flag. A read of red can still catch a pupil who got the sums right
+   but explained the wrong idea, unless every point was actually shown.
+   Where nothing has a checkable answer (history, a book), a green read can lift
+   a pupil the point list missed because they used their own words.
+   Every checkable answer wrong stays red whatever the read says. */
+function settleLevel(graded, readLevelRaw, gets) {
+  let level = graded.level;
+  const read = ['green', 'amber', 'red'].includes(String(readLevelRaw || '').toLowerCase())
+    ? String(readLevelRaw).toLowerCase() : null;
+  const rank = { red: 0, amber: 1, green: 2 };
+  const fullSheet = graded.qs > 0 && graded.full === graded.qs;
+  const allWrong = graded.valueQs > 0 && graded.valueWrong === graded.valueQs;
+  const allFirm = graded.valueQs > 0 && graded.valueFirm === graded.valueQs;
+  const answeredAll = graded.answered === graded.qs && graded.qs > 0;
+  if (read === 'green' && graded.valueQs === 0 && answeredAll) level = 'green';
+  if (allFirm) level = 'green';
+  /* "I think" / "not sure" on a sum is not a firm pass, even when every
+     phrase on the card was ticked. */
+  if (graded.valueHedged > 0 && level === 'green') level = 'amber';
+  if (allWrong) level = 'red';
+  if (read && !fullSheet && !allFirm && rank[read] < rank[level]) level = read;
+  if (read === 'red' && !fullSheet && rank[read] < rank[level]) level = 'red';
+  if (/^\s*nothing\b/i.test(String(gets || '').trim()) && level !== 'red') level = 'red';
+  return level;
+}
+
+/* One pupil, one check. The same function the live site uses.
+   Temperature stays 0 so the same answers do not drift between reads. */
+async function gradeCheck(topic, transcript, questions, marks, year) {
+  const qs = Array.isArray(questions) ? questions : [];
+  const mk = Array.isArray(marks) ? marks : [];
+  const raw = await llm([
+    { role: 'system', content: verdictSystem(topic) },
+    { role: 'user', content: 'Transcript:\n' + transcript }
+  ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
+  let v = parseJson(raw);
+  if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+  const readLevelRaw = v.level;
+  try {
+    const graded = mk.length ? await marksFromAnswers(topic, mk, transcript, qs, year) : null;
+    if (graded) {
+      v.evidence = graded.evidence;
+      v.marked = true;
+      v.pointsHit = graded.hit;
+      v.pointsTotal = graded.total;
+      v.blanks = graded.blanks;
+      v.qs = graded.qs;
+      v.shown = graded.shown;
+      v.reason = graded.reason;
+      /* Green follows the answer. A right answer with no explanation stays green
+         and is flagged, so the teacher can see who may fall apart next. */
+      v.level = settleLevel(graded, readLevelRaw, v.gets);
+      v.noReason = v.level === 'green' && !graded.reason;
+      if (/^\s*nothing\b/i.test(String(v.gets || '').trim()) && v.level === 'red') {
+        v.cappedBy = String(v.gets || '').trim().slice(0, 80);
+      }
+    } else if (!mk.length) {
+      const perQ = await levelFromQuestions(topic, transcript);
+      if (perQ) v.level = perQ;
+    }
+  } catch (e) { logError('/api/verdict grading', e.message); }
+  return v;
 }
 
 function verdictSystem(topic) {
@@ -1940,61 +2110,7 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
           if (cls && cls.year) year = String(cls.year);
         }
       }
-      const raw = await llm([
-        { role: 'system', content: verdictSystem(topic) },
-        { role: 'user', content: 'Transcript:\n' + transcript }
-        /* temperature 0: the same answers must always get the same level. A
-           teacher who re-reads a pupil cannot see the grade move. */
-      ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
-      let v = parseJson(raw);
-      if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
-      const readLevelRaw = v.level;
-
-      /* the level comes from grading each question separately, and so does the evidence
-         behind it; everything else (gets / shaky / next step) still comes from the read
-         above. The evidence rides inside the verdict so it is stored with the pupil and
-         the teacher can see, point by point, what the level was built from. */
-      try {
-        const graded = marks.length
-          ? await marksFromAnswers(topic, marks, transcript, questions, year)
-          : null;
-        if (graded) {
-          v.level = graded.level;
-          v.evidence = graded.evidence;
-          v.marked = true;
-          v.pointsHit = graded.hit;
-          v.pointsTotal = graded.total;
-          v.blanks = graded.blanks;
-          v.qs = graded.qs;
-          v.shown = graded.shown;
-          /* Green now follows the ANSWER, not the explanation. A pupil who got it right is
-             green whatever they wrote beside it - a right answer is right, and knocking a
-             correct answer down to amber for being terse punished the wrong thing.
-             Whether they showed WHY is a SEPARATE flag, so the teacher sees "right, but no
-             reason given" instead of the app pretending they only half-understood. That
-             flag is the at-risk list: right today, unexplained, likely to fall apart next. */
-          v.reason = graded.reason;
-          v.noReason = graded.level === 'green' && !graded.reason;
-          /* Two graders write this one card: the read judged the pupil from the whole
-             transcript, the count judged them point by point. The count sets the floor
-             and the green cliff. The read may HOLD A PUPIL BACK - it spots wrong maths a
-             keyword-count cannot - and may LIFT one to green only when they answered
-             every question, so a child who left a question blank is never passed, and a
-             child who showed the idea by an unusual route is not failed for one wording. */
-          const rank = { red: 0, amber: 1, green: 2 };
-          const readLevel = ['green', 'amber', 'red'].includes(readLevelRaw) ? readLevelRaw : null;
-          /* A pupil who showed EVERY point on EVERY question has shown the understanding the check exists to measure. The read is a view of the whole transcript and can be swayed by one clumsy sentence, so it may NOT pull a full mark sheet down - a child who answered everything right must not be amber because the examiner misliked a phrase. Above the line the read still holds a pupil back. */
-          if (readLevel && v.level !== 'green' && rank[readLevel] < rank[v.level]) v.level = readLevel;
-          else if (readLevel === 'green' && v.level === 'amber' && graded.shown === graded.qs) v.level = 'green';
-          if (/^\s*nothing\b/i.test(String(v.gets || '').trim()) && v.level !== 'red') {
-            v.level = 'red';
-            v.cappedBy = String(v.gets || '').trim().slice(0, 80);
-          }
-        } else if (!marks.length) {
-          const perQ = await levelFromQuestions(topic, transcript);
-          if (perQ) v.level = perQ;
-        }
-      } catch (e) { logError('/api/verdict grading', e.message); }
+      const v = await gradeCheck(topic, transcript, questions, marks, year);
       return sendJson(res, { verdict: v });
     }
 
@@ -2299,13 +2415,17 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
   }
 });
 
-server.listen(cfg.port, () => {
-  console.log('');
-  console.log('  Get It? is running');
-  console.log('  ->  http://localhost:' + cfg.port);
-  console.log('  Key loaded: ' + (API_KEY ? 'yes' : 'NO - add key.txt and restart'));
-  console.log('  AI: ' + (process.env.MOCK_AI === '1' ? 'MOCK — marks are fake. Never set MOCK_AI on the live site.' : describeProvider()));
-  console.log('');
-  console.log('  Keep this window open. Close it to stop.');
-  console.log('');
-});
+if (require.main === module) {
+  server.listen(cfg.port, () => {
+    console.log('');
+    console.log('  Get It? is running');
+    console.log('  ->  http://localhost:' + cfg.port);
+    console.log('  Key loaded: ' + (API_KEY ? 'yes' : 'NO - add key.txt and restart'));
+    console.log('  AI: ' + (process.env.MOCK_AI === '1' ? 'MOCK — marks are fake. Never set MOCK_AI on the live site.' : describeProvider()));
+    console.log('');
+    console.log('  Keep this window open. Close it to stop.');
+    console.log('');
+  });
+}
+
+module.exports = { gradeCheck, setMarker };
