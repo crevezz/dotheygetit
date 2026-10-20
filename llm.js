@@ -3,11 +3,16 @@
    usage stays off the owner's OpenRouter credits. OpenRouter is the fallback
    when Gemini fails with a credit, auth, rate-limit, 5xx or network error.
    With no GEMINI_API_KEY the request is the same OpenRouter call as before.
-   AI_PROVIDER=gemini|openrouter picks which one is tried first. */
+   AI_PROVIDER=gemini|openrouter picks which one is tried first.
+   Gemini 2.5 Flash thinks by default and bills those tokens as output. The
+   Gemini request turns that off. The OpenRouter body is left alone. */
+
+const { AsyncLocalStorage } = require('async_hooks');
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 const GEMINI_SAFE_MODEL = 'gemini-2.5-flash';
+const usageAls = new AsyncLocalStorage();
 
 function geminiKey() {
   return String(process.env.GEMINI_API_KEY || '').trim();
@@ -49,7 +54,56 @@ function buildBody(messages, opts) {
     temperature: o.temperature === undefined ? 0.6 : o.temperature
   };
   if (o.json) body.response_format = { type: 'json_object' };
+  if (o.maxTokens) body.max_tokens = o.maxTokens;
   return body;
+}
+
+/* 2.5 Flash and Flash-Lite can turn thinking off. 2.5 Pro and Gemini 3 cannot,
+   and combining this with a thinking budget makes the request fail. */
+function canDisableThinking(id) {
+  return /^gemini-2\.5-flash(?:-lite)?(?:-preview|-|$)/i.test(String(id || ''));
+}
+
+function geminiBody(body) {
+  const copy = Object.assign({}, body);
+  copy.model = toGeminiModel(copy.model);
+  if (canDisableThinking(copy.model)) copy.reasoning_effort = 'none';
+  return copy;
+}
+
+function freshUsage() {
+  return { calls: 0, prompt: 0, completion: 0, reasoning: 0, byModel: {} };
+}
+
+function noteUsage(model, json) {
+  const bucket = usageAls.getStore();
+  if (!bucket || !json || typeof json !== 'object') return;
+  const u = json.usage || {};
+  const prompt = Number(u.prompt_tokens || u.promptTokenCount) || 0;
+  const completion = Number(u.completion_tokens || u.candidatesTokenCount) || 0;
+  const details = u.completion_tokens_details || {};
+  const reasoning = Number(details.reasoning_tokens || u.reasoning_tokens || u.thoughtsTokenCount) || 0;
+  bucket.calls += 1;
+  bucket.prompt += prompt;
+  bucket.completion += completion;
+  bucket.reasoning += reasoning;
+  const id = String(model || 'unknown');
+  if (!bucket.byModel[id]) bucket.byModel[id] = { calls: 0, prompt: 0, completion: 0, reasoning: 0 };
+  const row = bucket.byModel[id];
+  row.calls += 1;
+  row.prompt += prompt;
+  row.completion += completion;
+  row.reasoning += reasoning;
+}
+
+function runWithUsage(fn) {
+  return usageAls.run(freshUsage(), fn);
+}
+
+function takeUsage() {
+  const bucket = usageAls.getStore();
+  if (!bucket) return null;
+  return JSON.parse(JSON.stringify(bucket));
 }
 
 function contentOf(j) {
@@ -106,6 +160,7 @@ async function callOpenRouterLegacy(body, apiKey, fetchImpl) {
   });
   const j = await r.json();
   if (j.error) throw new Error(j.error.message || 'LLM error');
+  noteUsage(body.model, j);
   return contentOf(j);
 }
 
@@ -136,6 +191,7 @@ async function callOpenRouterObserved(body, apiKey, fetchImpl) {
     err.bodyError = typeof j.error === 'object' ? j.error : { message: String(j.error) };
     throw err;
   }
+  noteUsage(body.model, j);
   return contentOf(j);
 }
 
@@ -166,18 +222,19 @@ async function callGeminiOnce(body, apiKey, fetchImpl) {
     err.bodyError = j.error && typeof j.error === 'object' ? j.error : (j.error ? { message: String(j.error) } : null);
     throw err;
   }
+  noteUsage(body.model, j);
   return contentOf(j);
 }
 
 async function callGemini(body, apiKey, fetchImpl) {
-  const mapped = toGeminiModel(body.model);
+  const first = geminiBody(body);
   try {
-    return await callGeminiOnce(Object.assign({}, body, { model: mapped }), apiKey, fetchImpl);
+    return await callGeminiOnce(first, apiKey, fetchImpl);
   } catch (e) {
     /* A model we passed through may still be unknown on Studio. One retry on
        the model we know is there, then the provider fallback can take over. */
-    if (mapped !== GEMINI_SAFE_MODEL && modelMissing(e)) {
-      return callGeminiOnce(Object.assign({}, body, { model: GEMINI_SAFE_MODEL }), apiKey, fetchImpl);
+    if (first.model !== GEMINI_SAFE_MODEL && modelMissing(e)) {
+      return callGeminiOnce(geminiBody(Object.assign({}, body, { model: GEMINI_SAFE_MODEL })), apiKey, fetchImpl);
     }
     throw e;
   }
@@ -229,6 +286,9 @@ module.exports = {
   toGeminiModel,
   primaryProvider,
   describeProvider,
+  runWithUsage,
+  takeUsage,
+  canDisableThinking,
   OPENROUTER_URL,
   GEMINI_URL,
   GEMINI_SAFE_MODEL

@@ -70,6 +70,8 @@ function auth(rec) {
     check(JSON.stringify(body.messages) === JSON.stringify(messages), 'messages are unchanged');
     check(auth(calls[0]) === 'Bearer ' + OR_KEY, 'OpenRouter bearer is the OpenRouter key');
     check(!Object.prototype.hasOwnProperty.call(body, 'stream'), 'no stream field is added');
+    check(!Object.prototype.hasOwnProperty.call(body, 'reasoning_effort'), 'OpenRouter is not sent reasoning_effort');
+    check(!Object.prototype.hasOwnProperty.call(body, 'max_tokens'), 'max_tokens stays off unless the caller sets it');
     check(lines.filter(l => l.startsWith('AI fallback:')).length === 0, 'no fallback line when Gemini is not configured');
     check(describeProvider() === 'OpenRouter', 'startup line says OpenRouter', describeProvider());
   });
@@ -124,6 +126,8 @@ function auth(rec) {
       check(auth(calls[0]) === 'Bearer ' + GEM_KEY, label + ' Gemini call uses GEMINI_API_KEY');
       check(auth(calls[1]) === 'Bearer ' + OR_KEY, label + ' OpenRouter call uses the OpenRouter key');
       check(posted(calls[0]).response_format.type === 'json_object' && posted(calls[1]).response_format.type === 'json_object', label + ' keeps json mode on both');
+      check(posted(calls[0]).reasoning_effort === 'none', label + ' turns Gemini 2.5 thinking off');
+      check(!Object.prototype.hasOwnProperty.call(posted(calls[1]), 'reasoning_effort'), label + ' leaves reasoning_effort off the OpenRouter fallback');
       const fb = lines.filter(l => l.startsWith('AI fallback:'));
       check(fb.length === 1 && fb[0] === 'AI fallback: Gemini failed (HTTP ' + status + '); using OpenRouter', label + ' logs one fallback line', fb.join(' || '));
       check(!lines.join('\n').includes(GEM_KEY) && !lines.join('\n').includes(OR_KEY), label + ' log does not contain a key');
@@ -209,6 +213,7 @@ function auth(rec) {
     check(out === 'critic-ok', 'a Gemini success is returned as-is', out);
     check(calls.length === 1 && calls[0].url === GEMINI_URL, 'Gemini success does not call OpenRouter');
     check(posted(calls[0]).model === 'gemini-2.5-flash', 'critic model is sent as gemini-2.5-flash', posted(calls[0]).model);
+    check(posted(calls[0]).reasoning_effort === 'none', 'a mapped 2.5 Flash call has thinking off');
     check(lines.filter(l => l.startsWith('AI fallback:')).length === 0, 'a Gemini success logs no fallback');
     check(describeProvider() === 'Gemini first; OpenRouter if Gemini fails', 'default with a Gemini key is Gemini first', describeProvider());
   });
@@ -228,6 +233,8 @@ function auth(rec) {
     });
     check(out === 'safe-model', 'a missing Gemini model retries as gemini-2.5-flash', out);
     check(calls.length === 2 && calls.every(c => c.url === GEMINI_URL), 'model retry stays on Gemini', calls.map(c => posted(c).model).join(','));
+    check(!Object.prototype.hasOwnProperty.call(posted(calls[0]), 'reasoning_effort'), 'an older Gemini id is not sent reasoning_effort none');
+    check(posted(calls[1]).reasoning_effort === 'none', 'the safe-model retry turns thinking off');
     check(lines.filter(l => l.startsWith('AI fallback:')).length === 0, 'model retry is not the provider fallback');
   });
 
@@ -284,6 +291,8 @@ function auth(rec) {
     check(calls[0].url === OPENROUTER_URL && calls[1].url === GEMINI_URL, 'override calls OpenRouter first', calls.map(c => c.url).join(' | '));
     check(posted(calls[0]).model === 'google/gemini-2.5-flash-lite', 'override sends the OpenRouter id first');
     check(posted(calls[1]).model === 'gemini-2.5-flash-lite', 'override maps the model for Gemini', posted(calls[1]).model);
+    check(!Object.prototype.hasOwnProperty.call(posted(calls[0]), 'reasoning_effort'), 'OpenRouter-first body has no reasoning_effort');
+    check(posted(calls[1]).reasoning_effort === 'none', 'Gemini fallback turns thinking off');
     const fb = lines.filter(l => l.startsWith('AI fallback:'));
     check(fb.length === 1 && fb[0] === 'AI fallback: OpenRouter failed (HTTP 402); using Gemini', 'override logs one line', fb.join(' || '));
     check(describeProvider() === 'OpenRouter first; Gemini if OpenRouter fails', 'override startup line', describeProvider());
@@ -313,6 +322,38 @@ function auth(rec) {
     } catch (e) { threw = e.message; }
     check(threw === 'No Gemini API key. Set GEMINI_API_KEY.', 'AI_PROVIDER=gemini without a key says so', threw);
     check(calls.length === 0, 'AI_PROVIDER=gemini without a key does not call OpenRouter');
+  });
+
+  await withEnv({ GEMINI_API_KEY: GEM_KEY, AI_PROVIDER: undefined }, async () => {
+    const calls = [];
+    const out = await chatComplete(messages, { model: 'google/gemini-2.5-pro', maxTokens: 40, temperature: 0 }, {
+      openrouterKey: OR_KEY,
+      fetch: async (url, init) => {
+        calls.push({ url, init });
+        return okContent('pro-ok');
+      }
+    });
+    const body = posted(calls[0]);
+    check(out === 'pro-ok' && body.model === 'gemini-2.5-pro', '2.5 Pro keeps its id', body.model);
+    check(!Object.prototype.hasOwnProperty.call(body, 'reasoning_effort'), '2.5 Pro is not sent reasoning_effort none');
+    check(body.max_tokens === 40, 'maxTokens is sent as max_tokens', String(body.max_tokens));
+  });
+
+  await withEnv({ GEMINI_API_KEY: GEM_KEY, AI_PROVIDER: undefined }, async () => {
+    const { runWithUsage, takeUsage } = require('./llm');
+    let seen = null;
+    await runWithUsage(async () => {
+      await chatComplete(messages, { model: 'google/gemini-2.5-flash', maxTokens: 40 }, {
+        openrouterKey: OR_KEY,
+        fetch: async (url, init) => jsonRes(200, {
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 11, completion_tokens: 7, completion_tokens_details: { reasoning_tokens: 0 } }
+        })
+      });
+      seen = takeUsage();
+    });
+    check(seen && seen.calls === 1 && seen.prompt === 11 && seen.completion === 7 && seen.reasoning === 0, 'usage is counted on the request that made it', JSON.stringify(seen));
+    check(seen && seen.byModel['gemini-2.5-flash'] && seen.byModel['gemini-2.5-flash'].calls === 1, 'usage is kept by model');
   });
 
   console.log('\nPASS ' + pass.length + ', FAIL ' + fail.length);

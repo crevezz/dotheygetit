@@ -53,7 +53,9 @@ If `GEMINI_API_KEY` is not set, the app talks to OpenRouter exactly as before
 Model names in `config.json` stay in OpenRouter form (`google/gemini-2.5-flash-lite`).
 Gemini is sent the id with `google/` removed. An id AI Studio does not serve
 (`google/gemini-3.8-flash`, or anything that is not a Gemini model) is sent as
-`gemini-2.5-flash`.
+`gemini-2.5-flash`. Gemini 2.5 Flash and Flash-Lite are called with thinking
+off. A clear amount is marked in code. Anything else goes to Flash-Lite first,
+and 2.5 Flash is only the second opinion.
 
 When the fallback happens the server logs one line, for example
 `AI fallback: Gemini failed (HTTP 402); using OpenRouter`. Keys are never logged.
