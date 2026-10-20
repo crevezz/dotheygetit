@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "test:15": "node test-15-pupils.js",
+    "test:marks": "node test-mark-colours.js",
     "ads": "node marketing/ad.js",
     "adfilm": "node marketing/ad-film.js",
     "story": "node tutorial/story-voice.js",
