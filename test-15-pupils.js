@@ -18,7 +18,7 @@ const ROOT = __dirname;
 const PORT = 4615;
 const BASE = 'http://127.0.0.1:' + PORT;
 const PUPILS = 15;
-const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'getit-15-'));
+let DIR = '';
 
 const TOPIC = 'Adding fractions with the same bottom number';
 const QUESTIONS = [
@@ -54,38 +54,69 @@ const ANSWERS = [
   ['one over two', 'three over four', 'Adding the bottoms would change the size of the piece, which is wrong.']
 ];
 
+/* A follow-up is not the next teacher question. Answer it from the line the
+   pupil just gave, and keep the prepared answer for the question it belongs to. */
+function pickPupilReply(reply, covered, questions, answers, lastTeacherAnswer) {
+  const idx = Math.max(0, (Number(covered) || 1) - 1);
+  const q = questions[idx] || '';
+  if (q && String(reply || '').includes(q)) {
+    const text = answers[Math.min(idx, Math.max(0, answers.length - 1))];
+    return { text, lastTeacherAnswer: text, followup: false };
+  }
+  const why = answers.length ? answers[answers.length - 1] : '';
+  const base = lastTeacherAnswer || (answers.length ? answers[0] : '');
+  return { text: (base ? base + '. ' : '') + why, lastTeacherAnswer: base, followup: true };
+}
+
+function checkPicker() {
+  const amira = ANSWERS[0];
+  const first = pickPupilReply('Hi! A few quick questions.\n\n' + QUESTIONS[0], 1, QUESTIONS, amira, '');
+  if (first.followup || first.text !== '1/2') throw new Error('the first question should be answered 1/2');
+  const follow = pickPupilReply('How did you get a half?', 1, QUESTIONS, amira, first.lastTeacherAnswer);
+  if (!follow.followup) throw new Error('a follow-up was treated as the next question');
+  if (follow.text === '3/4' || String(follow.text).includes('3/4')) throw new Error('the follow-up used the next prepared answer');
+  if (!String(follow.text).startsWith('1/2')) throw new Error('the follow-up dropped the answer just given');
+  const next = pickPupilReply(QUESTIONS[1], 2, QUESTIONS, amira, follow.lastTeacherAnswer);
+  if (next.followup || next.text !== '3/4') throw new Error('the next teacher question should still be answered 3/4, got ' + next.text);
+}
+
 function hasRealKey() {
   if (String(process.env.GEMINI_API_KEY || '').trim()) return true;
   if (String(process.env.OPENROUTER_API_KEY || '').trim()) return true;
   try { return !!fs.readFileSync(path.join(ROOT, 'key.txt'), 'utf8').trim(); } catch { return false; }
 }
-const REAL_AI = hasRealKey();
-const TIMEOUT_MS = REAL_AI ? 120000 : 20000;
-
-const env = Object.assign({}, process.env, {
-  PORT: String(PORT),
-  DATA_DIR: DIR,
-  ADMIN_EMAIL: 'owner@test.com',
-  SIGNUP_CODE: '',
-  REDIS_URL: '',
-  APP_URL: BASE,
-  MOCK_AI: REAL_AI ? '' : '1'
-});
-if (!REAL_AI) {
-  env.GEMINI_API_KEY = '';
-  env.OPENROUTER_API_KEY = '';
-}
-
-const srv = spawn(process.execPath, ['server.js'], {
-  cwd: ROOT,
-  env,
-  stdio: ['ignore', 'pipe', 'pipe']
-});
+let REAL_AI = false;
+let TIMEOUT_MS = 20000;
+let srv = null;
 let logs = '';
-srv.stdout.on('data', d => { logs += d; });
-srv.stderr.on('data', d => { logs += d; });
-const stop = () => { try { srv.kill(); } catch {} };
-process.on('exit', stop);
+const stop = () => { try { if (srv) srv.kill(); } catch {} };
+
+function startHarness() {
+  REAL_AI = hasRealKey();
+  TIMEOUT_MS = REAL_AI ? 120000 : 20000;
+  DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'getit-15-'));
+  const env = Object.assign({}, process.env, {
+    PORT: String(PORT),
+    DATA_DIR: DIR,
+    ADMIN_EMAIL: 'owner@test.com',
+    SIGNUP_CODE: '',
+    REDIS_URL: '',
+    APP_URL: BASE,
+    MOCK_AI: REAL_AI ? '' : '1'
+  });
+  if (!REAL_AI) {
+    env.GEMINI_API_KEY = '';
+    env.OPENROUTER_API_KEY = '';
+  }
+  srv = spawn(process.execPath, ['server.js'], {
+    cwd: ROOT,
+    env,
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+  srv.stdout.on('data', d => { logs += d; });
+  srv.stderr.on('data', d => { logs += d; });
+  process.on('exit', stop);
+}
 
 const jar = {};
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -153,7 +184,7 @@ async function onePupil(i) {
   if (named.j && named.j.done) out.errors.push('join said this pupil had already finished');
 
   const history = [];
-  let covered = 0, digs = 0, done = false, guard = 0;
+  let covered = 0, digs = 0, done = false, guard = 0, lastTeacherAnswer = '';
   while (!done && guard < 8) {
     guard++;
     const chat = await call(null, '/api/chat', {
@@ -171,8 +202,9 @@ async function onePupil(i) {
     covered = chat.j.covered;
     digs = chat.j.digs;
     if (chat.j.done) { done = true; break; }
-    const text = answers[Math.min(out.answered, answers.length - 1)];
-    history.push({ role: 'user', content: text });
+    const picked = pickPupilReply(chat.j.reply, chat.j.covered, QUESTIONS, answers, lastTeacherAnswer);
+    lastTeacherAnswer = picked.lastTeacherAnswer;
+    history.push({ role: 'user', content: picked.text });
     out.answered++;
   }
   if (!done) out.errors.push('check never finished (turns ' + guard + ')');
@@ -213,7 +245,12 @@ let code = '';
 let checkId = '';
 let classId = '';
 
-(async () => {
+if (require.main === module) startHarness();
+
+if (require.main === module) (async () => {
+  try { checkPicker(); ok('a follow-up is answered from the last line, not the next question'); }
+  catch (e) { fail(e.message || String(e)); }
+
   if (/dotheygetit\.app/i.test(BASE)) {
     console.error('Refusing to run this against the live site.');
     process.exit(1);
@@ -444,3 +481,5 @@ let classId = '';
   try { fs.rmSync(DIR, { recursive: true, force: true }); } catch {}
   process.exit(1);
 });
+
+module.exports = { pickPupilReply, checkPicker, QUESTIONS, ANSWERS, NAMES, MARKS, TOPIC };

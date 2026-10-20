@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const qrcode = require('qrcode');
-const { chatComplete, describeProvider } = require('./llm');
+const { chatComplete, describeProvider, runWithUsage, takeUsage } = require('./llm');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -320,7 +320,8 @@ async function llm(messages, opts = {}) {
   return chatComplete(messages, {
     model: opts.model || cfg.model,
     temperature: opts.temperature,
-    json: opts.json
+    json: opts.json,
+    maxTokens: opts.maxTokens || opts.max_tokens
   }, { openrouterKey: API_KEY });
 }
 
@@ -651,24 +652,12 @@ Return ONLY JSON, one list per question, in the same order as the questions:
 }
 
 function followupSystem(topic, nextQ, allowDig) {
-  return `You are "Check", a calm but sharp examiner working for a teacher.
-
-Topic: "${topic}".
-The next teacher-approved question is: "${nextQ}".
-
-Look ONLY at the student's most recent answer.
-Decide: was it vague, dodged, a guess, or does it sound memorised rather than understood?
-If yes, write ONE short follow-up question that would expose whether they really get it.
-If no, do not write a question — the app will ask the teacher's question instead.
-
-Keep it to ONE short, friendly sentence.
-
+  return `You are "Check", a calm examiner. Topic: "${topic}".
+The next teacher question is: "${nextQ}".
+Look ONLY at the student's latest answer. If it was vague, a dodge, a guess, or memorised, set followup true and write ONE short question. If it was a real answer, set followup false and leave question empty. The app will ask the teacher's question.
+One sentence. Plain text only: there is no picture, so never mention a picture, diagram or worksheet.
 ${plainWordsFor(topic)}
-
-${NO_IMAGES}
-
-Return ONLY JSON, no other text: {"followup":false,"question":""}
-- Set "followup" to true and put your single follow-up question in "question" ONLY when you are asking a follow-up.${allowDig ? '' : '\n- You have already used your one follow-up, so "followup" MUST be false.'}`;
+Return ONLY JSON: {"followup":false,"question":""}${allowDig ? '' : '\nYou already asked your one follow-up, so followup must be false.'}`;
 }
 
 function askSystem(topic) {
@@ -727,7 +716,7 @@ async function levelFromQuestions(topic, transcript) {
       const raw = await llm([
         { role: 'system', content: pairSystem(topic) },
         { role: 'user', content: 'The pupil answered: ' + a }
-      ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
+      ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model, maxTokens: 80 });
       const o = parseJson(raw);
       if (o && o.level) levels.push(String(o.level).toLowerCase());
     } catch (e) { logError('/api/verdict per-question', e.message); }
@@ -940,6 +929,63 @@ function isEcho(answer, question) {
   return mine.every(w => asked.has(w));
 }
 
+/* A bare right or wrong amount does not need a model. The value check below
+   credits a right amount and voids a wrong one, including the method point.
+   A why, a hedge, or an explanation still goes to the model. */
+function clearCutAnswer(question, points, answer) {
+  const q = String(question || '');
+  const a = String(answer || '').trim();
+  if (!a || /why|explain|how do you know|how can you tell/i.test(q)) return null;
+  if (isHedged(a) || /\b(because|since)\b/i.test(a)) return null;
+  const words = a.split(/\s+/).filter(Boolean);
+  if (words.length > 8) return null;
+  const expF = expectedFractionValue(points);
+  const expN = expF == null ? expectedNumber(q, points) : null;
+  if (expF == null && expN == null) return null;
+  if (expF != null) {
+    const vals = fractionValues(a);
+    if (!vals.length) return null;
+    const qVals = fractionValues(q);
+    const has = vals.some(v => v === expF);
+    const onlyExpected = vals.every(v => v === expF || qVals.some(n => n === v));
+    if (has && onlyExpected) return 'right';
+    if (!has && words.length <= 6) return 'wrong';
+    return null;
+  }
+  const ns = nums(a);
+  if (!ns.length) return null;
+  const asked = nums(q);
+  const has = ns.includes(expN);
+  const onlyExpected = ns.every(n => n === expN || asked.includes(n));
+  if (has && onlyExpected) return 'right';
+  if (!has && words.length <= 4) return 'wrong';
+  return null;
+}
+
+async function markAnswer(system, answer, model, maxTokens) {
+  const raw = await llm([
+    { role: 'system', content: system },
+    { role: 'user', content: 'The pupil answered: ' + answer }
+  ], { json: true, temperature: 0, model, maxTokens });
+  return parseJson(raw);
+}
+
+/* Flash is the expensive model. Use it only when Flash-Lite was unsure:
+   some but not all of the points, or a real explanation that scored nothing. */
+function wantsFlashOpinion(o, lo, hi, question, answer) {
+  const total = hi - lo;
+  if (total <= 0 || !o) return false;
+  const shown = new Set();
+  if (Array.isArray(o.shown)) o.shown.forEach(n => {
+    const i = Number(n) - 1;
+    if (i >= lo && i < hi) shown.add(i);
+  });
+  if (shown.size > 0 && shown.size < total) return true;
+  const why = /why|explain|how do you know|how can you tell/i.test(question || '');
+  const words = String(answer || '').trim().split(/\s+/).filter(Boolean).length;
+  return why && words >= 8 && shown.size === 0;
+}
+
 async function marksFromAnswers(topic, marks, transcript, questions, year) {
   const points = [].concat.apply([], marks).filter(Boolean);
   if (!points.length) return null;
@@ -1001,35 +1047,12 @@ async function marksFromAnswers(topic, marks, transcript, questions, year) {
     ? 'The class is ' + year + '. Pitch the "reason" flag to that. A younger pupil may show they get it in very few words and that still counts as a reason. An older pupil should be expected to say why, so a bare answer from them is more likely reason=false. Never change whether the ANSWER is right because of the age - only how much explaining you expect.'
     : '';
   const sysFor = (lo, hi) => `Topic: "${topic}".
-
-A pupil had to show these things to count as understanding it:
+Which of these points does this ONE answer show? Strict on the meaning, generous on spelling.
 ${points.map((p, i) => ({ n: i + 1, p })).filter(x => x.n - 1 >= lo && x.n - 1 < hi).map(x => x.n + '. ' + x.p).join('\n')}
-
-You get ONE answer the pupil gave. Say which of those numbered points that answer actually
-shows. Be strict about the meaning and generous about the wording: clumsy, badly spelled
-English that shows the idea DOES count. Words that sound right but show nothing DO NOT.
-A correct answer on its own shows the point that names that answer: a pupil who writes
-"12" to "what is 5 + 7?" has shown the point "says 12".
-A correct answer ALSO shows the working or method point that produced it, even though the
-pupil never said the words: "3/4" to "what is 1/4 + 2/4?" shows "adds the top numbers" and
-"keeps the bottom number the same", because getting 3/4 IS adding the tops and keeping the
-bottom. "3/5" to "2/5 + 1/5" shows the same two points. A right answer is evidence of the
-method, so tick the method point. Only refuse a working point when the answer is wrong or
-has nothing to do with it. This does NOT apply to a WHY point - a number cannot show a
-reason, so a reason the pupil never gave stays a miss. The same goes for a point that asks the pupil to explain or justify WHY - a bare answer never shows that. But tell the two apart, because they look alike: the point that NAMES the answer the pupil gave IS shown by a bare answer, even when it is worded as a comparison. "1/2" to "which is bigger, 1/2 or 1/4? How do you know?" SHOWS the point "1/2 is bigger" - that point only states which one the pupil claims is bigger, and they claimed it, so tick it. It does NOT show "halves are bigger pieces than quarters", which asks why - miss that one. Tick the point that states the claim; miss the points that ask for the reason. More examples: "17" to "what is 9 + 8?" shows both "the answer is 17" and "adds 9 and 8".
-A muddled attempt at the idea counts. Judge what the pupil meant, not how they said it - a
-garbled sentence that reaches for the right idea has shown it, and a tidy sentence that
-merely restates the question has not. A pupil may show a point by a different valid method
-than the one it names - decimals, a drawing, cross-multiplying. If the idea is there by any
-sound route, tick it.
-
-A pupil is allowed to show the same point more than once, so only judge this one answer.
-
-${NO_IMAGES}
-
+A right amount ticks the point that names that amount, and the method point that got it there. "3/4" for 1/4 + 1/2 ticks "says three quarters" and "adds the top numbers". A bare number never ticks a why or explain point. A point that only names the claim ("1/2 is bigger") is ticked by that claim. A point that asks why is not.
+reason is true only when they explain why, however short. A bare amount is reason false.
 ${yearNote}
-Return ONLY JSON: {"shown":[1,3],"reason":true}
-"reason" = did the pupil say WHY in their own words - any working, comparison or explanation, however clumsy or short? A bare answer on its own is reason=false, even when the answer is right.`;
+Return ONLY JSON: {"shown":[1],"reason":false}`;
   /* Which answer showed each point, not merely whether it was shown somewhere. Keeping
      the answer is what lets the card print the child's own words under the point they
      earned - so the teacher can agree or disagree from the evidence instead of from the
@@ -1048,13 +1071,19 @@ Return ONLY JSON: {"shown":[1,3],"reason":true}
     /* nothing of their own to mark */
     if (isEcho(a, paired ? questions[k] : questions.join(' '))) continue;
     try {
-      const raw = await llm([
-        { role: 'system', content: sysFor(lo, hi) },
-        { role: 'user', content: 'The pupil answered: ' + a }
-      ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
-      const o = parseJson(raw);
+      const cut = paired ? clearCutAnswer(questions[k], (marks[k] || []).filter(Boolean), a) : null;
+      let o = cut ? { shown: [], reason: false, skip: cut } : null;
+      if (!cut) {
+        const lite = cfg.model;
+        const flash = cfg.verdictModel || cfg.model;
+        o = await markAnswer(sysFor(lo, hi), a, lite, 100);
+        if (o && flash !== lite && wantsFlashOpinion(o, lo, hi, paired ? questions[k] : '', a)) {
+          const second = await markAnswer(sysFor(lo, hi), a, flash, 400);
+          if (second && Array.isArray(second.shown)) o = second;
+        }
+      }
       if (o && o.reason === true) { reasonYes++; if (paired) whyReason[k] = true; }
-      if (o && Array.isArray(o.shown)) o.shown.forEach(n => {
+      if (!cut && o && Array.isArray(o.shown)) o.shown.forEach(n => {
         const i = Number(n) - 1;
         if (i >= 0 && i < points.length && !hit.has(i)) hit.set(i, a);
       });
@@ -1388,20 +1417,78 @@ function settleLevel(graded, readLevelRaw, gets) {
   return level;
 }
 
+/* The whole-transcript read is a second opinion. Skip it when the count cannot
+   move: every checkable answer wrong, or a full sheet of firm right answers.
+   Keep it when a firm sheet is not full (the sums can be right and the idea wrong),
+   when there is no checkable amount (history, a book), and when the count is mixed. */
+function needsTranscriptRead(graded) {
+  if (!graded) return true;
+  const allWrong = graded.valueQs > 0 && graded.valueWrong === graded.valueQs;
+  const allFirm = graded.valueQs > 0 && graded.valueFirm === graded.valueQs;
+  const fullSheet = graded.qs > 0 && graded.full === graded.qs;
+  if (allWrong) return false;
+  if (allFirm && fullSheet) return false;
+  return true;
+}
+
+function cardFromCount(graded) {
+  const level = graded.level;
+  if (level === 'green') return {
+    level, gotRight: ['the answers'], gets: 'The answers are there.', shaky: '', faked: false,
+    notes: 'The answers line up.', nextStep: 'Solid on the questions that were asked.'
+  };
+  if (level === 'red') return {
+    level, gotRight: [], gets: 'Little of this yet.', shaky: 'The main idea.', faked: false,
+    notes: 'The answers do not line up.', nextStep: 'The main idea is not there yet.'
+  };
+  return {
+    level: 'amber', gotRight: ['part of it'], gets: 'Some of it, not all.', shaky: 'Not the whole idea.', faked: false,
+    notes: 'Some answers line up and some do not.', nextStep: 'Part way there.'
+  };
+}
+
+async function readTranscript(topic, transcript, model, maxTokens) {
+  const raw = await llm([
+    { role: 'system', content: verdictSystem(topic) },
+    { role: 'user', content: 'Transcript:\n' + transcript }
+  ], { json: true, temperature: 0, model, maxTokens });
+  return parseJson(raw);
+}
+
 /* One pupil, one check. The same function the live site uses.
    Temperature stays 0 so the same answers do not drift between reads. */
 async function gradeCheck(topic, transcript, questions, marks, year) {
   const qs = Array.isArray(questions) ? questions : [];
   const mk = Array.isArray(marks) ? marks : [];
-  const raw = await llm([
-    { role: 'system', content: verdictSystem(topic) },
-    { role: 'user', content: 'Transcript:\n' + transcript }
-  ], { json: true, temperature: 0, model: cfg.verdictModel || cfg.model });
-  let v = parseJson(raw);
-  if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
-  const readLevelRaw = v.level;
+  let graded = null;
   try {
-    const graded = mk.length ? await marksFromAnswers(topic, mk, transcript, qs, year) : null;
+    graded = mk.length ? await marksFromAnswers(topic, mk, transcript, qs, year) : null;
+  } catch (e) { logError('/api/verdict grading', e.message); }
+  let v = null;
+  let readLevelRaw = null;
+  try {
+    if (!graded || needsTranscriptRead(graded)) {
+      const lite = cfg.model;
+      const flash = cfg.verdictModel || cfg.model;
+      v = await readTranscript(topic, transcript, lite, 280);
+      if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+      if (graded && flash !== lite) {
+        const moved = settleLevel(graded, v.level, v.gets);
+        if (moved !== graded.level) {
+          const second = await readTranscript(topic, transcript, flash, 400);
+          if (second && second.level) v = second;
+        }
+      }
+      readLevelRaw = v.level;
+    } else {
+      v = cardFromCount(graded);
+    }
+  } catch (e) {
+    logError('/api/verdict grading', e.message);
+    v = v && v.level ? v : { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+  }
+  if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+  try {
     if (graded) {
       v.evidence = graded.evidence;
       v.marked = true;
@@ -1427,67 +1514,15 @@ async function gradeCheck(topic, transcript, questions, marks, year) {
 }
 
 function verdictSystem(topic) {
-  return `You are an examiner grading a short exam. Topic: "${topic}".
-
-Work through this in order:
-
-STEP 1 - List every point the student got RIGHT, even partly right. Be fair: partial credit counts as right.
-A point only counts if it is an ANSWER TO WHAT WAS ASKED. A true fact about the topic
-that does not answer the question is not a point - it is a dodge, and dodging is red.
-STEP 2 - List what they got wrong or missed.
-STEP 3 - Choose the level:
-- "green" = they got the main idea right and can say how they know. That is the whole bar.
-  They do NOT have to be fluent, complete, or use the correct words. A child who is right
-  in their own rough language, or who gets there after one wobble, is "green".
-- "amber" = they answered the actual question and got at least one part right, but there are clear gaps.
-- "red" = they did not answer the question: nothing right, guesses, silences, or talks around it.
-
-TWO WORKED EXAMPLES - copy this judgement:
-
-Topic "how a plant gets its food". Student: "It does not eat anything. It takes the gas out
-of the air and water up the roots and makes its own sugar using sunlight." Then asked what
-happens in a cupboard: "It could not make the sugar so it would use up what it saved and then die."
--> GREEN. Rough wording, but the idea is there and they could use it on a new question.
-
-Topic "the water cycle". Student: "It goes into the ground and then it gets hot and goes up
-again. I dont know the words for it."
--> AMBER. Right direction, but there is no mechanism and they cannot say how they know.
-Sounding unsure is fine; having nothing to why it happens is not green.
-
-The difference is not polished English - it is whether they can do anything with the idea
-beyond repeating it. Expect roughly a third of a class to be green. No greens at all means
-you are too harsh. And being unsure between amber and red is amber.
-
-HOW THEY WRITE MUST NOT CHANGE THE LEVEL. Judge the understanding, never the packaging.
-Spelling, grammar, punctuation and clumsy sentences are irrelevant. A child who gets it
-right in broken English is "green". Never lower a level because their "language is not
-precise". In a school, punishing how a child writes is the fastest way to be wrong.
-
-Thin but correct is "amber", not "red" - but it still has to be an answer.
-
-A correct sentence that was clearly rote-learned or copied still counts as a right answer,
-so it is "amber" - then flag it with faked. Copying is amber-with-a-flag, not red.
-
-Set "faked" to true when the answer is copied or machine-written rather than thought:
-dictionary-perfect or textbook sentences that they then cannot unpack in plain words,
-sudden formal vocabulary far beyond the rest of how they talk, or answers that
-contradict themselves when pressed. A child simply being wrong is NOT faked.
-
-Return ONLY JSON, no other text, in exactly this shape:
-{"gotRight":["..."],"level":"amber","gets":"...","shaky":"...","faked":false,"notes":"...","nextStep":"..."}
-
-- gotRight: short list of the points they actually got right.
-- gets: one short phrase of what they truly understand.
-- shaky: one short phrase of where they are weak (or "" if none).
-- notes: one short sentence a busy teacher can read at a glance.
-- nextStep: a SHORT read on where this pupil is now - NOT an instruction. The teacher is the
-  professional; you are telling them what you noticed, not what to do. Good: "Ready for
-  multi-step word problems." / "Knows the method but not why it works - worth going back to."
-  / "Confident on the basics, shaky the moment it is written as a problem." Never open with
-  a command: no "Introduce...", "Ask them to...", "Show them...", "Use...", "Give them...".
-  Describe the pupil's position and let the teacher decide what to do about it.
-
-Be fair but honest. Partial understanding is "amber", not "red".`;
+  return `Grade one short school check. Topic: "${topic}".
+Judge the idea, not the spelling. A right answer in rough words is still right.
+green = the main idea is right. amber = part of it is right, with a real gap. red = they did not answer, or the idea itself is wrong.
+If the sums are right but the explanation is the wrong idea, the level is red.
+A true fact that does not answer the question is not a point.
+faked is true only when the wording is copied or machine-written, not when a child is simply wrong.
+Return ONLY JSON:
+{"gotRight":["short point"],"level":"amber","gets":"short phrase","shaky":"short phrase or empty","faked":false,"notes":"one short sentence","nextStep":"one short sentence about where the pupil is, not an instruction"}
+nextStep describes the pupil. Do not start it with a command.`;
 }
 
 // ------------------------------------------------------------------- helpers
@@ -1496,6 +1531,14 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
   '.webmanifest': 'application/manifest+json', '.webp': 'image/webp', '.avif': 'image/avif',
   '.xml': 'application/xml' };
 
+function withUsage(obj) {
+  const usage = takeUsage();
+  if (usage && usage.calls) {
+    obj.usage = usage;
+    console.log('AI usage ' + usage.calls + ' calls, in ' + usage.prompt + ', out ' + usage.completion + ', think ' + usage.reasoning);
+  }
+  return obj;
+}
 function sendJson(res, obj, extra) {
   const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
   res.writeHead(200, h);
@@ -1578,7 +1621,7 @@ function latestSessionForClass(classId) {
 }
 
 // -------------------------------------------------------------------- server
-const server = http.createServer(async (req, res) => {
+const server = http.createServer((req, res) => runWithUsage(async () => {
   await readyPromise;
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
@@ -1908,7 +1951,7 @@ const server = http.createServer(async (req, res) => {
       for (let attempt = 0; attempt < 2 && !obj; attempt++) {
         const sys = asked.length ? markWriterSystem(topic, asked) : questionWriterSystem(topic, count);
         const raw = await llm([{ role: 'system', content: sys }],
-          { json: true, temperature: attempt ? 0.4 : 0.7 });
+          { json: true, temperature: attempt ? 0.4 : 0.7, maxTokens: 900 });
         const o = parseJson(raw);
         if (asked.length) {
           if (o && Array.isArray(o.marks) && o.marks.length) obj = { questions: asked, marks: o.marks };
@@ -1938,7 +1981,7 @@ const server = http.createServer(async (req, res) => {
       for (let attempt = 0; attempt < 2 && (marks.filter((m, i) => m.length < (qs[i] && (plainSum(qs[i]) || shortFact(qs[i])) ? 1 : 2)).length || dead(marks)); attempt++) {
         try {
           const retry = await llm([{ role: 'system', content: markWriterSystem(topic, qs) }],
-            { json: true, temperature: 0.4 });
+            { json: true, temperature: 0.4, maxTokens: 900 });
           const o2 = parseJson(retry);
           if (o2 && Array.isArray(o2.marks)) {
             const alt = qs.map((q, i) => splitPoints(Array.isArray(o2.marks[i]) ? o2.marks[i] : []));
@@ -1962,7 +2005,7 @@ const server = http.createServer(async (req, res) => {
 Each question below already has one point. Every question needs TWO: the ANSWER itself, and the WORKING (what the pupil did to get it). Write the ONE missing point for each question - whichever of the two is not already there. Keep it short, in plain words, and make sure a pupil who answers that question correctly could actually say it.
 ` + list + `
 Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` }
-          ], { json: true, temperature: 0.4 });
+          ], { json: true, temperature: 0.4, maxTokens: 400 });
           const o3 = parseJson(raw);
           const extra = o3 && Array.isArray(o3.points) ? o3.points : [];
           thin.forEach((x, n) => {
@@ -1989,7 +2032,7 @@ Be strict about the maths: "the denominators are the same" is FALSE for "which i
 Every question needs the ANSWER itself plus the WORKING a pupil would show. Keep each point short and in plain words. Do NOT use commas inside a point - write "and" instead - so a point can never be split in two.
 ` + audit + `
 Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array per question, in order, all of them.` }
-        ], { json: true, temperature: 0, model: cfg.criticModel || cfg.verdictModel || cfg.model });
+        ], { json: true, temperature: 0, maxTokens: 900, model: cfg.criticModel || cfg.verdictModel || cfg.model });
         const o = parseJson(raw);
         if (o && Array.isArray(o.marks)) {
           qs.forEach((q, i) => {
@@ -2057,11 +2100,11 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
 
       // Legacy: no seeded questions - let the AI ask each one.
       if (!questions.length) {
-        const raw = await llm([{ role: 'system', content: askSystem(topic) }, ...history], { json: true, temperature: 0.6 });
+        const raw = await llm([{ role: 'system', content: askSystem(topic) }, ...history], { json: true, temperature: 0.6, maxTokens: 80 });
         const obj = parseJson(raw);
         let q = ((obj && obj.question) || raw || '').replace(/\[done\]/gi, '').trim() || 'Tell me what you know about this.';
         if (asked === 0) q = GREET + q;
-        return sendJson(res, { reply: q, done: false, covered: covered + 1, digs });
+        return sendJson(res, withUsage({ reply: q, done: false, covered: covered + 1, digs }));
       }
 
       // First turn: greet and ask the teacher's first question, word for word.
@@ -2077,13 +2120,13 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
       const raw = await llm([
         { role: 'system', content: followupSystem(topic, nextQ, allowDig) },
         ...history
-      ], { json: true, temperature: 0.4 });
+      ], { json: true, temperature: 0.4, maxTokens: 80 });
       const obj = parseJson(raw);
 
       if (obj && obj.followup && typeof obj.question === 'string' && obj.question.trim() && allowDig) {
-        return sendJson(res, { reply: obj.question.trim().replace(/\[done\]/gi, ''), done: false, covered, digs: digs + 1 });
+        return sendJson(res, withUsage({ reply: obj.question.trim().replace(/\[done\]/gi, ''), done: false, covered, digs: digs + 1 }));
       }
-      return sendJson(res, { reply: nextQ, done: false, covered: covered + 1, digs });
+      return sendJson(res, withUsage({ reply: nextQ, done: false, covered: covered + 1, digs }));
     }
 
     // ---- verdict
@@ -2111,7 +2154,9 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
         }
       }
       const v = await gradeCheck(topic, transcript, questions, marks, year);
-      return sendJson(res, { verdict: v });
+      const usage = takeUsage() || { calls: 0, prompt: 0, completion: 0, reasoning: 0, byModel: {} };
+      if (usage.calls) console.log('AI usage ' + usage.calls + ' calls, in ' + usage.prompt + ', out ' + usage.completion + ', think ' + usage.reasoning);
+      return sendJson(res, { verdict: v, usage });
     }
 
     // ---- owner view: every teacher, class and check on the system
@@ -2413,7 +2458,7 @@ Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array pe
     logError(req.url, e.message || 'Server error');
     return sendErr(res, e.message || 'Server error', 500);
   }
-});
+}));
 
 if (require.main === module) {
   server.listen(cfg.port, () => {
