@@ -6,7 +6,7 @@ A student chats with an AI examiner for 2 minutes. The teacher sees a simple lis
 🟢 gets it · 🟡 shaky · 🔴 faking.
 
 - No installs, no npm packages. Just Node.
-- Runs on OpenRouter (one key, no other accounts).
+- On Render, checks run on Gemini (Google AI Studio). OpenRouter is only the fallback.
 - Costs fractions of a penny per check.
 
 ---
@@ -36,6 +36,32 @@ Open **http://localhost:3000**.
 
 ---
 
+## Render: Gemini first, OpenRouter as fallback
+
+Pupils and teachers hit the hosted app. That usage should stay off the OpenRouter
+account (those credits are for coding). In **Render → the service → Environment**, set:
+
+| Variable | What to put |
+|---|---|
+| `GEMINI_API_KEY` | API key from [Google AI Studio](https://aistudio.google.com/apikey). When this is set, every check calls Gemini first. |
+| `AI_PROVIDER` | Optional. `gemini` or `openrouter`. Leave it unset: Gemini is used when `GEMINI_API_KEY` is set, otherwise OpenRouter. |
+| `OPENROUTER_API_KEY` | Keep the existing key. It is only used if Gemini fails (no credits, auth, rate limit, 5xx, or a network error). |
+
+If `GEMINI_API_KEY` is not set, the app talks to OpenRouter exactly as before
+(`key.txt` locally, or `OPENROUTER_API_KEY`). Nothing in the pupil or teacher screens changes.
+
+Model names in `config.json` stay in OpenRouter form (`google/gemini-2.5-flash-lite`).
+Gemini is sent the id with `google/` removed. An id AI Studio does not serve
+(`google/gemini-3.8-flash`, or anything that is not a Gemini model) is sent as
+`gemini-2.5-flash`.
+
+When the fallback happens the server logs one line, for example
+`AI fallback: Gemini failed (HTTP 402); using OpenRouter`. Keys are never logged.
+
+```
+node test-ai-fallback.js
+```
+
 ## Keep the cost at £0 (optional)
 
 Open `config.json` and change `brainModel` to a **free** model:
@@ -51,7 +77,9 @@ default) is very cheap and reliable — a whole check is a tiny fraction of a pe
 
 | File | What it is |
 |------|------------|
-| `server.js` | The engine. Talks to OpenRouter. |
+| `server.js` | The engine. Talks to Gemini, then OpenRouter if Gemini fails. |
+| `llm.js` | Which provider is called, and the fallback. |
+| `test-ai-fallback.js` | Mocked calls: a Gemini 402 is answered by OpenRouter; no `GEMINI_API_KEY` stays on OpenRouter. |
 | `public/` | The screens (teacher + student). |
 | `config.json` | Model, number of questions, port. |
 | `key.txt` | Your API key (never share it). |
