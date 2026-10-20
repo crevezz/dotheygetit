@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const qrcode = require('qrcode');
+const { chatComplete, describeProvider } = require('./llm');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -186,18 +187,14 @@ function currentTeacher(req) {
 function publicTeacher(t) { return { id: t.id, email: t.email, role: t.role || 'teacher', name: t.name || '' }; }
 
 // ----------------------------------------------------------------------- llm
+/* Gemini first when GEMINI_API_KEY is set; OpenRouter if that call fails.
+   No Gemini key: this is the old OpenRouter call, unchanged. */
 async function llm(messages, opts = {}) {
-  if (!API_KEY) throw new Error('No API key. Add key.txt and restart.');
-  const body = { model: opts.model || cfg.model, messages, temperature: opts.temperature === undefined ? 0.6 : opts.temperature };
-  if (opts.json) body.response_format = { type: 'json_object' };
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + API_KEY },
-    body: JSON.stringify(body)
-  });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.message || 'LLM error');
-  return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+  return chatComplete(messages, {
+    model: opts.model || cfg.model,
+    temperature: opts.temperature,
+    json: opts.json
+  }, { openrouterKey: API_KEY });
 }
 
 // ------------------------------------------------------------------- prompts
@@ -2154,6 +2151,7 @@ server.listen(cfg.port, () => {
   console.log('  Get It? is running');
   console.log('  ->  http://localhost:' + cfg.port);
   console.log('  Key loaded: ' + (API_KEY ? 'yes' : 'NO - add key.txt and restart'));
+  console.log('  AI: ' + describeProvider());
   console.log('');
   console.log('  Keep this window open. Close it to stop.');
   console.log('');
