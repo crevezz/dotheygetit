@@ -1208,14 +1208,15 @@ function nextStepFromGaps(evidence) {
   const bit = (g, n) => {
     const facts = g.missed.slice(0, n).join('; ');
     if (!g.q) return facts;
-    const lead = g.q.charAt(0).toLowerCase() + g.q.slice(1);
-    return lead + ' (' + facts + ')';
+    const q = g.q.replace(/\?+$/, '').trim();
+    const head = q.charAt(0).toUpperCase() + q.slice(1);
+    return head + '? ' + facts + '.';
   };
   /* Two missing facts per question when they fit. If that runs long, keep one
      fact each so the line is never cut off in the middle of a point. */
-  let line = 'Recap ' + ordered.map(g => bit(g, 2)).join(', and ') + '.';
-  if (line.length > 420) line = 'Recap ' + ordered.map(g => bit(g, 1)).join(', and ') + '.';
-  return line.replace(/[\u2014\u2013]/g, ',');
+  let line = 'Recap: ' + ordered.map(g => bit(g, 2)).join(' ');
+  if (line.length > 420) line = 'Recap: ' + ordered.map(g => bit(g, 1)).join(' ');
+  return line.replace(/[\u2014\u2013]/g, ',').replace(/\s+/g, ' ').trim();
 }
 
 async function marksFromAnswers(topic, marks, transcript, questions, year) {

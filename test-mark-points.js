@@ -123,7 +123,7 @@ setMarker((messages) => {
   check('the padded total is gone', v.pointsTotal < 11 && v.pointsHit === 3, v.pointsHit + '/' + v.pointsTotal);
   check('something was shown on the three answered questions', v.shown === 3 && v.qs === 5, v.shown + ' of ' + v.qs);
 
-  check('NEXT is a recap, not the summary', v.nextStep && /^Recap /i.test(v.nextStep) && !/basic understanding/i.test(v.nextStep), v.nextStep);
+  check('NEXT is a recap, not the summary', v.nextStep && /^Recap\b/i.test(v.nextStep) && !/basic understanding/i.test(v.nextStep), v.nextStep);
   check('NEXT names why Britain joined', /britain join/i.test(v.nextStep) && /poland/i.test(v.nextStep), v.nextStep);
   check('NEXT names what changed after the war', /united nations|cold war/i.test(v.nextStep), v.nextStep);
   check('NEXT has no em dash', v.nextStep && !/[\u2014\u2013]/.test(v.nextStep));
