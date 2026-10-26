@@ -76,6 +76,22 @@ function auth(rec) {
     check(describeProvider() === 'OpenRouter', 'startup line says OpenRouter', describeProvider());
   });
 
+  await withEnv({ GEMINI_API_KEY: GEM_KEY, AI_PROVIDER: undefined }, async () => {
+    const calls = [];
+    const sysOnly = [{ role: 'system', content: 'Write three questions. Return ONLY JSON.' }];
+    await chatComplete(sysOnly, { model: 'google/gemini-2.5-flash-lite', json: true, temperature: 0.7, maxTokens: 900 }, {
+      openrouterKey: OR_KEY,
+      fetch: async (url, init) => {
+        calls.push({ url, init });
+        return okContent('{"questions":["one"]}');
+      }
+    });
+    const body = posted(calls[0]);
+    check(calls.length === 1 && calls[0].url === GEMINI_URL, 'a system-only prompt still goes to Gemini');
+    check(body.messages.length === 2 && body.messages[1].role === 'user' && body.messages[1].content === 'Go.', 'a system-only prompt gains a user turn', JSON.stringify(body.messages.map(m => m.role)));
+    check(body.model === 'gemini-2.5-flash-lite' && body.max_tokens === 900 && body.reasoning_effort === 'none', 'the generate body is otherwise unchanged');
+  });
+
   await withEnv({ GEMINI_API_KEY: undefined, AI_PROVIDER: undefined }, async () => {
     const calls = [];
     let threw = '';

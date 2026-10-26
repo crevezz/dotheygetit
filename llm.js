@@ -46,11 +46,21 @@ function toGeminiModel(model) {
   return id;
 }
 
+/* Gemini's OpenAI endpoint rejects a request that has only a system message
+   (400, contents is not specified, often as an array). That is the generate
+   call. A user turn makes the same prompt valid. OpenRouter already accepted it. */
+function withUserTurn(messages) {
+  const list = Array.isArray(messages) ? messages.slice() : [];
+  if (list.some(m => m && m.role && m.role !== 'system')) return list;
+  list.push({ role: 'user', content: 'Go.' });
+  return list;
+}
+
 function buildBody(messages, opts) {
   const o = opts || {};
   const body = {
     model: o.model,
-    messages,
+    messages: withUserTurn(messages),
     temperature: o.temperature === undefined ? 0.6 : o.temperature
   };
   if (o.json) body.response_format = { type: 'json_object' };
