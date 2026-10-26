@@ -432,7 +432,7 @@ $('#btnGenerate').addEventListener('click', async () => {
   $('#btnGenerate').disabled = true;
   $('#btnGenerate').textContent = 'Writing questions...';
   try {
-    const j = await post('/api/generate', { topic });
+    const j = await post('/api/generate', { topic, year: (activeClass && activeClass.year) || '' });
     generated = j.questions;
     generated.marks = j.marks || [];
     renderQuestions();
@@ -705,7 +705,7 @@ function drawResults(s, students) {
       <div class="detail">
         ${!ev.length && v.gets ? `<div><span class="k" data-tip="What they truly understand.">Gets</span>${esc(v.gets)}</div>` : ''}
         ${!ev.length && v.shaky ? `<div><span class="k" data-tip="Where they are weak.">Shaky</span>${esc(v.shaky)}</div>` : ''}
-        ${v.nextStep ? `<div class="nextstep"><span class="k" data-tip="Where this pupil is now - yours to act on.">Next</span>${esc(v.nextStep)}</div>` : ''}
+        ${v.nextStep ? `<div class="nextstep"><span class="k" data-tip="A concrete next step for you, based on the gaps.">Next</span>${esc(v.nextStep)}</div>` : ''}
         ${v.faked ? `<div class="warn" data-tip="Their answers sounded copied or AI-written.">Possible bluffing</div>` : ''}
       </div>
       <div class="ovrow">
