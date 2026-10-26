@@ -408,12 +408,18 @@ same thing in different words, that is one point, and the pupil's mark is meanin
 FIRST, and above everything else: a point must be something the pupil could actually SAY
 in their answer to that question. If the question asks for a fact or a word, one point has
 to BE that fact or word. A point a short, correct answer cannot reach is dead weight: it
-marks every pupil down for something the question never asked. A short answer question
-still gets TWO points - the answer itself, and the working or the reason. BUT a question
-that asks for a single letter, a single word, a spelling, a name or a date has NO working
-to give: it has ONE point, and that point is the answer. Write just the one. "Knows the
-word 'apple'" beside "knows the first letter" is not a second point - it is a way of
-marking a child down for answering a one-word question in one word.
+marks every pupil down for something the question never asked. A question that asks for ONE
+fact has ONE point, and that point is the fact. One fact means who someone was, what something
+was called, which one it was, a single name, a single date, a spelling, or a first letter.
+"Who was the leader of Germany in the Second World War?" is one point: "Adolf Hitler". It is
+not also "he was a dictator". The question did not ask that, and the extra point marks a right
+answer down. "What was the war called?" is one point: "the Second World War". World War Two
+and WW2 are that same point, not a second one.
+A question that really has two parts (a sum with working worth showing, or a why) still gets
+the answer and the working, as separate points. A bare sum, a spelling, a name, or a "what
+was it called" has no working. Write one point. "Knows the word apple" beside "knows the
+first letter" is not a second point. It marks a child down for answering a one-word question
+in one word.
 WORK OUT THE RIGHT ANSWER YOURSELF FIRST, then write the point that gives THAT answer. A
 point carrying the wrong answer is worse than no point at all: it marks the pupils who are
 right down for being right, and hands credit to the ones who are wrong.
@@ -433,10 +439,12 @@ That means a question with several valid ways to answer has ONE working point, n
 way. Write the ONE point so any route reaches it, and let the answer point carry the rest.
 Never repeat the same idea as two points: if two points would both be ticked by the same
 answer, they are ONE point, not two.
-NEVER WRITE THE ANSWER TWICE. The same fact said another way is ONE point, not two, and it
-wastes half the question. The second point is always the WORKING or the REASON: how they got
-there. A pupil who just gives the answer has shown the first and not the second, and that is
-the honest mark.
+NEVER WRITE THE ANSWER TWICE. The same fact said another way is ONE point, not two.
+"Also known as the Second World War" beside "it was called World War Two" is the same point.
+A second point is only allowed when the question asks for a second, different thing: the
+working on a sum that needs it, or a separate reason on a why or how question. A point the
+question never asked for is padding, and it makes a correct pupil look weaker. If you can
+say "in other words" or "also known as", delete the second point.
 Each point is ONE idea in ONE short sentence, twelve words or so. Never put two ideas in
 one point and never write a list inside one. If you catch yourself writing a comma followed
 by "and", that is two points - split them.
@@ -499,6 +507,26 @@ function shortFact(q) {
   const t = String(q || '').toLowerCase();
   if (/why|explain|how do you know|how can you tell|because|reason/.test(t)) return false;
   return /first letter|last letter|what letter|spell the word|how do you spell|starts with|ends with/.test(t);
+}
+/* A question whose whole answer is one name, one title, or one date. "Who was the leader
+   of Germany?" does not have a second fact hiding in it, and "what was it called?" does
+   not have an "also known as". A fully right answer to one of these is full credit, so
+   the scheme is one point. A why, a how, or a "what changed" is not one of these. */
+function asksOneFact(q) {
+  const t = String(q || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!t) return false;
+  if (/\b(why|explain|how come|how do|how does|how did|how can|how would|what changed|what difference|what effect|what impact|what happened)\b/.test(t)) return false;
+  if (/^what (?:was|is|were|are) the name\b/.test(t)) return true;
+  if (/^what (?:was|is|were|are) .{0,48} called\b/.test(t)) return true;
+  if (/^who (?:was|is|were|are)\b/.test(t)) return true;
+  if (/^which (?:person|country|leader|king|queen|name)\b/.test(t)) return true;
+  if (/^what year\b/.test(t) || /^what date\b/.test(t)) return true;
+  if (/^when (?:was|did|were)\b/.test(t) && !/\b(and|why|how)\b/.test(t)) return true;
+  return false;
+}
+function minPointsFor(q) {
+  if (plainSum(q) || shortFact(q) || asksOneFact(q)) return 1;
+  return 2;
 }
 /* The right answer to a short-fact question, worked out from the question itself so a
    correct answer is never left uncredited. */
@@ -590,6 +618,32 @@ function splitPoints(list) {
   }).slice(0, 3);
 }
 
+/* The critic's corrected scheme. A one-fact question is allowed to come back with a
+   single point, and any extra point is dropped, because that extra point is the padding.
+   A why, a how, or a fraction sum still has to come back with two points. A thin critic
+   pass on those is ignored, so a bad critic cannot wipe a scheme the writer already got
+   right. Returns null when the caller should keep the scheme it already has. */
+function takeCriticMarks(question, proposed) {
+  const fixed = splitPoints(Array.isArray(proposed) ? proposed : []);
+  if (!fixed.length) return null;
+  if (asksOneFact(question) || shortFact(question)) return fixed.slice(0, 1);
+  if (fixed.length >= 2) return fixed;
+  return null;
+}
+
+function criticSystem(topic, audit) {
+  return `You are checking the marking scheme for a short school quiz on "${topic}".
+For each question, every point must be something THAT question actually asks for, and it must be true.
+A point that adds a fact the question did not ask for is wrong. Delete it.
+Two points that are the same fact in different words are one point. WW2, World War Two and the Second World War are the same fact. Keep one.
+A question that asks for one fact (who, what it was called, a name, a date, a spelling) has ONE point: the answer. Do not add a working point. There is nothing else to show.
+A why, how, or "what changed" question keeps one point per separate reason the question asks for. Do not add a vague extra point that only restates the others.
+Be strict about the maths: "the denominators are the same" is FALSE for "which is bigger, 1/2 or 1/4?" because they are 2 and 4. A rule that only holds for some numbers is wrong.
+Keep each point short and in plain words. Do NOT use commas inside a point. Write "and" instead, so a point can never be split in two.
+${audit}
+Return ONLY JSON: {"marks":[["point"],["point 1","point 2"]]} - one array per question, in order, all of them. One point is correct when the question asks for one fact.`;
+}
+
 /* Is this a maths topic? Only maths checks get the maths worked examples in the prompts -
    in a spelling or history check those examples hijack the subject. */
 function isMathsTopic(t) {
@@ -598,7 +652,20 @@ function isMathsTopic(t) {
 function plainWordsFor(t) { return isMathsTopic(t) ? PLAIN_WORDS + '\n\n' + PLAIN_MATHS : PLAIN_WORDS; }
 function markRulesFor(t) { return isMathsTopic(t) ? MARK_RULES + '\n\n' + MARK_MATHS : MARK_RULES; }
 
-function questionWriterSystem(topic, count) {
+/* Year 7 and above are secondary. The plain-words rules still keep a question short,
+   but "say it to a ten-year-old" on its own was producing "what was the big war called?"
+   on a World War Two check. Pitch the idea up. Leave Year 5 and Year 6, and a class
+   with no year set, on the original wording apart from the topic-title rule below. */
+function yearPitch(year) {
+  const y = String(year || '').trim();
+  if (!y) return '';
+  const n = Number((y.match(/\d+/) || [])[0]);
+  const older = (n >= 7) || /college|adult|gcse|ks3|ks4|ks5/i.test(y);
+  if (!older) return '';
+  return `\n\nThe class is ${y}. Keep each question short and in plain words, but pitch the idea at ${y}, not at a ten-year-old. Ask about a cause, a consequence, or how something works. One straightforward fact is fine. Do not write a question the topic title already answers, and do not write an essay or a university question.`;
+}
+
+function questionWriterSystem(topic, count, year) {
   return `You are helping a teacher write a quick understanding check.
 
 THE TOPIC IS "${topic}". Every single question must be about THIS topic and nothing else.
@@ -611,6 +678,7 @@ about. Getting the subject wrong makes the whole check useless to the teacher.
 Write ${count} short, open questions that find out whether a student really understands this topic.
 
 ${plainWordsFor(topic)}
+${yearPitch(year)}
 
 ${NO_IMAGES}
 
@@ -619,6 +687,9 @@ Rules:
 - Start easy, get harder.
 - At least one should ask them to explain or apply it in their own words.
 - No yes/no questions.
+- Do not ask a question a pupil can answer just by repeating the topic. If the topic is
+  "World War Two", "What was the name of the big war?" is not a question. Ask something
+  the title does not already give away.
 - If the topic is naturally visual, ask about it in words: not "what can you see in this
   diagram of the water cycle?" but "what happens to rain after it lands?".
 
@@ -986,7 +1057,169 @@ function wantsFlashOpinion(o, lo, hi, question, answer) {
   return why && words >= 8 && shown.size === 0;
 }
 
+/* WW2, WWII, World War Two and the Second World War are one answer. The marker was
+   treating the second wording as a separate point and then marking "WW2" wrong against
+   it. Fold the known names onto one token so a later check can see they match. */
+function canonText(s) {
+  let t = String(s || '').toLowerCase().replace(/[’']/g, '');
+  t = t.replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+  t = t.replace(/\bworld war (?:two|2|ii)\b/g, 'ww2');
+  t = t.replace(/\bsecond world war\b/g, 'ww2');
+  t = t.replace(/\bwwii\b/g, 'ww2');
+  t = t.replace(/\bww ii\b/g, 'ww2');
+  t = t.replace(/\bworld war (?:one|1|i)\b/g, 'ww1');
+  t = t.replace(/\bfirst world war\b/g, 'ww1');
+  t = t.replace(/\bgreat war\b/g, 'ww1');
+  t = t.replace(/\bwwi\b/g, 'ww1');
+  t = t.replace(/\bww i\b/g, 'ww1');
+  t = t.replace(/\bunited nations\b/g, 'un');
+  t = t.replace(/\bunited kingdom\b/g, 'uk');
+  t = t.replace(/\bgreat britain\b/g, 'uk');
+  t = t.replace(/\bbritain\b/g, 'uk');
+  return ' ' + t + ' ';
+}
+function foldIdeas(text) {
+  const t = canonText(text);
+  const ids = [];
+  if (/\bww2\b/.test(t)) ids.push(0);
+  if (/\bww1\b/.test(t)) ids.push(1);
+  if (/\bun\b/.test(t)) ids.push(2);
+  if (/\buk\b/.test(t)) ids.push(3);
+  return ids;
+}
+function stripIdeaPhrases(text, ideas) {
+  let t = String(text || '');
+  if (ideas.includes(0)) t = t.replace(/\b(?:world war (?:two|2|ii)|second world war|wwii|ww\s*ii|ww2)\b/gi, ' ');
+  if (ideas.includes(1)) t = t.replace(/\b(?:world war (?:one|1|i)|first world war|great war|wwi|ww\s*i)\b/gi, ' ');
+  if (ideas.includes(2)) t = t.replace(/\bunited nations\b/gi, ' ');
+  if (ideas.includes(3)) t = t.replace(/\b(?:united kingdom|great britain|britain|u\.k\.|uk)\b/gi, ' ');
+  return t;
+}
+const ALIAS_GLUE = new Set(['called', 'known', 'also', 'named', 'name', 'means', 'referred', 'aka', 'another', 'word', 'same', 'simply', 'just', 'nickname', 'short']);
+function stemWord(w) { return String(w || '').replace(/s$/, ''); }
+/* The point names a thing, and the answer names the same thing another way, with no
+   extra fact left over. "WW2" shows "it was called World War Two" once the question's
+   own words are ignored. It does not show "Britain joined because Germany invaded
+   Poland", because that point still has words the answer never said. */
+function aliasHitsPoint(point, answer, question) {
+  const ideas = foldIdeas(point);
+  if (!ideas.length) return false;
+  const ans = foldIdeas(answer);
+  if (!ideas.every(i => ans.includes(i))) return false;
+  const qset = new Set(echoWords(question).filter(w => !STOP_WORDS.has(w)).map(stemWord));
+  const mine = new Set(echoWords(answer).filter(w => !STOP_WORDS.has(w)).map(stemWord));
+  const rest = echoWords(stripIdeaPhrases(point, ideas))
+    .filter(w => !STOP_WORDS.has(w) && !ALIAS_GLUE.has(w))
+    .map(stemWord)
+    .filter(w => w.length > 1 && !qset.has(w));
+  return rest.every(w => mine.has(w));
+}
+function aliasOnly(point) {
+  const ideas = foldIdeas(point);
+  if (ideas.length !== 1) return false;
+  const rest = echoWords(stripIdeaPhrases(point, ideas)).filter(w => !STOP_WORDS.has(w) && !ALIAS_GLUE.has(w) && w.length > 2);
+  return rest.length === 0;
+}
+function collapseAliasDupes(list) {
+  const kept = [];
+  for (const p of list) {
+    const ideas = foldIdeas(p);
+    const dup = ideas.length && kept.some(k => {
+      const ki = foldIdeas(k);
+      if (!ki.length || ki.length !== ideas.length) return false;
+      return ideas.every(i => ki.includes(i)) && aliasOnly(p) && aliasOnly(k);
+    });
+    if (!dup) kept.push(p);
+  }
+  return kept;
+}
+/* Stored schemes already on live checks still carry the padded second point. Drop it
+   here, when the card is built, so a pupil marked today is not scored against a fact
+   the question never asked. Why and how questions keep their separate reasons. */
+function fitMarks(question, points) {
+  let list = (points || []).map(p => String(p || '').trim()).filter(Boolean);
+  list = collapseAliasDupes(list);
+  if (asksOneFact(question) || shortFact(question)) list = list.slice(0, 1);
+  return list;
+}
+function contentStems(s) {
+  return echoWords(s).filter(w => !STOP_WORDS.has(w) && w.length > 2).map(stemWord);
+}
+function bareAmount(s) {
+  const v = String(s || '').trim().toLowerCase();
+  if (!v) return false;
+  if (/^[\s\d\/.,+-]+$/.test(v)) return true;
+  const words = v.split(/[\s-]+/).filter(Boolean);
+  const filler = /^(?:and|a|an|the)$/;
+  return words.length > 0 && words.length <= 4 && words.every(w => WORD_NUM[w] !== undefined || filler.test(w) || /^\d+(?:\/\d+)?$/.test(w));
+}
+/* One quote was ticking a second point it does not contain: "towns/cities" credited
+   "targeted cities and industrial areas". When the same answer is the evidence for two
+   points, each point has to be visible in that answer. A sum's bare number is left
+   alone, because "15" really does show both "says 15" and "adds 7 and 8". */
+function dropUndemonstrated(marks, questions, hit, offset) {
+  for (let qi = 0; qi < marks.length; qi++) {
+    const ps = (marks[qi] || []).filter(Boolean);
+    if (ps.length < 2) continue;
+    const q = (questions && questions[qi]) || '';
+    const lo = offset[qi];
+    const expF = expectedFractionValue(ps);
+    const expN = expF == null ? expectedNumber(q, ps) : null;
+    if (expF != null || expN != null) continue;
+    if (ps.some((_, k) => bareAmount(hit.get(lo + k) || ''))) continue;
+    const norm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const quotes = ps.map((_, k) => hit.get(lo + k) || '');
+    for (let k = 0; k < ps.length; k++) {
+      if (!quotes[k]) continue;
+      const shared = quotes.some((other, j) => j !== k && other && norm(other) === norm(quotes[k]));
+      if (!shared) continue;
+      const have = new Set(contentStems(quotes[k]));
+      const parts = String(ps[k]).split(/\s+\band\b\s+/i).map(x => x.trim()).filter(part => contentStems(part).length);
+      const need = contentStems(ps[k]);
+      const shown = parts.length >= 2
+        ? parts.every(part => contentStems(part).some(w => have.has(w)))
+        : (!need.length || need.some(w => have.has(w)));
+      if (!shown) hit.delete(lo + k);
+    }
+  }
+}
+function tidyFact(s) {
+  let t = String(s || '').replace(/\s+/g, ' ').trim().replace(/\.+$/, '');
+  t = t.replace(/^(says|states|explains|knows|names|shows)\s+/i, '');
+  if (t.length > 90) t = t.slice(0, 87).replace(/\s+\S*$/, '');
+  return t;
+}
+/* The NEXT line was a second copy of the summary. Teachers need the gap: which
+   question, and the fact that was missing. Complete misses come first, then a
+   question that was only partly there. Two gaps is enough to act on. */
+function nextStepFromGaps(evidence) {
+  const gaps = [];
+  for (const e of evidence || []) {
+    const points = e.points || [];
+    const missed = points.filter(p => !p.hit).map(p => tidyFact(p.t)).filter(Boolean);
+    if (missed.length) gaps.push({
+      q: String(e.q || '').replace(/\?+$/, '').trim(),
+      missed,
+      all: points.length > 0 && missed.length === points.length
+    });
+  }
+  if (!gaps.length) return 'Move on. These answers cover what the questions asked.';
+  const ordered = gaps.filter(g => g.all).concat(gaps.filter(g => !g.all)).slice(0, 2);
+  const bit = (g, n) => {
+    const facts = g.missed.slice(0, n).join('; ');
+    if (!g.q) return facts;
+    const lead = g.q.charAt(0).toLowerCase() + g.q.slice(1);
+    return lead + ' (' + facts + ')';
+  };
+  /* Two missing facts per question when they fit. If that runs long, keep one
+     fact each so the line is never cut off in the middle of a point. */
+  let line = 'Recap ' + ordered.map(g => bit(g, 2)).join(', and ') + '.';
+  if (line.length > 420) line = 'Recap ' + ordered.map(g => bit(g, 1)).join(', and ') + '.';
+  return line.replace(/[\u2014\u2013]/g, ',');
+}
+
 async function marksFromAnswers(topic, marks, transcript, questions, year) {
+  marks = (marks || []).map((m, i) => fitMarks((questions && questions[i]) || '', m));
   const points = [].concat.apply([], marks).filter(Boolean);
   if (!points.length) return null;
   const turns = [];
@@ -1047,8 +1280,10 @@ async function marksFromAnswers(topic, marks, transcript, questions, year) {
     ? 'The class is ' + year + '. Pitch the "reason" flag to that. A younger pupil may show they get it in very few words and that still counts as a reason. An older pupil should be expected to say why, so a bare answer from them is more likely reason=false. Never change whether the ANSWER is right because of the age - only how much explaining you expect.'
     : '';
   const sysFor = (lo, hi) => `Topic: "${topic}".
-Which of these points does this ONE answer show? Strict on the meaning, generous on spelling.
+Which of these points does this ONE answer show? Strict on the meaning, generous on spelling and on other names for the same thing.
 ${points.map((p, i) => ({ n: i + 1, p })).filter(x => x.n - 1 >= lo && x.n - 1 < hi).map(x => x.n + '. ' + x.p).join('\n')}
+Tick a point only when this answer actually says that point. The same words cannot be the evidence for a different point. "towns and cities" does not show "industrial areas". A person's name does not show an extra fact the pupil did not say.
+Abbreviations and other names for the same thing count. WW2, WWII, World War 2, World War Two and the Second World War are the same answer.
 A right amount ticks the point that names that amount, and the method point that got it there. "3/4" for 1/4 + 1/2 ticks "says three quarters" and "adds the top numbers". A bare number never ticks a why or explain point. A point that only names the claim ("1/2 is bigger") is ticked by that claim. A point that asks why is not.
 reason is true only when they explain why, however short. A bare amount is reason false.
 ${yearNote}
@@ -1295,6 +1530,21 @@ Return ONLY JSON: {"shown":[1],"reason":false}`;
     if (hs.length > 1) hs.slice(1).forEach(x => hit.delete(x));
   }
   if (paired) reconcileAnswerValues(answers, marks, questions, hit, offset);
+  /* Synonyms the model still misses. "WW2" against "called World War Two" is the
+     answer, even when the model waits for those exact words. */
+  if (paired) {
+    for (let qi = 0; qi < marks.length; qi++) {
+      const ps = (marks[qi] || []).filter(Boolean);
+      const a = answers[qi] || '';
+      if (!ps.length || !String(a).trim()) continue;
+      const lo = offset[qi];
+      for (let k = 0; k < ps.length; k++) {
+        if (hit.has(lo + k)) continue;
+        if (aliasHitsPoint(ps[k], a, (questions && questions[qi]) || '')) hit.set(lo + k, a);
+      }
+    }
+  }
+  dropUndemonstrated(marks, questions, hit, offset);
   /* The BAND comes from the QUESTIONS the pupil showed something on, not from the pooled
      points. Both earlier rules failed the same way: per-question voting let a one-point
      question read green, and the pooled share parked a pupil on 36% - a number no teacher
@@ -1502,6 +1752,9 @@ async function gradeCheck(topic, transcript, questions, marks, year) {
          and is flagged, so the teacher can see who may fall apart next. */
       v.level = settleLevel(graded, readLevelRaw, v.gets);
       v.noReason = v.level === 'green' && !graded.reason;
+      /* The model was asked for a description and it copied the summary into NEXT.
+         The gaps are already on the card, so the line is built from the misses. */
+      if (Array.isArray(graded.evidence) && graded.evidence.length) v.nextStep = nextStepFromGaps(graded.evidence);
       if (/^\s*nothing\b/i.test(String(v.gets || '').trim()) && v.level === 'red') {
         v.cappedBy = String(v.gets || '').trim().slice(0, 80);
       }
@@ -1521,8 +1774,8 @@ If the sums are right but the explanation is the wrong idea, the level is red.
 A true fact that does not answer the question is not a point.
 faked is true only when the wording is copied or machine-written, not when a child is simply wrong.
 Return ONLY JSON:
-{"gotRight":["short point"],"level":"amber","gets":"short phrase","shaky":"short phrase or empty","faked":false,"notes":"one short sentence","nextStep":"one short sentence about where the pupil is, not an instruction"}
-nextStep describes the pupil. Do not start it with a command.`;
+{"gotRight":["short point"],"level":"amber","gets":"short phrase","shaky":"short phrase or empty","faked":false,"notes":"one short sentence","nextStep":"one concrete recap for the teacher, naming the missing idea"}
+nextStep is an action for the teacher, based on what this pupil missed. Name the gap, for example "Recap why Britain joined (Germany invaded Poland in September 1939)". Do not describe the pupil, and do not repeat the notes. UK English. Do not use an em dash.`;
 }
 
 // ------------------------------------------------------------------- helpers
@@ -1942,6 +2195,7 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
       const topic = String(b.topic || '').trim();
       if (!topic) return sendErr(res, 'Please type a topic first.');
       const count = Math.max(3, Math.min(8, Number(b.count) || cfg.maxQuestions));
+      const year = String(b.year || '').trim();
       /* The mark points make this a nested JSON shape, and the model mangles it now and
          then. One retry costs a fraction of a second and saves the teacher an error
          message - and silently losing the marks would fall back to guessing. */
@@ -1949,7 +2203,7 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
       /* if the teacher has already written or edited the questions, mark those */
       const asked = Array.isArray(b.questions) ? b.questions.map(q => String(q || '').trim()).filter(Boolean) : [];
       for (let attempt = 0; attempt < 2 && !obj; attempt++) {
-        const sys = asked.length ? markWriterSystem(topic, asked) : questionWriterSystem(topic, count);
+        const sys = asked.length ? markWriterSystem(topic, asked) : questionWriterSystem(topic, count, year);
         const raw = await llm([{ role: 'system', content: sys }],
           { json: true, temperature: attempt ? 0.4 : 0.7, maxTokens: 900 });
         const o = parseJson(raw);
@@ -1978,7 +2232,7 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
          fires when a question came back with fewer than 2 points (a single point cannot
          produce an amber), and when a question that asks for an answer has no point that
          IS the answer. Two attempts at most. */
-      for (let attempt = 0; attempt < 2 && (marks.filter((m, i) => m.length < (qs[i] && (plainSum(qs[i]) || shortFact(qs[i])) ? 1 : 2)).length || dead(marks)); attempt++) {
+      for (let attempt = 0; attempt < 2 && (marks.filter((m, i) => m.length < minPointsFor(qs[i])).length || dead(marks)); attempt++) {
         try {
           const retry = await llm([{ role: 'system', content: markWriterSystem(topic, qs) }],
             { json: true, temperature: 0.4, maxTokens: 900 });
@@ -1996,13 +2250,13 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
          the answer, and the working - in a single call, and only for the questions that
          came back thin. Doing it here rather than re-rolling the lot keeps the points a
          teacher has already read. */
-      const thin = qs.map((q, i) => ({ q, i, have: marks[i] || [] })).filter(x => x.have.length < 2 && !shortFact(x.q));
+      const thin = qs.map((q, i) => ({ q, i, have: marks[i] || [] })).filter(x => x.have.length < 2 && !shortFact(x.q) && !asksOneFact(x.q));
       if (thin.length) {
         try {
           const list = thin.map((x, n) => (n + 1) + '. ' + x.q + '\n   already marked: ' + (x.have[0] || '(nothing yet)')).join('\n');
           const raw = await llm([
             { role: 'system', content: `You are finishing off the mark points for a short school quiz on "${topic}".
-Each question below already has one point. Every question needs TWO: the ANSWER itself, and the WORKING (what the pupil did to get it). Write the ONE missing point for each question - whichever of the two is not already there. Keep it short, in plain words, and make sure a pupil who answers that question correctly could actually say it.
+Each question below already has one point and needs a second, different one: the working on a sum, or a separate reason on a why or how. Do not repeat the point that is already there in different words. Do not add a fact the question never asked. If there is no second thing the question actually asks for, return an empty string for that question. Keep it short, in plain words, and make sure a pupil who answers that question correctly could actually say it.
 ` + list + `
 Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` }
           ], { json: true, temperature: 0.4, maxTokens: 400 });
@@ -2026,21 +2280,17 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
         const audit = qs.map((q, i) => (i + 1) + '. Question: ' + q + '\n   current points: ' +
           (marks[i] || []).map((p, n) => (n + 1) + ') ' + p).join('  |  ')).join('\n');
         const raw = await llm([
-          { role: 'system', content: `You are checking the marking scheme for a short school quiz on "${topic}".
-For each question, every point must be TRUE for that question and must be something a correct answer actually shows. Rewrite the points for any question whose scheme is wrong or incomplete; leave a good scheme exactly as it is.
-Be strict about the maths: "the denominators are the same" is FALSE for "which is bigger, 1/2 or 1/4?" because they are 2 and 4. A rule that only holds for some numbers is wrong.
-Every question needs the ANSWER itself plus the WORKING a pupil would show. Keep each point short and in plain words. Do NOT use commas inside a point - write "and" instead - so a point can never be split in two.
-` + audit + `
-Return ONLY JSON: {"marks":[["point 1","point 2"],["...","..."]]} - one array per question, in order, all of them.` }
+          { role: 'system', content: criticSystem(topic, audit) }
         ], { json: true, temperature: 0, maxTokens: 900, model: cfg.criticModel || cfg.verdictModel || cfg.model });
         const o = parseJson(raw);
         if (o && Array.isArray(o.marks)) {
           qs.forEach((q, i) => {
-            const fixed = splitPoints(Array.isArray(o.marks[i]) ? o.marks[i] : []);
-            if (fixed.length >= 2) marks[i] = fixed;
+            const fixed = takeCriticMarks(q, o.marks[i]);
+            if (fixed) marks[i] = fixed;
           });
         }
       } catch (e) { logError('/api/generate critic', e.message); }
+      marks = qs.map((q, i) => fitMarks(q, marks[i]));
       return sendJson(res, { questions: qs, marks });
     }
 
@@ -2473,4 +2723,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { gradeCheck, setMarker };
+module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact };
