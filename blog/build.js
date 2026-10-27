@@ -23,7 +23,8 @@ const NETLIFY = path.join(__dirname, '..', 'netlify.toml');
 /* Paths that already belong to the site. A post slug must not use one. */
 const RESERVED = new Set([
   'blog', 'contact', 'terms', 'thank-you', 'new-teacher-pack',
-  'help', 'privacy', 'app', 'index', 'media', 'og'
+  'help', 'privacy', 'app', 'index', 'media', 'og',
+  'pack-thanks', 'newsletter-thanks'
 ]);
 
 const POST_ORDER = [
@@ -146,6 +147,57 @@ const CTA = `
   <p class="fine">Students need no account. They just need the code.</p>
 </section>
 `;
+
+/* Same fields on every copy, so Netlify treats them as one form. */
+const NEWSLETTER = `
+<aside class="signup">
+  <div class="wrap">
+    <div class="panel">
+      <p class="kicker">For UK teachers</p>
+      <h2>Get one quick classroom check a week, free</h2>
+      <p>A short check for a KS3, KS4 or GCSE lesson. School and subject are optional.</p>
+      <form name="newsletter" method="POST" action="/newsletter-thanks/" data-netlify="true" netlify netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="newsletter"/>
+        <p class="hp" aria-hidden="true">
+          <label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"/></label>
+        </p>
+        <div class="row">
+          <div class="f">
+            <label for="nl-first">First name</label>
+            <input id="nl-first" name="first-name" type="text" autocomplete="given-name" required maxlength="80"/>
+          </div>
+          <div class="f">
+            <label for="nl-email">Email</label>
+            <input id="nl-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="160" placeholder="you@school.sch.uk"/>
+          </div>
+        </div>
+        <div class="row">
+          <div class="f">
+            <label for="nl-school">School <span>optional</span></label>
+            <input id="nl-school" name="school" type="text" autocomplete="organization" maxlength="120"/>
+          </div>
+          <div class="f">
+            <label for="nl-subject">Subject <span>optional</span></label>
+            <input id="nl-subject" name="subject" type="text" maxlength="80"/>
+          </div>
+        </div>
+        <label class="consent">
+          <input type="checkbox" name="consent" value="yes" required/>
+          <span>I'm happy to get occasional emails from Get It?, unsubscribe any time. <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="/terms/">Terms</a>.</span>
+        </label>
+        <button class="btn" type="submit">Send me the checks</button>
+        <p class="fine">New to teaching? <a href="/new-teacher-pack/">The survival pack</a> is free to read, with a PDF if you want one.</p>
+      </form>
+    </div>
+  </div>
+</aside>
+`;
+
+function ensureNewsletter(html) {
+  if (html.includes('name="newsletter"')) return html;
+  if (!html.includes('</article>')) throw new Error('newsletter insert point missing');
+  return html.replace('</article>', NEWSLETTER + '\n</article>');
+}
 
 function head(o) {
   const twitter = o.twitter || o.desc;
@@ -298,6 +350,7 @@ ${faqHtml}
 ${CTA}
 ${next}
   </div>
+${NEWSLETTER}
 </article>
 ` + FOOT;
 }
@@ -496,6 +549,7 @@ ${all.map(indexCard).join('\n')}
   </div>
 ${CTA}
 </div>
+${NEWSLETTER}
 ` + FOOT;
   fs.writeFileSync(path.join(BLOG, 'index.html'), html);
 }
@@ -505,7 +559,7 @@ function renderSitemap(all) {
     { loc: `${SITE}/`, lastmod: '2026-09-20', changefreq: 'weekly', priority: '1.0' },
     { loc: `${SITE}/contact/`, lastmod: '2026-09-20', changefreq: 'yearly', priority: '0.6' },
     { loc: `${SITE}/terms/`, lastmod: '2026-10-17', changefreq: 'yearly', priority: '0.4' },
-    { loc: `${SITE}/new-teacher-pack/`, lastmod: '2026-09-28', changefreq: 'monthly', priority: '0.9' },
+    { loc: `${SITE}/new-teacher-pack/`, lastmod: '2026-10-27', changefreq: 'monthly', priority: '0.9' },
     { loc: `${SITE}/blog/`, lastmod: '2026-10-27', changefreq: 'weekly', priority: '0.8' },
     ...all.map((p) => ({
       loc: `${SITE}/${p.slug}`,
@@ -566,6 +620,9 @@ function main() {
     if (!html.includes('"@type":"FAQPage"') || !html.includes('"@type":"Article"')) {
       throw new Error('json-ld missing ' + p.slug);
     }
+    if (!html.includes('name="newsletter"') || !html.includes('netlify-honeypot="bot-field"')) {
+      throw new Error('newsletter form missing ' + p.slug);
+    }
     assertSlugFree(p.slug);
     fs.writeFileSync(path.join(ROOT, p.slug + '.html'), html);
     const stale = path.join(BLOG, p.slug + '.html');
@@ -592,6 +649,12 @@ function main() {
 
   relocateOriginals(POST_ORDER);
   patchOriginals();
+  Object.keys(ORIGINAL).forEach((slug) => {
+    const file = path.join(ROOT, slug + '.html');
+    const html = ensureNewsletter(fs.readFileSync(file, 'utf8'));
+    if (!html.includes('name="newsletter"')) throw new Error('newsletter missing on ' + slug);
+    fs.writeFileSync(file, html);
+  });
   buildOgImages();
   renderIndex(all);
   const n = renderSitemap(all);

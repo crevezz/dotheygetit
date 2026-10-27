@@ -175,6 +175,49 @@
   </div>
 </div>
   </div>
+
+<aside class="signup">
+  <div class="wrap">
+    <div class="panel">
+      <p class="kicker">For UK teachers</p>
+      <h2>Get one quick classroom check a week, free</h2>
+      <p>A short check for a KS3, KS4 or GCSE lesson. School and subject are optional.</p>
+      <form name="newsletter" method="POST" action="/newsletter-thanks/" data-netlify="true" netlify netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="newsletter"/>
+        <p class="hp" aria-hidden="true">
+          <label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"/></label>
+        </p>
+        <div class="row">
+          <div class="f">
+            <label for="nl-first">First name</label>
+            <input id="nl-first" name="first-name" type="text" autocomplete="given-name" required maxlength="80"/>
+          </div>
+          <div class="f">
+            <label for="nl-email">Email</label>
+            <input id="nl-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="160" placeholder="you@school.sch.uk"/>
+          </div>
+        </div>
+        <div class="row">
+          <div class="f">
+            <label for="nl-school">School <span>optional</span></label>
+            <input id="nl-school" name="school" type="text" autocomplete="organization" maxlength="120"/>
+          </div>
+          <div class="f">
+            <label for="nl-subject">Subject <span>optional</span></label>
+            <input id="nl-subject" name="subject" type="text" maxlength="80"/>
+          </div>
+        </div>
+        <label class="consent">
+          <input type="checkbox" name="consent" value="yes" required/>
+          <span>I'm happy to get occasional emails from Get It?, unsubscribe any time. <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="/terms/">Terms</a>.</span>
+        </label>
+        <button class="btn" type="submit">Send me the checks</button>
+        <p class="fine">New to teaching? <a href="/new-teacher-pack/">The survival pack</a> is free to read, with a PDF if you want one.</p>
+      </form>
+    </div>
+  </div>
+</aside>
+
 </article>
 
 <footer>
