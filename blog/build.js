@@ -3,8 +3,9 @@
  *   node blog/build.js
  *
  * Writes posts to landing-site/<slug>.html (root URLs, not /blog/<slug>),
- * rebuilds the /blog/ index, refreshes sitemap.xml, and keeps 301s in
- * netlify.toml from the old /blog/<slug> addresses. blog.css stays in
+ * rebuilds the /blog/ index, refreshes sitemap.xml, keeps 301s in
+ * netlify.toml from the old /blog/<slug> addresses, and rebuilds each
+ * post's share image in landing-site/og/. blog.css stays in
  * landing-site/blog/ and is not rewritten.
  *
  * Nothing in blog/ is served. Netlify publishes landing-site/.
@@ -12,6 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const SITE = 'https://dotheygetit.app';
 const ROOT = path.join(__dirname, '..', 'landing-site');
@@ -21,7 +23,7 @@ const NETLIFY = path.join(__dirname, '..', 'netlify.toml');
 /* Paths that already belong to the site. A post slug must not use one. */
 const RESERVED = new Set([
   'blog', 'contact', 'terms', 'thank-you', 'new-teacher-pack',
-  'help', 'privacy', 'app', 'index', 'media'
+  'help', 'privacy', 'app', 'index', 'media', 'og'
 ]);
 
 const POST_ORDER = [
@@ -147,6 +149,7 @@ const CTA = `
 
 function head(o) {
   const twitter = o.twitter || o.desc;
+  if (!o.image) throw new Error('share image missing for ' + o.canonical);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -181,13 +184,13 @@ function head(o) {
 <meta property="og:title" content="${attr(o.title)}"/>
 <meta property="og:description" content="${attr(o.metaDesc || o.desc)}"/>
 <meta property="og:url" content="${o.canonical}"/>
-<meta property="og:image" content="${SITE}/og-image.png"/>
+<meta property="og:image" content="${o.image}"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${attr(o.title)}"/>
 <meta name="twitter:description" content="${attr(twitter)}"/>
-<meta name="twitter:image" content="${SITE}/og-image.png"/>
+<meta name="twitter:image" content="${o.image}"/>
 <link rel="stylesheet" href="/blog/blog.css"/>
 ${o.jsonld || ''}
 
@@ -231,7 +234,7 @@ function renderPost(p, bySlug) {
     },
     publisher: { '@type': 'Organization', name: 'Get It?' },
     mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
-    image: SITE + '/og-image.png'
+    image: `${SITE}/og/${p.slug}.png`
   };
   const faq = {
     '@context': 'https://schema.org',
@@ -273,6 +276,7 @@ ${related.map(card).join('\n')}
     desc: p.desc,
     metaDesc: p.metaDesc || p.desc,
     twitter: p.twitter || p.desc,
+    image: `${SITE}/og/${p.slug}.png`,
     jsonld: [ld(article), ld(faq), ld(crumbs)].join('\n')
   }) + `
 <header class="post">
@@ -332,6 +336,24 @@ function rewritePostUrls(html, slugs) {
   return html;
 }
 
+function setOgImage(html, slug) {
+  const url = `${SITE}/og/${slug}.png`;
+  const next = html
+    .replace(/<meta property="og:image" content="[^"]*"\/>/, `<meta property="og:image" content="${url}"/>`)
+    .replace(/<meta name="twitter:image" content="[^"]*"\/>/, `<meta name="twitter:image" content="${url}"/>`)
+    .replace(/"image":"https:\/\/dotheygetit\.app\/[^"]*"/, `"image":"${url}"`);
+  if (!next.includes(`content="${url}"`) || !next.includes(`"image":"${url}"`)) {
+    throw new Error('og image not set on ' + slug);
+  }
+  return next;
+}
+
+function buildOgImages() {
+  const script = path.join(__dirname, '..', 'scripts', 'build-og-images.py');
+  const result = spawnSync('python3', [script], { stdio: 'inherit' });
+  if (result.status !== 0) throw new Error('share image build failed');
+}
+
 function relocateOriginals(slugs) {
   Object.keys(ORIGINAL).forEach((slug) => {
     assertSlugFree(slug);
@@ -341,7 +363,7 @@ function relocateOriginals(slugs) {
     if (fs.existsSync(oldPath)) html = fs.readFileSync(oldPath, 'utf8');
     else if (fs.existsSync(newPath)) html = fs.readFileSync(newPath, 'utf8');
     else throw new Error('missing original post ' + slug);
-    fs.writeFileSync(newPath, rewritePostUrls(html, slugs));
+    fs.writeFileSync(newPath, setOgImage(rewritePostUrls(html, slugs), slug));
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
   });
 }
@@ -457,6 +479,7 @@ function renderIndex(all) {
     desc,
     metaDesc: desc,
     ogType: 'website',
+    image: `${SITE}/og/blog.png`,
     jsonld: ld(blogLd)
   }) + `
 <header class="post">
@@ -537,7 +560,7 @@ function main() {
     if (!html.includes(`<link rel="canonical" href="${SITE}/${p.slug}"/>`)) {
       throw new Error('canonical missing ' + p.slug);
     }
-    if (!html.includes('https://dotheygetit.app/og-image.png')) {
+    if (!html.includes(`${SITE}/og/${p.slug}.png`)) {
       throw new Error('og image missing ' + p.slug);
     }
     if (!html.includes('"@type":"FAQPage"') || !html.includes('"@type":"Article"')) {
@@ -569,6 +592,7 @@ function main() {
 
   relocateOriginals(POST_ORDER);
   patchOriginals();
+  buildOgImages();
   renderIndex(all);
   const n = renderSitemap(all);
   writeRedirects(POST_ORDER);
