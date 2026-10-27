@@ -21,14 +21,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>The New Teacher Survival Pack — free for ECTs, NQTs &amp; trainees</title>
 <link rel="canonical" href="https://dotheygetit.app/new-teacher-pack/"/>
-<meta name="description" content="Free survival pack for new teachers, ECTs and trainees. Behaviour scripts, a lesson plan that works, marking shortcuts and emails home that don't backfire. No signup."/>
+<meta name="description" content="Free survival pack for new teachers, ECTs and trainees. Behaviour scripts, a lesson plan that works, marking shortcuts and emails home that don't backfire. Read it here, or take the PDF."/>
 <link rel="icon" href="/favicon.ico" sizes="any"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
 <meta name="theme-color" content="#4f8cff"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Get It?"/>
-<meta property="og:title" content="The New Teacher Survival Pack — free, no signup"/>
+<meta property="og:title" content="The New Teacher Survival Pack — free for ECTs, NQTs and trainees"/>
 <meta property="og:description" content="Behaviour scripts, a lesson plan that works, marking shortcuts and emails home that don't backfire. Made for ECTs, NQTs and trainees."/>
 <meta property="og:url" content="https://dotheygetit.app/new-teacher-pack/"/>
 <meta property="og:image" content="https://dotheygetit.app/new-teacher-pack/og-pack.png"/>
@@ -38,7 +38,7 @@
 <meta property="og:image:height" content="630"/>
 <meta property="og:image:alt" content="The New Teacher Survival Pack — free for ECTs, NQTs and trainees."/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="The New Teacher Survival Pack — free, no signup"/>
+<meta name="twitter:title" content="The New Teacher Survival Pack — free for ECTs, NQTs and trainees"/>
 <meta name="twitter:description" content="Behaviour scripts, a lesson plan that works, marking shortcuts and emails home that don't backfire. Made for ECTs, NQTs and trainees."/>
 <meta name="twitter:image" content="https://dotheygetit.app/new-teacher-pack/og-pack.png"/>
 <meta name="twitter:image:alt" content="The New Teacher Survival Pack — free for ECTs, NQTs and trainees."/>
@@ -175,11 +175,34 @@ b,strong{color:var(--text)}
 .bridge h2{margin-bottom:10px}
 .bridge p{max-width:600px;margin:0 auto 20px}
 .cta-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.getpdf{
+  position:relative;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:22px 22px 18px;margin:8px 0 28px;
+}
+.getpdf h2{font-size:22px;margin:0 0 6px}
+.getpdf > p{margin:0 0 14px}
+.getpdf form{display:flex;flex-direction:column;gap:12px}
+.getpdf .row{display:grid;gap:12px}
+@media(min-width:640px){.getpdf .row{grid-template-columns:1fr 1fr}}
+.getpdf .f{display:flex;flex-direction:column;gap:6px}
+.getpdf label{font-size:13px;font-weight:700;color:var(--text)}
+.getpdf label span{font-weight:600;color:var(--muted)}
+.getpdf input[type="text"],.getpdf input[type="email"]{
+  width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+  border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;
+}
+.getpdf input:focus-visible{outline:2px solid #8fb4ff;outline-offset:2px}
+.getpdf .consent{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:500;color:var(--muted);line-height:1.45}
+.getpdf .consent input{width:18px;height:18px;margin-top:2px;flex:0 0 18px;accent-color:var(--accent)}
+.getpdf .btn{border:0;font:inherit;font-weight:700;font-size:16px;width:100%}
+@media(min-width:640px){.getpdf .btn{width:auto;align-self:flex-start}}
+.getpdf .hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
 /* footer */
 footer{border-top:1px solid var(--line);padding:38px 0;text-align:center;color:var(--muted);font-size:14.5px}
 footer .brand{justify-content:center;margin-bottom:12px}
 footer a{color:var(--muted)}
 /* print */
+@page{size:A4;margin:14mm}
 @media print{
   :root{--bg:#fff;--bg2:#fff;--surface:#fff;--surface2:#fff;--line:#d8dee9;--text:#0b1122;--muted:#3b4658;--accent:#1d4ed8;--accent2:#1d4ed8}
   body{background:#fff;color:#0b1122}
@@ -204,13 +227,13 @@ footer a{color:var(--muted)}
       <span>Get It?<small>Do they get it?</small></span>
     </a>
     <span class="spacer"></span>
-    <button class="btn ghost small" onclick="window.print()">Print / save PDF</button>
+    <a class="btn ghost small" href="#get-pdf">Get the PDF</a>
   </div>
 </div>
 
 <header class="hero">
   <div class="wrap">
-    <div class="badge"><span class="dot"></span> Free · no signup · no email required</div>
+    <div class="badge"><span class="dot"></span> Free to read</div>
     <h1>The New Teacher<br/><span class="grad">Survival Pack.</span></h1>
     <p class="lede">
       Everything nobody hands you in week one. Behaviour scripts that work,
@@ -220,6 +243,44 @@ footer a{color:var(--muted)}
     <p class="microcopy">Yours to keep. Copy it, print it, send it to your cohort.</p>
   </div>
 </header>
+
+<div class="wrap no-print" id="get-pdf">
+  <div class="getpdf">
+    <h2>Take the PDF with you</h2>
+    <p>The pack stays on this page. Leave a first name and email and the PDF is on the next screen. School and subject are optional.</p>
+    <form name="pack-download" method="POST" action="/pack-thanks/" data-netlify="true" netlify netlify-honeypot="bot-field">
+      <input type="hidden" name="form-name" value="pack-download"/>
+      <p class="hp" aria-hidden="true">
+        <label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"/></label>
+      </p>
+      <div class="row">
+        <div class="f">
+          <label for="pk-first">First name</label>
+          <input id="pk-first" name="first-name" type="text" autocomplete="given-name" required maxlength="80"/>
+        </div>
+        <div class="f">
+          <label for="pk-email">Email</label>
+          <input id="pk-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="160" placeholder="you@school.sch.uk"/>
+        </div>
+      </div>
+      <div class="row">
+        <div class="f">
+          <label for="pk-school">School <span>optional</span></label>
+          <input id="pk-school" name="school" type="text" autocomplete="organization" maxlength="120"/>
+        </div>
+        <div class="f">
+          <label for="pk-subject">Subject <span>optional</span></label>
+          <input id="pk-subject" name="subject" type="text" maxlength="80"/>
+        </div>
+      </div>
+      <label class="consent">
+        <input type="checkbox" name="consent" value="yes" required/>
+        <span>I'm happy to get occasional emails from Get It?, unsubscribe any time. <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="/terms/">Terms</a>.</span>
+      </label>
+      <button class="btn primary" type="submit">Get the PDF</button>
+    </form>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="toc">

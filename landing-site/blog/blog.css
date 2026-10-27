@@ -91,6 +91,34 @@ article h2 + .faqlist{margin-top:-4px}
 .card p{color:#a9b8d8;margin:0 0 14px;font-size:16px}
 .card .meta{font-size:13px;color:var(--muted);font-weight:600}
 
+.signup{margin:36px 0 8px}
+.signup .panel{
+  position:relative;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:26px 24px 22px;
+}
+.signup .kicker{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+.signup h2{font-size:24px;line-height:1.2;letter-spacing:-.02em;margin:0 0 8px}
+.signup .panel > p{color:#c3d0ea;margin:0 0 16px}
+.signup form{display:flex;flex-direction:column;gap:12px}
+.signup .row{display:grid;gap:12px}
+.signup .f{display:flex;flex-direction:column;gap:6px}
+.signup label{font-size:13px;font-weight:700;color:var(--text)}
+.signup label span{font-weight:600;color:var(--muted)}
+.signup input[type="text"],.signup input[type="email"]{
+  width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+  border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;
+}
+.signup input:focus-visible{outline:2px solid #8fb4ff;outline-offset:2px}
+.signup .consent{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:500;color:var(--muted);line-height:1.45}
+.signup .consent input{width:18px;height:18px;margin-top:2px;flex:0 0 18px;accent-color:var(--accent)}
+.signup .btn{width:100%;text-align:center;border:0;cursor:pointer;font:inherit}
+.signup .fine{margin:0;font-size:14px;color:var(--muted)}
+.signup .hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+@media(min-width:640px){
+  .signup .row{grid-template-columns:1fr 1fr}
+  .signup .btn{width:auto;align-self:flex-start}
+}
+
 footer{border-top:1px solid var(--line);margin-top:64px;padding:40px 0 60px;background:var(--bg2)}
 footer .wrap{max-width:1080px}
 footer .brand{margin-bottom:12px}
