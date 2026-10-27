@@ -2,6 +2,8 @@ key.txt
 data.json
 data.backup.json
 node_modules/
+__pycache__/
+*.pyc
 
 # tutorial render assets - never commit (the finished videos ARE committed, see public/help)
 tutorial/.eleven.key
