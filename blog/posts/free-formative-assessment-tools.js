@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>The tools that actually get used in a UK week are duller than a list of websites. Some of them are not websites. A free plan that will not cover your class is not free for the lesson you are about to teach.</p>
 
-<p>Formative means you find out during the learning and you change something. A tool that stores a score and never changes the next activity is a record. It might still be worth having. It is not, by itself, assessment for learning. The question designs live in <a href="/blog/exit-ticket-ideas">exit ticket ideas</a>. This page is about the medium, and what it costs in minutes, devices and faff. Card scanners have their own page, <a href="/blog/plickers-alternatives">Plickers alternatives</a>, and boards have theirs, <a href="/blog/mini-whiteboards-vs-digital-checks">mini whiteboards versus a digital check</a>. The full set is on <a href="/blog/">the blog</a>.</p>
+<p>Formative means you find out during the learning and you change something. A tool that stores a score and never changes the next activity is a record. It might still be worth having. It is not, by itself, assessment for learning. The question designs live in <a href="/exit-ticket-ideas">exit ticket ideas</a>. This page is about the medium, and what it costs in minutes, devices and faff. Card scanners have their own page, <a href="/plickers-alternatives">Plickers alternatives</a>, and boards have theirs, <a href="/mini-whiteboards-vs-digital-checks">mini whiteboards versus a digital check</a>. The full set is on <a href="/blog/">the blog</a>.</p>
 
 <h2>Free usually means one of three things</h2>
 

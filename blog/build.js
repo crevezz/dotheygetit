@@ -2,9 +2,10 @@
  *
  *   node blog/build.js
  *
- * Writes the ten posts in blog/posts/ into landing-site/blog/, rebuilds the
- * index, refreshes sitemap.xml, and adds the internal links on the three
- * original posts. blog.css is hand-maintained and is not rewritten.
+ * Writes posts to landing-site/<slug>.html (root URLs, not /blog/<slug>),
+ * rebuilds the /blog/ index, refreshes sitemap.xml, and keeps 301s in
+ * netlify.toml from the old /blog/<slug> addresses. blog.css stays in
+ * landing-site/blog/ and is not rewritten.
  *
  * Nothing in blog/ is served. Netlify publishes landing-site/.
  */
@@ -13,8 +14,15 @@ const fs = require('fs');
 const path = require('path');
 
 const SITE = 'https://dotheygetit.app';
-const OUT = path.join(__dirname, '..', 'landing-site', 'blog');
 const ROOT = path.join(__dirname, '..', 'landing-site');
+const BLOG = path.join(ROOT, 'blog');
+const NETLIFY = path.join(__dirname, '..', 'netlify.toml');
+
+/* Paths that already belong to the site. A post slug must not use one. */
+const RESERVED = new Set([
+  'blog', 'contact', 'terms', 'thank-you', 'new-teacher-pack',
+  'help', 'privacy', 'app', 'index', 'media'
+]);
 
 const POST_ORDER = [
   'exit-ticket-ideas',
@@ -189,11 +197,11 @@ ${NAV}`;
 }
 
 function card(p) {
-  return `    <a class="card" href="/blog/${p.slug}"><h2>${p.title}</h2><p>${p.desc}</p><span class="meta">${p.mins} min read</span></a>`;
+  return `    <a class="card" href="/${p.slug}"><h2>${p.title}</h2><p>${p.desc}</p><span class="meta">${p.mins} min read</span></a>`;
 }
 
 function indexCard(p) {
-  return `    <a class="card" href="/blog/${p.slug}">
+  return `    <a class="card" href="/${p.slug}">
       <h2>${p.title}</h2>
       <p>${p.desc}</p>
       <span class="meta">${p.mins} min read</span>
@@ -201,7 +209,7 @@ function indexCard(p) {
 }
 
 function renderPost(p, bySlug) {
-  const canonical = `${SITE}/blog/${p.slug}`;
+  const canonical = `${SITE}/${p.slug}`;
   const modified = p.dateModified || p.date;
   const related = (p.related || []).map((slug) => {
     const hit = bySlug[slug];
@@ -302,48 +310,109 @@ function loadNewPosts() {
   return posts;
 }
 
+function assertSlugFree(slug) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('bad slug ' + slug);
+  if (RESERVED.has(slug)) throw new Error('slug clashes with an existing route: ' + slug);
+  const asDir = path.join(ROOT, slug);
+  if (fs.existsSync(asDir) && fs.statSync(asDir).isDirectory()) {
+    throw new Error('slug clashes with a directory: ' + slug);
+  }
+  fs.readdirSync(ROOT).forEach((name) => {
+    if (name === slug + '.html') return;
+    if (name === slug || name.startsWith(slug + '.')) {
+      throw new Error('slug clashes with ' + name);
+    }
+  });
+}
+
+function rewritePostUrls(html, slugs) {
+  slugs.slice().sort((a, b) => b.length - a.length).forEach((slug) => {
+    html = html.split('/blog/' + slug).join('/' + slug);
+  });
+  return html;
+}
+
+function relocateOriginals(slugs) {
+  Object.keys(ORIGINAL).forEach((slug) => {
+    assertSlugFree(slug);
+    const oldPath = path.join(BLOG, slug + '.html');
+    const newPath = path.join(ROOT, slug + '.html');
+    let html = null;
+    if (fs.existsSync(oldPath)) html = fs.readFileSync(oldPath, 'utf8');
+    else if (fs.existsSync(newPath)) html = fs.readFileSync(newPath, 'utf8');
+    else throw new Error('missing original post ' + slug);
+    fs.writeFileSync(newPath, rewritePostUrls(html, slugs));
+    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+  });
+}
+
+function writeRedirects(slugs) {
+  const begin = '# BEGIN blog-post-redirects';
+  const end = '# END blog-post-redirects';
+  const toml = fs.readFileSync(NETLIFY, 'utf8');
+  if (!toml.includes(begin) || !toml.includes(end)) {
+    throw new Error('netlify.toml is missing blog redirect markers');
+  }
+  const rules = slugs.map((slug) => `[[redirects]]
+  from = "/blog/${slug}"
+  to = "/${slug}"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/${slug}/"
+  to = "/${slug}"
+  status = 301
+  force = true`).join('\n\n');
+  const next = toml.replace(
+    new RegExp(begin + '[\\s\\S]*?' + end),
+    begin + '\n' + rules + '\n' + end
+  );
+  fs.writeFileSync(NETLIFY, next);
+}
+
 function patchOriginals() {
   const jobs = [
     {
       file: 'how-do-you-know-who-understood.html',
       from: '<p>Avoid recall of a definition, anything copied from the board, and anything with a one in two chance of being right by luck.</p>',
-      to: '<p>A question with two plausible answers is a <a href="/blog/hinge-questions">hinge question</a> cut down to size. A longer menu of checks that do not stop the lesson is in <a href="/blog/checking-for-understanding">checking for understanding</a>. Hands-up still only tells you about the volunteers. <a href="/blog/cold-calling-vs-no-hands-up">Cold calling and no-hands-up</a> change who speaks, and they still leave the other twenty-nine untested. More of these notes are on <a href="/blog/">the blog</a>.</p>\n\n<p>Avoid recall of a definition, anything copied from the board, and anything with a one in two chance of being right by luck.</p>'
+      to: '<p>A question with two plausible answers is a <a href="/hinge-questions">hinge question</a> cut down to size. A longer menu of checks that do not stop the lesson is in <a href="/checking-for-understanding">checking for understanding</a>. Hands-up still only tells you about the volunteers. <a href="/cold-calling-vs-no-hands-up">Cold calling and no-hands-up</a> change who speaks, and they still leave the other twenty-nine untested. More of these notes are on <a href="/blog/">the blog</a>.</p>\n\n<p>Avoid recall of a definition, anything copied from the board, and anything with a one in two chance of being right by luck.</p>'
     },
     {
       file: 'how-do-you-know-who-understood.html',
-      from: '<a class="card" href="/blog/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>',
-      to: '<a class="card" href="/blog/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>\n    <a class="card" href="/blog/checking-for-understanding"><h2>Checking for understanding: quick techniques that show you the whole class</h2><p>Seven checks you can run without a worksheet. What each one shows you, what it hides, and when a private answer is the one that tells the truth.</p><span class="meta">8 min read</span></a>'
+      from: '<a class="card" href="/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>',
+      to: '<a class="card" href="/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>\n    <a class="card" href="/checking-for-understanding"><h2>Checking for understanding: quick techniques that show you the whole class</h2><p>Seven checks you can run without a worksheet. What each one shows you, what it hides, and when a private answer is the one that tells the truth.</p><span class="meta">8 min read</span></a>'
     },
     {
       file: 'exit-tickets-why-teachers-stop.html',
       from: '<p>Keep all four. The only thing that needs to change is the medium.</p>',
-      to: '<p>Keep all four. The only thing that needs to change is the medium. If you want the questions themselves, there is a set of <a href="/blog/exit-ticket-ideas">exit ticket ideas by subject</a>. This piece is about why the pile wins. The wider set of notes is on <a href="/blog/">the blog</a>.</p>'
+      to: '<p>Keep all four. The only thing that needs to change is the medium. If you want the questions themselves, there is a set of <a href="/exit-ticket-ideas">exit ticket ideas by subject</a>. This piece is about why the pile wins. The wider set of notes is on <a href="/blog/">the blog</a>.</p>'
     },
     {
       file: 'exit-tickets-why-teachers-stop.html',
       from: '<p>And if you use mini whiteboards for a quick show-me: they\'re fast, but everyone can see everyone, and the pupil who is lost can copy the board next to them before you look. For the confident-wrong and the quietly-lost, a private answer on a phone screen is more honest.</p>',
-      to: '<p>And if you use mini whiteboards for a quick show-me: they\'re fast, but everyone can see everyone, and the pupil who is lost can copy the board next to them before you look. <a href="/blog/mini-whiteboards-vs-digital-checks">Mini whiteboards and a digital check</a> do different jobs, and a private answer is the more honest one for the pupil who is quietly lost. A wider look at what is free, and the catch, is in <a href="/blog/free-formative-assessment-tools">free formative assessment tools</a>.</p>'
+      to: '<p>And if you use mini whiteboards for a quick show-me: they\'re fast, but everyone can see everyone, and the pupil who is lost can copy the board next to them before you look. <a href="/mini-whiteboards-vs-digital-checks">Mini whiteboards and a digital check</a> do different jobs, and a private answer is the more honest one for the pupil who is quietly lost. A wider look at what is free, and the catch, is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>.</p>'
     },
     {
       file: 'exit-tickets-why-teachers-stop.html',
-      from: '<a class="card" href="/blog/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>',
-      to: '<a class="card" href="/blog/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>\n    <a class="card" href="/blog/exit-ticket-ideas"><h2>Exit ticket ideas: examples that tell you who got it</h2><p>One question per subject, written so a wrong answer tells you what to reteach. Maths, English, science and the rest of the timetable.</p><span class="meta">8 min read</span></a>'
+      from: '<a class="card" href="/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>',
+      to: '<a class="card" href="/pupils-quietly-faking-it"><h2>How to spot the pupils who are quietly faking it</h2><p>The echo, the confident wrong answer, the shrug with a smile. Six tells that a pupil has no idea, and three questions that flush it out without embarrassing anyone.</p><span class="meta">7 min read</span></a>\n    <a class="card" href="/exit-ticket-ideas"><h2>Exit ticket ideas: examples that tell you who got it</h2><p>One question per subject, written so a wrong answer tells you what to reteach. Maths, English, science and the rest of the timetable.</p><span class="meta">8 min read</span></a>'
     },
     {
       file: 'pupils-quietly-faking-it.html',
       from: '<p>And there\'s a second problem: the moment you ask a question out loud, you\'ve made it public. The pupil who most needs to answer honestly is the one with the most to lose by doing so.</p>',
-      to: '<p>And there\'s a second problem: the moment you ask a question out loud, you\'ve made it public. The pupil who most needs to answer honestly is the one with the most to lose by doing so. <a href="/blog/cold-calling-vs-no-hands-up">Cold calling</a> chooses who speaks. It still leaves a public answer in the room. A confident wrong idea is a different problem from a bluff, and that one is in <a href="/blog/spot-misconceptions-in-lesson">how to spot a misconception before the bell</a>. The checks themselves sit in <a href="/blog/checking-for-understanding">checking for understanding</a>. More of this is on <a href="/blog/">the blog</a>.</p>'
+      to: '<p>And there\'s a second problem: the moment you ask a question out loud, you\'ve made it public. The pupil who most needs to answer honestly is the one with the most to lose by doing so. <a href="/cold-calling-vs-no-hands-up">Cold calling</a> chooses who speaks. It still leaves a public answer in the room. A confident wrong idea is a different problem from a bluff, and that one is in <a href="/spot-misconceptions-in-lesson">how to spot a misconception before the bell</a>. The checks themselves sit in <a href="/checking-for-understanding">checking for understanding</a>. More of this is on <a href="/blog/">the blog</a>.</p>'
     },
     {
       file: 'pupils-quietly-faking-it.html',
-      from: '<a class="card" href="/blog/exit-tickets-why-teachers-stop"><h2>Exit tickets: why most teachers quietly stop using them</h2><p>Exit tickets are good practice. The paper is the problem. Four reasons they get abandoned within a term, and how to keep the ritual without the pile.</p><span class="meta">6 min read</span></a>',
-      to: '<a class="card" href="/blog/exit-tickets-why-teachers-stop"><h2>Exit tickets: why most teachers quietly stop using them</h2><p>Exit tickets are good practice. The paper is the problem. Four reasons they get abandoned within a term, and how to keep the ritual without the pile.</p><span class="meta">6 min read</span></a>\n    <a class="card" href="/blog/cold-calling-vs-no-hands-up"><h2>Cold calling vs no-hands-up: how to find who is actually lost</h2><p>They are not the same routine. How to run each one without turning it into a humiliation, and why neither one shows you the whole class.</p><span class="meta">8 min read</span></a>'
+      from: '<a class="card" href="/exit-tickets-why-teachers-stop"><h2>Exit tickets: why most teachers quietly stop using them</h2><p>Exit tickets are good practice. The paper is the problem. Four reasons they get abandoned within a term, and how to keep the ritual without the pile.</p><span class="meta">6 min read</span></a>',
+      to: '<a class="card" href="/exit-tickets-why-teachers-stop"><h2>Exit tickets: why most teachers quietly stop using them</h2><p>Exit tickets are good practice. The paper is the problem. Four reasons they get abandoned within a term, and how to keep the ritual without the pile.</p><span class="meta">6 min read</span></a>\n    <a class="card" href="/cold-calling-vs-no-hands-up"><h2>Cold calling vs no-hands-up: how to find who is actually lost</h2><p>They are not the same routine. How to run each one without turning it into a humiliation, and why neither one shows you the whole class.</p><span class="meta">8 min read</span></a>'
     }
   ];
 
   const touched = new Set();
   jobs.forEach((job) => {
-    const file = path.join(OUT, job.file);
+    const file = path.join(ROOT, job.file);
     let html = fs.readFileSync(file, 'utf8');
     if (html.includes(job.to)) return;
     if (!html.includes(job.from)) {
@@ -355,7 +424,7 @@ function patchOriginals() {
   });
 
   touched.forEach((name) => {
-    const file = path.join(OUT, name);
+    const file = path.join(ROOT, name);
     let html = fs.readFileSync(file, 'utf8');
     html = html.replace(
       '"datePublished":"2026-09-20","dateModified":"2026-09-20"',
@@ -378,7 +447,7 @@ function renderIndex(all) {
       '@type': 'BlogPosting',
       headline: p.title,
       description: p.desc,
-      url: `${SITE}/blog/${p.slug}`,
+      url: `${SITE}/${p.slug}`,
       datePublished: p.date
     }))
   };
@@ -405,7 +474,7 @@ ${all.map(indexCard).join('\n')}
 ${CTA}
 </div>
 ` + FOOT;
-  fs.writeFileSync(path.join(OUT, 'index.html'), html);
+  fs.writeFileSync(path.join(BLOG, 'index.html'), html);
 }
 
 function renderSitemap(all) {
@@ -416,7 +485,7 @@ function renderSitemap(all) {
     { loc: `${SITE}/new-teacher-pack/`, lastmod: '2026-09-28', changefreq: 'monthly', priority: '0.9' },
     { loc: `${SITE}/blog/`, lastmod: '2026-10-27', changefreq: 'weekly', priority: '0.8' },
     ...all.map((p) => ({
-      loc: `${SITE}/blog/${p.slug}`,
+      loc: `${SITE}/${p.slug}`,
       lastmod: p.dateModified || p.date,
       changefreq: 'monthly',
       priority: '0.7'
@@ -446,9 +515,9 @@ function assertPost(p, bySlug) {
   if (!p.body.includes('href="/thank-you/"')) problems.push('no CTA link');
   (p.related || []).forEach((slug) => {
     if (!bySlug[slug] && !ORIGINAL[slug]) problems.push('related ' + slug);
-    if (!p.body.includes('/blog/' + slug)) problems.push('body missing related ' + slug);
+    if (!p.body.includes('href="/' + slug + '"')) problems.push('body missing related ' + slug);
   });
-  const canonical = `${SITE}/blog/${p.slug}`;
+  const canonical = `${SITE}/${p.slug}`;
   if (p.metaDesc && p.metaDesc.length > 200) problems.push('meta ' + p.metaDesc.length);
   if (problems.length) {
     throw new Error(p.slug + ': ' + problems.join(', '));
@@ -465,7 +534,7 @@ function main() {
   const reports = fresh.map((p) => {
     assertPost(p, bySlug);
     const html = renderPost(p, bySlug);
-    if (!html.includes(`<link rel="canonical" href="${SITE}/blog/${p.slug}"/>`)) {
+    if (!html.includes(`<link rel="canonical" href="${SITE}/${p.slug}"/>`)) {
       throw new Error('canonical missing ' + p.slug);
     }
     if (!html.includes('https://dotheygetit.app/og-image.png')) {
@@ -474,7 +543,10 @@ function main() {
     if (!html.includes('"@type":"FAQPage"') || !html.includes('"@type":"Article"')) {
       throw new Error('json-ld missing ' + p.slug);
     }
-    fs.writeFileSync(path.join(OUT, p.slug + '.html'), html);
+    assertSlugFree(p.slug);
+    fs.writeFileSync(path.join(ROOT, p.slug + '.html'), html);
+    const stale = path.join(BLOG, p.slug + '.html');
+    if (fs.existsSync(stale)) fs.unlinkSync(stale);
     return wordsFrom(p.lede + ' ' + p.body + ' ' + p.faq.map((f) => f.q + ' ' + f.a).join(' ')).length;
   });
 
@@ -495,9 +567,11 @@ function main() {
     };
   });
 
+  relocateOriginals(POST_ORDER);
   patchOriginals();
   renderIndex(all);
   const n = renderSitemap(all);
+  writeRedirects(POST_ORDER);
   console.log('index + sitemap (' + n + ' urls)');
 }
 

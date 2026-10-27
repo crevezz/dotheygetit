@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>Show-me boards, mini whiteboards, whatever the department calls them: a pen, a wipe, every pupil holds up an answer. No account, no trolley that was booked by science, no password written on a planner and lost. For a lot of checks they are the right tool. They are not the honest tool for every question.</p>
 
-<p>This is the comparison. A wider menu of checks is in <a href="/blog/checking-for-understanding">checking for understanding</a>. How talk-based routines fail to show you the class is in <a href="/blog/cold-calling-vs-no-hands-up">cold calling and no-hands-up</a>. If you have been using scannable cards instead of boards, that comparison is in <a href="/blog/plickers-alternatives">Plickers alternatives</a>. More notes are on <a href="/blog/">the blog</a>.</p>
+<p>This is the comparison. A wider menu of checks is in <a href="/checking-for-understanding">checking for understanding</a>. How talk-based routines fail to show you the class is in <a href="/cold-calling-vs-no-hands-up">cold calling and no-hands-up</a>. If you have been using scannable cards instead of boards, that comparison is in <a href="/plickers-alternatives">Plickers alternatives</a>. More notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>What mini whiteboards are genuinely good at</h2>
 

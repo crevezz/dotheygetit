@@ -28,7 +28,7 @@ module.exports = {
     }
   ],
   body: `
-<p>You already know the lecture version of checking for understanding. Ask if it makes sense. Watch the nods. Carry on. The reason that fails is set out in <a href="/blog/how-do-you-know-who-understood">how you know who actually understood</a>. This page assumes you have given that up. It is a menu of checks that fit inside a normal lesson, including period 5, including the class that packs up early. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
+<p>You already know the lecture version of checking for understanding. Ask if it makes sense. Watch the nods. Carry on. The reason that fails is set out in <a href="/how-do-you-know-who-understood">how you know who actually understood</a>. This page assumes you have given that up. It is a menu of checks that fit inside a normal lesson, including period 5, including the class that packs up early. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
 
 <p>Every technique below has a hole. The point is to pick the hole you can live with for this question, not to pretend one routine sees everything.</p>
 
@@ -50,7 +50,7 @@ module.exports = {
 
 <h2>3. Mini whiteboards, run properly</h2>
 
-<p>Show-me boards are fast, they need no login, and they work in a room where phones stay in bags. They are also public, which means the pupil who waits half a second can copy the board in front. How to use them without lying to yourself is a whole piece: <a href="/blog/mini-whiteboards-vs-digital-checks">mini whiteboards versus a digital check</a>.</p>
+<p>Show-me boards are fast, they need no login, and they work in a room where phones stay in bags. They are also public, which means the pupil who waits half a second can copy the board in front. How to use them without lying to yourself is a whole piece: <a href="/mini-whiteboards-vs-digital-checks">mini whiteboards versus a digital check</a>.</p>
 
 <p>The short version, if you are doing it today. Boards stay down. You ask. You wait. "Three, two, one, show." You look at the back row first, because the front has already been seen by everyone else. You ask one pupil why, someone who did not have the same answer as their neighbour.</p>
 
@@ -60,7 +60,7 @@ module.exports = {
 
 <p>Cold calling is choosing who answers so the usual hands do not own the lesson. It is not, by itself, a check of the class. You learn about one pupil, in public. Used badly, it is a trap for someone who was not listening, and the lesson they learn is to hide.</p>
 
-<p>Used well, it sits on top of a written answer. Everyone has already committed. You name someone and ask them to read what they wrote, then ask someone else whether they had the same. The routine, and how it differs from a blanket no-hands-up rule, is in <a href="/blog/cold-calling-vs-no-hands-up">cold calling versus no-hands-up</a>.</p>
+<p>Used well, it sits on top of a written answer. Everyone has already committed. You name someone and ask them to read what they wrote, then ask someone else whether they had the same. The routine, and how it differs from a blanket no-hands-up rule, is in <a href="/cold-calling-vs-no-hands-up">cold calling versus no-hands-up</a>.</p>
 
 <p>Do not cold-call instead of a check when the decision matters. One voice, however carefully chosen, is still one voice.</p>
 
