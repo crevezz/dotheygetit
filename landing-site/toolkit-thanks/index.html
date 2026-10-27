@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex"/>
+<title>Your misconception bank is ready | Get It?</title>
+<link rel="canonical" href="https://dotheygetit.app/toolkit-thanks/"/>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+    functionality_storage: 'granted',
+    security_storage: 'granted'
+  });
+</script>
+<link rel="stylesheet" href="/consent.css"/>
+<script src="/consent.js" defer></script>
+<link rel="stylesheet" href="/blog/blog.css"/>
+<link rel="icon" href="/favicon.svg"/>
+<meta name="theme-color" content="#4f8cff"/>
+</head>
+<body>
+<header class="post">
+  <div class="wrap">
+    <div class="kicker">GCSE misconception banks</div>
+    <h1>Your misconception bank is ready.</h1>
+    <p class="lede" id="toolkit-lead">Download the subject you chose. The other banks are on this page as well.</p>
+    <ul class="banks" id="toolkit-banks">
+      <li data-subject="maths"><a href="/toolkit/gcse-maths-misconceptions.pdf" download>GCSE Maths</a></li>
+      <li data-subject="science"><a href="/toolkit/gcse-science-misconceptions.pdf" download>GCSE Combined Science</a></li>
+      <li data-subject="english"><a href="/toolkit/gcse-english-misconceptions.pdf" download>GCSE English (Language and Literature)</a></li>
+      <li data-subject="history"><a href="/toolkit/gcse-history-misconceptions.pdf" download>GCSE History</a></li>
+      <li data-subject="geography"><a href="/toolkit/gcse-geography-misconceptions.pdf" download>GCSE Geography</a></li>
+    </ul>
+    <p class="lede">Occasional emails only. Unsubscribe any time, or email <a href="mailto:support@dotheygetit.app">support@dotheygetit.app</a>. <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="/terms/">Terms</a>.</p>
+  </div>
+</header>
+<style>
+  .banks { list-style: none; padding: 0; margin: 8px 0 22px; }
+  .banks li { margin: 12px 0; }
+  .banks a { font-weight: 700; }
+  .banks .is-chosen { margin-bottom: 8px; }
+  .banks .rest { margin-top: 18px; color: var(--muted); font-size: 14px; font-weight: 700; list-style: none; }
+</style>
+<script>
+(function () {
+  var names = {
+    maths: 'GCSE Maths',
+    science: 'GCSE Combined Science',
+    english: 'GCSE English',
+    history: 'GCSE History',
+    geography: 'GCSE Geography'
+  };
+  var subject = '';
+  try {
+    localStorage.setItem('getit-on-list', '1');
+    var params = new URLSearchParams(window.location.search);
+    subject = (params.get('subject') || localStorage.getItem('getit-toolkit-subject') || '').toLowerCase();
+  } catch (err) {
+    subject = '';
+  }
+  var lead = document.getElementById('toolkit-lead');
+  var list = document.getElementById('toolkit-banks');
+  if (!list || !names[subject]) {
+    if (lead) lead.textContent = 'Choose a bank below.';
+    return;
+  }
+  var chosen = list.querySelector('[data-subject="' + subject + '"]');
+  if (!chosen) return;
+  var link = chosen.querySelector('a');
+  if (link) link.className = 'btn';
+  chosen.className = 'is-chosen';
+  list.insertBefore(chosen, list.firstChild);
+  var rest = document.createElement('li');
+  rest.className = 'rest';
+  rest.textContent = 'The other banks';
+  if (chosen.nextSibling) list.insertBefore(rest, chosen.nextSibling);
+  if (lead) lead.textContent = 'You asked for ' + names[subject] + '. The download is below, and the other banks are on this page too.';
+})();
+</script>
+</body>
+</html>

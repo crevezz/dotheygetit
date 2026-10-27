@@ -24,7 +24,7 @@ const NETLIFY = path.join(__dirname, '..', 'netlify.toml');
 const RESERVED = new Set([
   'blog', 'contact', 'terms', 'thank-you', 'new-teacher-pack',
   'help', 'privacy', 'app', 'index', 'media', 'og',
-  'pack-thanks', 'newsletter-thanks'
+  'pack-thanks', 'newsletter-thanks', 'toolkit', 'toolkit-thanks'
 ]);
 
 const POST_ORDER = [
@@ -135,8 +135,6 @@ const FOOT = `
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") setOpen(false); });
 })();
 </script>
-</body>
-</html>
 `;
 
 const CTA = `
@@ -199,6 +197,97 @@ function ensureNewsletter(html) {
   return html.replace('</article>', NEWSLETTER + '\n</article>');
 }
 
+/* Same fields on every copy, so Netlify treats them as one form.
+   Subject is required here. The weekly form keeps subject optional. */
+const TOOLKIT = `
+<div id="getit-capture" class="getit-capture" hidden>
+  <div class="getit-capture-panel" role="dialog" aria-modal="false" aria-labelledby="getit-capture-title">
+    <button type="button" class="getit-capture-close" aria-label="Close">&times;</button>
+    <p class="getit-capture-kicker">For GCSE teachers</p>
+    <h2 id="getit-capture-title" tabindex="-1">Free: the top GCSE misconceptions in your subject, each with a ready-made hinge question</h2>
+    <p class="getit-capture-dek">Maths, Combined Science, English, History or Geography.</p>
+    <form name="toolkit-download" method="POST" action="/toolkit-thanks/" data-netlify="true" netlify netlify-honeypot="bot-field">
+      <input type="hidden" name="form-name" value="toolkit-download"/>
+      <p class="hp" aria-hidden="true">
+        <label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"/></label>
+      </p>
+      <label for="tk-first">First name
+        <input id="tk-first" name="first-name" type="text" autocomplete="given-name" required maxlength="80"/>
+      </label>
+      <label for="tk-email">Email
+        <input id="tk-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="160" placeholder="you@school.sch.uk"/>
+      </label>
+      <label for="tk-subject">Subject
+        <select id="tk-subject" name="subject" required>
+          <option value="" disabled selected>Choose a subject</option>
+          <option value="maths">Maths</option>
+          <option value="science">Science (Combined)</option>
+          <option value="english">English (Language and Literature)</option>
+          <option value="history">History</option>
+          <option value="geography">Geography</option>
+        </select>
+      </label>
+      <label class="getit-capture-consent">
+        <input type="checkbox" name="consent" value="yes" required/>
+        <span>I'm happy to get occasional emails from Get It?, unsubscribe any time. <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="/terms/">Terms</a>.</span>
+      </label>
+      <button class="getit-capture-send" type="submit">Send me the PDF</button>
+    </form>
+  </div>
+</div>`;
+
+const CAPTURE_BEGIN = '<!-- BEGIN toolkit-capture -->';
+const CAPTURE_END = '<!-- END toolkit-capture -->';
+
+function captureBlock() {
+  return CAPTURE_BEGIN + '\n' + TOOLKIT.trim() + '\n' + CAPTURE_END;
+}
+
+function footHtml() {
+  return FOOT + '\n' + captureBlock() + '\n<script src="/capture.js" defer></script>\n</body>\n</html>\n';
+}
+
+function ensureCapture(html) {
+  const block = captureBlock();
+  const marker = /<!-- BEGIN toolkit-capture -->[\s\S]*?<!-- END toolkit-capture -->/;
+  let next = html;
+  if (marker.test(next)) next = next.replace(marker, block);
+  else {
+    if (!next.includes('</body>')) throw new Error('capture insert point missing');
+    next = next.replace('</body>', block + '\n</body>');
+  }
+  if (!next.includes('href="/capture.css"')) {
+    if (!next.includes('</head>')) throw new Error('capture stylesheet insert point missing');
+    next = next.replace('</head>', '<link rel="stylesheet" href="/capture.css"/>\n</head>');
+  }
+  if (!next.includes('src="/capture.js"')) {
+    next = next.replace('</body>', '<script src="/capture.js" defer></script>\n</body>');
+  }
+  return next;
+}
+
+function assertToolkit(html, label) {
+  const need = [
+    'name="toolkit-download"',
+    'netlify-honeypot="bot-field"',
+    'data-netlify="true"',
+    'name="form-name" value="toolkit-download"',
+    '<select id="tk-subject" name="subject" required>',
+    'value="maths"',
+    'value="science"',
+    'value="english"',
+    'value="history"',
+    'value="geography"',
+    "I'm happy to get occasional emails from Get It?, unsubscribe any time."
+  ];
+  need.forEach((bit) => {
+    if (!html.includes(bit)) throw new Error('toolkit form incomplete on ' + label + ': ' + bit);
+  });
+  if (!html.includes(' src="/capture.js"') && !html.includes('src="/capture.js"')) {
+    throw new Error('capture script missing on ' + label);
+  }
+}
+
 function head(o) {
   const twitter = o.twitter || o.desc;
   if (!o.image) throw new Error('share image missing for ' + o.canonical);
@@ -244,6 +333,7 @@ function head(o) {
 <meta name="twitter:description" content="${attr(twitter)}"/>
 <meta name="twitter:image" content="${o.image}"/>
 <link rel="stylesheet" href="/blog/blog.css"/>
+<link rel="stylesheet" href="/capture.css"/>
 ${o.jsonld || ''}
 
 </head>
@@ -352,7 +442,7 @@ ${next}
   </div>
 ${NEWSLETTER}
 </article>
-` + FOOT;
+` + footHtml();
 }
 
 function loadNewPosts() {
@@ -550,7 +640,7 @@ ${all.map(indexCard).join('\n')}
 ${CTA}
 </div>
 ${NEWSLETTER}
-` + FOOT;
+` + footHtml();
   fs.writeFileSync(path.join(BLOG, 'index.html'), html);
 }
 
@@ -623,6 +713,7 @@ function main() {
     if (!html.includes('name="newsletter"') || !html.includes('netlify-honeypot="bot-field"')) {
       throw new Error('newsletter form missing ' + p.slug);
     }
+    assertToolkit(html, p.slug);
     assertSlugFree(p.slug);
     fs.writeFileSync(path.join(ROOT, p.slug + '.html'), html);
     const stale = path.join(BLOG, p.slug + '.html');
@@ -651,12 +742,33 @@ function main() {
   patchOriginals();
   Object.keys(ORIGINAL).forEach((slug) => {
     const file = path.join(ROOT, slug + '.html');
-    const html = ensureNewsletter(fs.readFileSync(file, 'utf8'));
+    let html = ensureNewsletter(fs.readFileSync(file, 'utf8'));
+    html = ensureCapture(html);
     if (!html.includes('name="newsletter"')) throw new Error('newsletter missing on ' + slug);
+    assertToolkit(html, slug);
     fs.writeFileSync(file, html);
+  });
+  const homePath = path.join(ROOT, 'index.html');
+  const home = ensureCapture(fs.readFileSync(homePath, 'utf8'));
+  assertToolkit(home, 'homepage');
+  fs.writeFileSync(homePath, home);
+  [
+    'new-teacher-pack/index.html',
+    'pack-thanks/index.html',
+    'newsletter-thanks/index.html',
+    'toolkit-thanks/index.html',
+    'contact/index.html',
+    'terms/index.html',
+    'thank-you/index.html'
+  ].forEach((rel) => {
+    const html = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    if (html.includes('name="toolkit-download"') || html.includes('src="/capture.js"')) {
+      throw new Error('popup leaked onto ' + rel);
+    }
   });
   buildOgImages();
   renderIndex(all);
+  assertToolkit(fs.readFileSync(path.join(BLOG, 'index.html'), 'utf8'), 'blog index');
   const n = renderSitemap(all);
   writeRedirects(POST_ORDER);
   console.log('index + sitemap (' + n + ' urls)');
