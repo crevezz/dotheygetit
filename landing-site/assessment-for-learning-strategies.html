@@ -40,6 +40,7 @@
 <meta name="twitter:description" content="AfL strategies that survive period 5. What to keep, what to drop, and what to do with the answer."/>
 <meta name="twitter:image" content="https://dotheygetit.app/og/assessment-for-learning-strategies.png"/>
 <link rel="stylesheet" href="/blog/blog.css"/>
+<link rel="stylesheet" href="/capture.css"/>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Article","headline":"Assessment for learning strategies that survive a real lesson","description":"AfL strategies worth keeping in a real KS3 or GCSE lesson, and the ones that only look like assessment. What to do with the answer once you have it.","datePublished":"2026-10-27","dateModified":"2026-10-27","author":{"@type":"Person","name":"Sam Whitfield","url":"https://dotheygetit.app/#top","jobTitle":"Founder, Get It?"},"publisher":{"@type":"Organization","name":"Get It?"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://dotheygetit.app/assessment-for-learning-strategies"},"image":"https://dotheygetit.app/og/assessment-for-learning-strategies.png"}
 </script>
@@ -250,5 +251,44 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") setOpen(false); });
 })();
 </script>
+
+<!-- BEGIN toolkit-capture -->
+<div id="getit-capture" class="getit-capture" hidden>
+  <div class="getit-capture-panel" role="dialog" aria-modal="false" aria-labelledby="getit-capture-title">
+    <button type="button" class="getit-capture-close" aria-label="Close">&times;</button>
+    <p class="getit-capture-kicker">For GCSE teachers</p>
+    <h2 id="getit-capture-title" tabindex="-1">Free: the top GCSE misconceptions in your subject, each with a ready-made hinge question</h2>
+    <p class="getit-capture-dek">Maths, Combined Science, English, History or Geography.</p>
+    <form name="toolkit-download" method="POST" action="/toolkit-thanks/" data-netlify="true" netlify netlify-honeypot="bot-field">
+      <input type="hidden" name="form-name" value="toolkit-download"/>
+      <p class="hp" aria-hidden="true">
+        <label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"/></label>
+      </p>
+      <label for="tk-first">First name
+        <input id="tk-first" name="first-name" type="text" autocomplete="given-name" required maxlength="80"/>
+      </label>
+      <label for="tk-email">Email
+        <input id="tk-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="160" placeholder="you@school.sch.uk"/>
+      </label>
+      <label for="tk-subject">Subject
+        <select id="tk-subject" name="subject" required>
+          <option value="" disabled selected>Choose a subject</option>
+          <option value="maths">Maths</option>
+          <option value="science">Science (Combined)</option>
+          <option value="english">English (Language and Literature)</option>
+          <option value="history">History</option>
+          <option value="geography">Geography</option>
+        </select>
+      </label>
+      <label class="getit-capture-consent">
+        <input type="checkbox" name="consent" value="yes" required/>
+        <span>I'm happy to get occasional emails from Get It?, unsubscribe any time. <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="/terms/">Terms</a>.</span>
+      </label>
+      <button class="getit-capture-send" type="submit">Send me the PDF</button>
+    </form>
+  </div>
+</div>
+<!-- END toolkit-capture -->
+<script src="/capture.js" defer></script>
 </body>
 </html>
