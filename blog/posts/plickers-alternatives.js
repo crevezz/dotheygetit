@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>People searching for a Plickers alternative usually want one of three things: no pupil devices, less fiddling with cards, or a reason instead of the letter A, B, C or D.</p>
 
-<p>Those are different products. This page separates them. A wider buying guide, including the tools a school already pays for, is in <a href="/blog/free-formative-assessment-tools">free formative assessment tools</a>. Boards versus a private digital answer is in <a href="/blog/mini-whiteboards-vs-digital-checks">mini whiteboards versus a digital check</a>. If the thing you actually liked was "one question at the end, from everyone", the reason paper versions die is in <a href="/blog/exit-tickets-why-teachers-stop">why teachers stop using exit tickets</a>. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
+<p>Those are different products. This page separates them. A wider buying guide, including the tools a school already pays for, is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. Boards versus a private digital answer is in <a href="/mini-whiteboards-vs-digital-checks">mini whiteboards versus a digital check</a>. If the thing you actually liked was "one question at the end, from everyone", the reason paper versions die is in <a href="/exit-tickets-why-teachers-stop">why teachers stop using exit tickets</a>. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>What Plickers actually is</h2>
 

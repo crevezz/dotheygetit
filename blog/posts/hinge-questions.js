@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>Most UK teachers met hinge questions through Dylan Wiliam's work on formative assessment. The idea is smaller than the training pack. You are about to do something that only makes sense if they understood the last thing. You ask one question that exposes the difference. Then you obey the answer.</p>
 
-<p>This page is how to write one, with examples. What to do when the wrong answer is a real misconception, rather than a slip, is in <a href="/blog/spot-misconceptions-in-lesson">spotting misconceptions before the bell</a>. Where hinge questions sit among the other AfL moves is in <a href="/blog/assessment-for-learning-strategies">assessment for learning strategies</a>. The full set is on <a href="/blog/">the blog</a>.</p>
+<p>This page is how to write one, with examples. What to do when the wrong answer is a real misconception, rather than a slip, is in <a href="/spot-misconceptions-in-lesson">spotting misconceptions before the bell</a>. Where hinge questions sit among the other AfL moves is in <a href="/assessment-for-learning-strategies">assessment for learning strategies</a>. The full set is on <a href="/blog/">the blog</a>.</p>
 
 <h2>What it is, and what it is not</h2>
 
@@ -43,7 +43,7 @@ module.exports = {
   <li><b>You can read it quickly.</b> If it takes ten minutes to collect, the moment has gone and you have lost the practice time as well.</li>
 </ul>
 
-<p>It is not a starter. A starter tells you what survived from last lesson. It is not an <a href="/blog/exit-ticket-ideas">exit ticket</a>. An exit ticket informs tomorrow, when today's lesson can no longer bend. It is not a past-paper question with a mark scheme. You are not scoring. You are choosing a path.</p>
+<p>It is not a starter. A starter tells you what survived from last lesson. It is not an <a href="/exit-ticket-ideas">exit ticket</a>. An exit ticket informs tomorrow, when today's lesson can no longer bend. It is not a past-paper question with a mark scheme. You are not scoring. You are choosing a path.</p>
 
 <h2>How to write one in ten minutes</h2>
 

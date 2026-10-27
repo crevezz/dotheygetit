@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>You can leave a lesson believing it went well and still have taught a wrong idea into place. The class was quiet. The practice looked finished. Three of the answers you glanced at were right. The misconception was in the other books, stated neatly, because the pupil was not confused. They were sure.</p>
 
-<p>This is about the idea itself. Pupils who hide, echo, and agree with whoever spoke last are a different problem, covered in <a href="/blog/pupils-quietly-faking-it">how to spot the ones quietly faking it</a>. A misconception can be said out loud, hand up, with a smile. Catching it is also not the same job as writing the question, which is the <a href="/blog/hinge-questions">hinge question</a> page. The other in-lesson moves are in <a href="/blog/checking-for-understanding">checking for understanding</a>. More of this sits on <a href="/blog/">the blog</a>.</p>
+<p>This is about the idea itself. Pupils who hide, echo, and agree with whoever spoke last are a different problem, covered in <a href="/pupils-quietly-faking-it">how to spot the ones quietly faking it</a>. A misconception can be said out loud, hand up, with a smile. Catching it is also not the same job as writing the question, which is the <a href="/hinge-questions">hinge question</a> page. The other in-lesson moves are in <a href="/checking-for-understanding">checking for understanding</a>. More of this sits on <a href="/blog/">the blog</a>.</p>
 
 <h2>Slip, gap, or misconception</h2>
 

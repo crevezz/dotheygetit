@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>Cold calling is the name Doug Lemov gave, in Teach Like a Champion, to a simple order: you ask the question, you pause, then you say the name. No-hands-up is the rule many UK schools already use, sometimes for behaviour as much as for learning: hands are not how you get to speak. Staffrooms treat the phrases as synonyms. They are not.</p>
 
-<p>Both are about talk. The pupil who is quietly lost, and the one who is <a href="/blog/pupils-quietly-faking-it">faking it</a>, can survive either routine, because you still only hear one voice. Why a nod is not a check is in <a href="/blog/how-do-you-know-who-understood">how you know who understood</a>. Where these routines sit next to other checks is in <a href="/blog/checking-for-understanding">checking for understanding</a>. The wider set is on <a href="/blog/">the blog</a>.</p>
+<p>Both are about talk. The pupil who is quietly lost, and the one who is <a href="/pupils-quietly-faking-it">faking it</a>, can survive either routine, because you still only hear one voice. Why a nod is not a check is in <a href="/how-do-you-know-who-understood">how you know who understood</a>. Where these routines sit next to other checks is in <a href="/checking-for-understanding">checking for understanding</a>. The wider set is on <a href="/blog/">the blog</a>.</p>
 
 <h2>No-hands-up is a rule. Cold calling is a technique.</h2>
 

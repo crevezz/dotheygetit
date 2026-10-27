@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>"Three things I learnt", "one question I still have", "confidence from one to five": they feel productive and tell you almost nothing. The pupil who is lost writes "nothing" or a 4. The pupil who has got it writes a paragraph you do not need.</p>
 
-<p>This page is the questions. Why teachers start exit tickets and quietly drop them &mdash; the pile, the deadline, the anonymous slip &mdash; is a different problem, covered in <a href="/blog/exit-tickets-why-teachers-stop">why exit tickets get abandoned</a>. The questions below are written so a wrong answer is useful. More of these notes are on <a href="/blog/">the blog</a>.</p>
+<p>This page is the questions. Why teachers start exit tickets and quietly drop them &mdash; the pile, the deadline, the anonymous slip &mdash; is a different problem, covered in <a href="/exit-tickets-why-teachers-stop">why exit tickets get abandoned</a>. The questions below are written so a wrong answer is useful. More of these notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>What a usable exit ticket does</h2>
 
@@ -42,7 +42,7 @@ module.exports = {
   <li><b>You can sort it quickly.</b> One question. Not eight. If you need a paragraph, you will read the first six slips and the rest will live in your bag until Friday.</li>
 </ul>
 
-<p>Write the question before the last activity, not while they are packing away, and write the wrong answer you expect beside it. That is also how a <a href="/blog/hinge-questions">hinge question</a> is built. An exit ticket is the same instinct at the bell, when the decision is about tomorrow. Skip "how confident are you?" Confidence is not understanding.</p>
+<p>Write the question before the last activity, not while they are packing away, and write the wrong answer you expect beside it. That is also how a <a href="/hinge-questions">hinge question</a> is built. An exit ticket is the same instinct at the bell, when the decision is about tomorrow. Skip "how confident are you?" Confidence is not understanding.</p>
 
 <p>Three shapes cover almost every subject. Ask for the first step, not the final answer. Give them a mistake a real pupil would make, and ask what is wrong with it. Or keep the idea and change the surface, so they cannot rely on the example you modelled.</p>
 
@@ -88,7 +88,7 @@ module.exports = {
   <li><b>A specific wrong idea.</b> This is the pile that matters. They did not "fail to revise". They built the wrong model. Reteach that model.</li>
 </ul>
 
-<p>Put names on. Anonymous slips tell you the piles exist and not who is in them. The next morning, repeat the question with the surface changed. That is a <a href="/blog/retrieval-practice-starters">retrieval starter</a>, and it shows whether yesterday's correction survived the evening.</p>
+<p>Put names on. Anonymous slips tell you the piles exist and not who is in them. The next morning, repeat the question with the surface changed. That is a <a href="/retrieval-practice-starters">retrieval starter</a>, and it shows whether yesterday's correction survived the evening.</p>
 
 <p>If the carrier bag of paper is why you stopped, the question does not have to live on a slip. <a href="/thank-you/">Get It?</a> drafts the questions, you edit them, and pupils answer on a phone or a school device with a code. No account. In two minutes you see who has got it, who is unsure, and who needs help. Free for a limited time, no card. If the room has no devices, use the slip.</p>
 `

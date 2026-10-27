@@ -34,3 +34,164 @@
   to = "https://app.dotheygetit.app/:splat"
   status = 301
   force = true
+
+# Old /blog/<slug> post addresses. Rewritten by blog/build.js.
+# /blog/ itself stays the listing page. Do not put a splat here:
+# /blog/blog.css lives in this folder.
+# BEGIN blog-post-redirects
+[[redirects]]
+  from = "/blog/exit-ticket-ideas"
+  to = "/exit-ticket-ideas"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/exit-ticket-ideas/"
+  to = "/exit-ticket-ideas"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/assessment-for-learning-strategies"
+  to = "/assessment-for-learning-strategies"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/assessment-for-learning-strategies/"
+  to = "/assessment-for-learning-strategies"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/hinge-questions"
+  to = "/hinge-questions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/hinge-questions/"
+  to = "/hinge-questions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/checking-for-understanding"
+  to = "/checking-for-understanding"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/checking-for-understanding/"
+  to = "/checking-for-understanding"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/spot-misconceptions-in-lesson"
+  to = "/spot-misconceptions-in-lesson"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/spot-misconceptions-in-lesson/"
+  to = "/spot-misconceptions-in-lesson"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/cold-calling-vs-no-hands-up"
+  to = "/cold-calling-vs-no-hands-up"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/cold-calling-vs-no-hands-up/"
+  to = "/cold-calling-vs-no-hands-up"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/retrieval-practice-starters"
+  to = "/retrieval-practice-starters"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/retrieval-practice-starters/"
+  to = "/retrieval-practice-starters"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/mini-whiteboards-vs-digital-checks"
+  to = "/mini-whiteboards-vs-digital-checks"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/mini-whiteboards-vs-digital-checks/"
+  to = "/mini-whiteboards-vs-digital-checks"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/plickers-alternatives"
+  to = "/plickers-alternatives"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/plickers-alternatives/"
+  to = "/plickers-alternatives"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/free-formative-assessment-tools"
+  to = "/free-formative-assessment-tools"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/free-formative-assessment-tools/"
+  to = "/free-formative-assessment-tools"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/how-do-you-know-who-understood"
+  to = "/how-do-you-know-who-understood"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/how-do-you-know-who-understood/"
+  to = "/how-do-you-know-who-understood"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/exit-tickets-why-teachers-stop"
+  to = "/exit-tickets-why-teachers-stop"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/exit-tickets-why-teachers-stop/"
+  to = "/exit-tickets-why-teachers-stop"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/pupils-quietly-faking-it"
+  to = "/pupils-quietly-faking-it"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/blog/pupils-quietly-faking-it/"
+  to = "/pupils-quietly-faking-it"
+  status = 301
+  force = true
+# END blog-post-redirects

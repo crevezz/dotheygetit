@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>Retrieval practice is the plain idea that if you want something to be remembered, pupils have to try to remember it. Re-reading the notes feels smoother and does less. A starter is the cheapest place to put that try: they are coming in, you are taking the register, nobody has started performing the new lesson yet.</p>
 
-<p>This page is the do-now. It is not the end-of-lesson question. That is <a href="/blog/exit-ticket-ideas">exit ticket ideas</a>, and the two should talk to each other: today's exit ticket is a fair starter in a few days' time, with the surface changed. What to do when the thing they retrieve is the wrong model is in <a href="/blog/spot-misconceptions-in-lesson">spotting misconceptions</a>. How this sits inside assessment for learning is in <a href="/blog/assessment-for-learning-strategies">AfL strategies</a>. The full set of notes is on <a href="/blog/">the blog</a>.</p>
+<p>This page is the do-now. It is not the end-of-lesson question. That is <a href="/exit-ticket-ideas">exit ticket ideas</a>, and the two should talk to each other: today's exit ticket is a fair starter in a few days' time, with the surface changed. What to do when the thing they retrieve is the wrong model is in <a href="/spot-misconceptions-in-lesson">spotting misconceptions</a>. How this sits inside assessment for learning is in <a href="/assessment-for-learning-strategies">AfL strategies</a>. The full set of notes is on <a href="/blog/">the blog</a>.</p>
 
 <h2>What counts, and what is just a quiet start</h2>
 
@@ -54,7 +54,7 @@ module.exports = {
 
 <p><b>Same skill, new surface.</b> Yesterday was 1/2 + 1/3. Today is 1/4 + 1/5, and you ask for the first step only. You are not starting fractions again. You are seeing whether yesterday's correction survived the evening.</p>
 
-<p><b>One worked error.</b> Put up a finished answer that contains the mistake you saw most yesterday. "Find the error and fix the line." This is retrieval of the method plus a check on the <a href="/blog/spot-misconceptions-in-lesson">misconception</a>, and it is harder to copy at a glance than a one-word answer. Use an error someone really made. Invented errors are either too obvious or too clever.</p>
+<p><b>One worked error.</b> Put up a finished answer that contains the mistake you saw most yesterday. "Find the error and fix the line." This is retrieval of the method plus a check on the <a href="/spot-misconceptions-in-lesson">misconception</a>, and it is harder to copy at a glance than a one-word answer. Use an error someone really made. Invented errors are either too obvious or too clever.</p>
 
 <p><b>Brain dump, then a correction.</b> "Two minutes: write everything you can remember about the formation of a meander. No notes." Then open the book and add, in a different colour, one thing they had wrong or missing. You walk and read the first colour, not the second. The second colour is them being helped by the page. The first colour is the retrieval.</p>
 

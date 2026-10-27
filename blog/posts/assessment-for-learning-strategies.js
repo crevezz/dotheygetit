@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>Assessment for learning, AfL if that is what the department calls it, has a plain meaning. You find out whether they have got the thing you just taught, and you change what you do next because of what you found. If nothing changes, it was not assessment for learning. It was a ritual.</p>
 
-<p>This is not a history of the term, and it is not the piece about why a nod is worthless. That argument is in <a href="/blog/how-do-you-know-who-understood">how you know who understood</a>. This is the short list worth keeping on a day when you teach five lessons and eat lunch at a desk. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
+<p>This is not a history of the term, and it is not the piece about why a nod is worthless. That argument is in <a href="/how-do-you-know-who-understood">how you know who understood</a>. This is the short list worth keeping on a day when you teach five lessons and eat lunch at a desk. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>Start from the decision, not the activity</h2>
 
@@ -48,13 +48,13 @@ module.exports = {
 
 <p>Somewhere in the lesson there is a point where going on would be a mistake if a chunk of the class has the wrong idea. Plan one question for that point. Every pupil answers. Each wrong option is a mistake you have really seen, not a joke answer.</p>
 
-<p>That is a <a href="/blog/hinge-questions">hinge question</a>, and it earns its place because the lesson can still bend. An exit ticket cannot bend the lesson you have already finished. A starter cannot tell you whether today's explanation worked. The hinge is the AfL strategy that sits in the middle on purpose. One is enough. Three hinges and you no longer have a lesson. You have a quiz with interruptions.</p>
+<p>That is a <a href="/hinge-questions">hinge question</a>, and it earns its place because the lesson can still bend. An exit ticket cannot bend the lesson you have already finished. A starter cannot tell you whether today's explanation worked. The hinge is the AfL strategy that sits in the middle on purpose. One is enough. Three hinges and you no longer have a lesson. You have a quiz with interruptions.</p>
 
 <h2>Every pupil answers something</h2>
 
 <p>Hands-up AfL is AfL for six pupils. You already knew those six. The strategies that change a lesson are the ones where the quiet pupil also has to commit: a word on a mini whiteboard, a sentence in the margin, a private answer on a device, a name you choose after everyone has had time to think.</p>
 
-<p>A menu of those moves, and what each one hides, is in <a href="/blog/checking-for-understanding">checking for understanding</a>. The principle is smaller than the menu. If you cannot name pupils who have not got it, you have not checked. You have had a conversation with the willing.</p>
+<p>A menu of those moves, and what each one hides, is in <a href="/checking-for-understanding">checking for understanding</a>. The principle is smaller than the menu. If you cannot name pupils who have not got it, you have not checked. You have had a conversation with the willing.</p>
 
 <p>"Any questions?" fails this test. So does "thumbs up if you're happy". So does traffic-light cards where pupils rate themselves. Self-report is not evidence. The pupil who most needs you is the one most likely to show you green, because red is public. Use a traffic light only if it records an answer you can see, not a feeling.</p>
 
