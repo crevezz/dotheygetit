@@ -31,9 +31,11 @@ function build(form, d) {
       subject: `Your ${t[0]} misconceptions PDF`,
       lines: [
         `Hi ${first},`,
-        `Thanks for signing up. Here's your ${t[0]} misconceptions PDF, with a ready-made hinge question for each one:`,
+        `Thanks for grabbing the ${t[0]} misconceptions sheet. Here's your copy:`,
         { url },
-        'Want to see who really understood, live in the lesson? Get It? is free to try:',
+        "Each misconception comes with a ready-made hinge question. Pop one on the board just before you move on, and within a minute you'll know who's really got it and who's quietly guessing.",
+        "I put these together because the hardest part of teaching isn't explaining something, it's knowing whether it actually landed. If there's a topic you'd like covered next, just reply to this email and let me know. I read every reply.",
+        'If you ever want to run those checks live, with every pupil answering on their own device, that is what Get It? does. It is free while we are in beta:',
         { url: SITE },
       ],
     };
@@ -44,9 +46,11 @@ function build(form, d) {
       subject: 'Your New Teacher Survival Pack',
       lines: [
         `Hi ${first},`,
-        "Thanks for signing up. Here's your New Teacher Survival Pack:",
+        "Thanks for grabbing the New Teacher Survival Pack. Here's your copy:",
         { url },
-        'Want to see who really understood, live in the lesson? Get It? is free to try:',
+        "It's full of the things I wish someone had told me in my first year: quick routines, ways to check understanding without a pile of marking, and how to spot a lost pupil before the lesson ends.",
+        "If there's anything you'd like added, or something you're stuck on right now, just reply to this email. I read every reply.",
+        'If you ever want to see live which pupils have understood, Get It? does that in under a minute. It is free while we are in beta:',
         { url: SITE },
       ],
     };
