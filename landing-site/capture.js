@@ -43,14 +43,36 @@
     root.hidden = false;
     root.classList.toggle('is-modal', !narrow);
     root.classList.toggle('is-banner', narrow);
+    root.classList.toggle('is-collapsed', narrow);
     if (panel) panel.setAttribute('aria-modal', narrow ? 'false' : 'true');
     if (!narrow) document.documentElement.classList.add('getit-capture-lock');
-    if (title) title.focus();
+    if (title && !narrow) title.focus();
+  }
+
+  // Mobile: compact bar first, full form only when tapped.
+  if (panel && title) {
+    if (!title.querySelector('.long')) {
+      title.innerHTML = '<span class="short">Free GCSE misconceptions PDF</span><span class="long">' +
+        title.innerHTML + '</span>';
+    }
+    var openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.className = 'getit-capture-open';
+    openBtn.textContent = 'Get it';
+    title.insertAdjacentElement('afterend', openBtn);
+    var expand = function () {
+      if (!root.classList.contains('is-collapsed')) return;
+      root.classList.remove('is-collapsed');
+      var first = panel.querySelector('input[name="first-name"]');
+      if (first) first.focus();
+    };
+    openBtn.addEventListener('click', expand);
+    title.addEventListener('click', expand);
   }
 
   function closePopup() {
     root.hidden = true;
-    root.classList.remove('is-modal', 'is-banner');
+    root.classList.remove('is-modal', 'is-banner', 'is-collapsed');
     document.documentElement.classList.remove('getit-capture-lock');
     if (panel) panel.setAttribute('aria-modal', 'false');
     if (previous && typeof previous.focus === 'function' && document.contains(previous)) {
