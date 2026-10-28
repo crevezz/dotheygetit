@@ -67,14 +67,14 @@ async function sendMail(to, subject, text, html) {
   if (!pw) throw new Error('PRIVATEEMAIL_PASSWORD not set');
   const tok = await fetch(BASE + '/connect/token', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'getit-site/1.0' },
     body: new URLSearchParams({ client_id: 'privateemail.com', grant_type: 'password', username: USER, password: pw }),
   });
   if (!tok.ok) throw new Error('login failed: HTTP ' + tok.status);
   const { access_token } = await tok.json();
   const r = await fetch(MC + '/sendmessage', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + access_token },
+    headers: { 'Content-Type': 'application/json', 'User-Agent': 'getit-site/1.0', Authorization: 'Bearer ' + access_token },
     body: JSON.stringify({
       idempotencyKey: crypto.randomUUID(),
       from: [{ address: USER, name: 'Craig - Get It?' }],
