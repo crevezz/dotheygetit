@@ -48,7 +48,7 @@ function build(form, d) {
         `Hi ${first},`,
         "Thanks for grabbing the New Teacher Survival Pack. Here's your copy:",
         { url },
-        "It's full of the things I wish someone had told me in my first year: quick routines, ways to check understanding without a pile of marking, and how to spot a lost pupil before the lesson ends.",
+        "It's packed with quick classroom routines, ways to check understanding without a pile of marking, and how to spot a lost pupil before the lesson ends.",
         "If there's anything you'd like added, or something you're stuck on right now, just reply to this email. I read every reply.",
         'If you ever want to see live which pupils have understood, Get It? does that in under a minute. It is free while we are in beta:',
         { url: SITE },
