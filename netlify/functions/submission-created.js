@@ -19,10 +19,12 @@ const TOOLKIT = {
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const link = (u) => `<a href="${u}" style="color:#4f8cff;font-weight:600">${u}</a>`;
 
+const str = (v) => (Array.isArray(v) ? str(v[0]) : v && typeof v === 'object' ? str(v.value ?? v.name ?? '') : String(v ?? ''));
+
 function build(form, d) {
-  const first = (d['first-name'] || '').trim().split(/\s+/)[0] || 'there';
+  const first = str(d['first-name']).trim().split(/\s+/)[0] || 'there';
   if (form === 'toolkit-download') {
-    const t = TOOLKIT[(d.subject || '').toLowerCase()];
+    const t = TOOLKIT[str(d.subject).toLowerCase()] || TOOLKIT[str(d.subject).toLowerCase().split(/[\s(]/)[0]];
     if (!t) return null;
     const url = `${SITE}/toolkit/${t[1]}`;
     return {
@@ -91,7 +93,7 @@ exports.handler = async (event) => {
   try {
     const p = JSON.parse(event.body || '{}').payload || {};
     const d = p.data || {};
-    const to = (d.email || p.email || '').trim();
+    const to = str(d.email || p.email).trim();
     const msg = build(p.form_name, d);
     if (!msg || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { statusCode: 200, body: 'skipped' };
     const { text, html } = render(msg.lines);
