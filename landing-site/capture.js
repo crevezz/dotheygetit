@@ -37,6 +37,19 @@
     );
   }
 
+  function navOffset() {
+    var nav = document.querySelector('nav');
+    var top = 0;
+    if (nav) {
+      var pos = getComputedStyle(nav).position;
+      var r = nav.getBoundingClientRect();
+      if ((pos === 'sticky' || pos === 'fixed') && r.bottom > 0) top = Math.round(r.bottom);
+    }
+    root.style.setProperty('--getit-top', top + 'px');
+  }
+  window.addEventListener('scroll', function () { if (!root.hidden) navOffset(); }, { passive: true });
+  window.addEventListener('resize', function () { if (!root.hidden) navOffset(); });
+
   function openPopup() {
     var narrow = window.matchMedia('(max-width: 759px)').matches;
     previous = document.activeElement;
@@ -46,6 +59,7 @@
     root.classList.toggle('is-collapsed', narrow);
     if (panel) panel.setAttribute('aria-modal', narrow ? 'false' : 'true');
     if (!narrow) document.documentElement.classList.add('getit-capture-lock');
+    if (narrow) navOffset();
     if (title && !narrow) title.focus();
   }
 
@@ -115,6 +129,13 @@
   });
 
   setTimeout(tryArm, 45000);
+
+  // Mobile: show the top banner straight away.
+  if (window.matchMedia('(max-width: 759px)').matches) {
+    started = 0;
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryArm);
+    else tryArm();
+  }
 
   if (closeBtn) closeBtn.addEventListener('click', dismiss);
 

@@ -210,3 +210,26 @@ html.getit-capture-lock body { overflow: hidden; }
 }
 .getit-capture.is-banner.is-collapsed .getit-capture-close { top: 50%; transform: translateY(-50%); }
 .getit-capture.is-banner:not(.is-collapsed) .getit-capture-panel { max-height: 85vh; }
+
+/* Mobile: sticky banner along the top (under the site nav), always visible. */
+.getit-capture.is-banner {
+  top: var(--getit-top, 0px);
+  bottom: auto;
+}
+.getit-capture.is-banner .getit-capture-panel {
+  border-radius: 0 0 14px 14px;
+  border-top: 0;
+  border-bottom: 1px solid #25324e;
+  animation: getit-capture-down .25s ease;
+}
+.getit-capture.is-banner:not(.is-collapsed) .getit-capture-panel {
+  max-height: calc(100vh - var(--getit-top, 0px) - 12px);
+  max-height: calc(100dvh - var(--getit-top, 0px) - 12px);
+}
+@keyframes getit-capture-down {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .getit-capture.is-banner .getit-capture-panel { animation: none; }
+}
