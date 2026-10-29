@@ -10,10 +10,10 @@
 // email (or email_address), subject, and marketing_consent fill any of those
 // the flat body omitted.
 //
-// marketing_consent is optional. Make sends the string "true" when the
-// Facebook disclaimer is ticked, and "" or "false" when it is not. "true",
-// "1", and "yes" (any case) opt in. Anything else, including empty or missing,
-// does not. That field never changes the PDF email and never causes an error.
+// marketing_consent is optional. A Yes/No answer arrives as "Yes" or "No",
+// or as ["Yes"] (a real array or that text). "Yes", "true", and "1" (any case)
+// opt in. "No", "", and anything else do not. Empty or missing never errors,
+// and the PDF email is still sent.
 //
 // subject is a human label: Maths, Science, English, History, Geography, or
 // Other (any case, or the longer labels the site shows, such as

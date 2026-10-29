@@ -12,8 +12,10 @@ const { setStoreForTests, memoryStore } = require('./netlify/functions/lib/nurtu
 const {
   marketingConsent, ukDate, nextStepDay, contentForDay, COPY, planPeople, formatPlan,
   enrol, runNurture, signToken, verifyToken, nurtureEnabled, unsubscribeSecret,
-  nurtureIdempotencyKey, LIMITS, renderTip,
+  nurtureIdempotencyKey, LIMITS, renderTip, blockedAddress, LINK_COLOUR,
+  textUrls, previewMessages, sendPreview,
 } = require('./netlify/functions/lib/nurture');
+const previewFn = require('./netlify/functions/nurture-preview');
 
 const SECRET = 'nurture-test-secret-value';
 const LEAD = 'lead-secret-test-value';
@@ -124,6 +126,15 @@ function formInner(html, formName) {
   check(marketingConsent({ value: '' }) === false, 'empty wrapped consent is no');
   check(marketingConsent({ value: 'true' }) === true, 'wrapped true is yes');
   check(marketingConsent(Symbol('x')) === false, 'odd consent value does not throw');
+  for (const value of ['Yes', ' YES ', ['Yes'], '["Yes"]', "['Yes']", '["yes"]']) {
+    check(marketingConsent(value) === true, 'Yes form ' + JSON.stringify(value));
+  }
+  for (const value of ['No', 'NO', ['No'], '["No"]', "['No']", '']) {
+    check(marketingConsent(value) === false, 'No form ' + JSON.stringify(value));
+  }
+  check(blockedAddress('test@meta.com') && blockedAddress('Test@Meta.com'), 'meta test address is blocked');
+  check(blockedAddress('support@dotheygetit.app') && blockedAddress('Hello@DoTheyGetIt.app'), 'own domain is blocked');
+  check(!blockedAddress('ada@school.sch.uk') && !blockedAddress('teacher@meta.com'), 'other addresses are not blocked');
 
   check(ukDate('2026-06-30T23:30:00.000Z') === '2026-07-01', 'BST date rolls forward');
   check(ukDate('2026-10-29T23:30:00.000Z') === '2026-10-29', 'GMT date stays put');
@@ -133,7 +144,34 @@ function formInner(html, formName) {
   check(nextStepDay(14, 28) === 28 && nextStepDay(28, 42) === 42 && nextStepDay(42, 56) === 56, 'tips every 14 days after day 14');
   check(contentForDay(42) === contentForDay(28), 'a tip with no entry of its own reuses the day 28 copy');
   check(contentForDay(42, COPY.concat([{ day: 42, subject: 'own', preview: 'p', body: 'b', cta_label: 'c', cta_url: 'https://dotheygetit.app/' }])).subject === 'own', 'an exact later day wins');
-  check(COPY.every((item) => String(item.subject).includes('[PLACEHOLDER]') && String(item.body).includes('[PLACEHOLDER]')), 'copy is still placeholder');
+  check(COPY.map((item) => item.subject).join('|') === [
+    'A hinge question in 2 minutes',
+    'An exit ticket that actually tells you something',
+    'Do they actually get it?',
+    'A free pack for new teachers (and their mentors)',
+    'Two-minute tip: start with one worked error',
+  ].join('|'), 'approved subjects');
+  const accent = (fs.readFileSync('landing-site/index.html', 'utf8').match(/--accent:\s*(#[0-9a-fA-F]{6})/) || [])[1];
+  check(accent === LINK_COLOUR, 'link colour is the site --accent', accent + ' vs ' + LINK_COLOUR);
+  const sampleUnsub = 'https://dotheygetit.app/unsubscribe?token=preview';
+  for (const msg of previewMessages()) {
+    check(msg.text && msg.html, 'day ' + msg.day + ' has text and html');
+    check(!/click here/i.test(msg.html) && !/<button/i.test(msg.html), 'day ' + msg.day + ' has no button or click here');
+    check(msg.html.includes('color:' + LINK_COLOUR), 'day ' + msg.day + ' styles links with the brand colour');
+    const urls = textUrls(msg.text);
+    check(urls.length >= 2, 'day ' + msg.day + ' text has its link and the unsubscribe link', String(urls.length));
+    for (const url of urls) {
+      const quoted = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const linked = new RegExp('<a href="' + quoted + '"[^>]*>' + quoted + '</a>').test(msg.html);
+      check(linked, 'day ' + msg.day + ' shows ' + url);
+    }
+  }
+  const day2 = previewMessages()[0];
+  check(day2.subject === 'A hinge question in 2 minutes', 'preview uses the main subject');
+  check(day2.text.startsWith('Hi Craig,\n\nQuick one today'), 'preview text is the approved wording');
+  check(day2.text.includes('your maths misconception bank'), 'preview subject merge is maths');
+  check(day2.text.includes('Unsubscribe: ' + sampleUnsub), 'preview unsubscribe line');
+  check(!day2.text.includes('Best wishes'), 'renderer does not add a second sign-off');
 
   const escaped = renderTip(COPY[0], {
     first_name: 'A"<da',
@@ -162,6 +200,10 @@ function formInner(html, formName) {
   const bob = await store.get('bob@school.sch.uk');
   check(bob.marketingConsent === true && bob.signedUpAt === '2026-10-01T09:00:00.000Z' && bob.enrolledAt === '2026-10-27T09:00:00.000Z', 'later consent starts the clock then');
   check(bob.consentedAt === '2026-10-27T09:00:00.000Z', 'consent time is stored');
+  for (const email of ['test@meta.com', 'support@dotheygetit.app', 'notes@dotheygetit.app']) {
+    const skipped = await enrol(store, { email, firstName: 'Nope', subject: 'maths', source: 'site', consent: 'yes', now: '2026-10-27T09:00:00.000Z' });
+    check(skipped.ok === false && skipped.reason === 'blocked' && !(await store.get(email.toLowerCase())), 'not enrolled ' + email);
+  }
 
   const summer = planPeople([
     { email: 'sam@school.sch.uk', firstName: 'Sam', subject: 'maths', source: 'site', marketingConsent: true, enrolledAt: '2026-06-30T23:30:00.000Z', consentedAt: '2026-06-30T23:30:00.000Z', lastStepSent: 0, unsubscribed: false },
@@ -176,11 +218,11 @@ function formInner(html, formName) {
   const plan = planPeople(fixtures, '2026-10-29');
   const printed = formatPlan(plan);
   check(plan.date === '2026-10-29' && plan.due.length === 5 && plan.skipped.length === 4, 'sample plan counts', plan.due.length + '/' + plan.skipped.length);
-  check(printed.includes('ada@school.sch.uk  site  maths  day 2  [PLACEHOLDER] Day 2: GCSE Maths for Ada'), 'ada day 2');
-  check(printed.includes('grace@school.sch.uk  facebook  all  day 5  [PLACEHOLDER] Day 5: GCSE for Grace'), 'grace day 5');
-  check(printed.includes('eve@school.sch.uk  site  geography  day 28  [PLACEHOLDER] Tip: GCSE Geography for Eve'), 'eve fortnightly tip');
-  check(printed.includes('gus@school.sch.uk  site  pack  day 2  [PLACEHOLDER] Day 2: your classroom for Gus'), 'pack download day 2');
-  check(printed.includes('helen@school.sch.uk  site  english  day 2  [PLACEHOLDER] Day 2: GCSE English for Helen'), 'later consent is not back-dated');
+  check(printed.includes('ada@school.sch.uk  site  maths  day 2  A hinge question in 2 minutes'), 'ada day 2');
+  check(printed.includes('grace@school.sch.uk  facebook  all  day 5  An exit ticket that actually tells you something'), 'grace day 5');
+  check(printed.includes('eve@school.sch.uk  site  geography  day 28  Two-minute tip: start with one worked error'), 'eve fortnightly tip');
+  check(printed.includes('gus@school.sch.uk  site  pack  day 2  A hinge question in 2 minutes'), 'pack download day 2');
+  check(printed.includes('helen@school.sch.uk  site  english  day 2  A hinge question in 2 minutes'), 'later consent is not back-dated');
   check(printed.includes('bob@school.sch.uk  not due until day 2 on 2026-10-31'), 'same-day signup is not due');
   check(printed.includes('cara@school.sch.uk  no marketing consent'), 'no consent is skipped');
   check(printed.includes('dan@school.sch.uk  unsubscribed'), 'unsubscribed is skipped');
@@ -336,6 +378,30 @@ function formInner(html, formName) {
         full_name: 'Fay', email: 'fay@school.sch.uk', subject: 'History', marketing_consent: '1',
       })));
       check(one.result.body === 'sent' && (await fresh.get('fay@school.sch.uk')).marketingConsent === true, 'the string 1 is consent');
+      const yesWord = await capture(() => fb.handler(fbEvent({
+        full_name: 'Kim', email: 'kim@school.sch.uk', subject: 'Maths', marketing_consent: 'Yes',
+      })));
+      check(yesWord.result.body === 'sent' && (await fresh.get('kim@school.sch.uk')).marketingConsent === true, 'Yes opts in');
+      const noWord = await capture(() => fb.handler(fbEvent({
+        full_name: 'Lee', email: 'lee@school.sch.uk', subject: 'Maths', marketing_consent: 'No',
+      })));
+      check(noWord.result.body === 'sent' && !noWord.errs.join('\n') && (await fresh.get('lee@school.sch.uk')).marketingConsent === false, 'No does not opt in and does not error');
+      const yesList = await capture(() => fb.handler(fbEvent({
+        full_name: 'Mo', email: 'mo@school.sch.uk', subject: 'Science', marketing_consent: '["Yes"]',
+      })));
+      check(yesList.result.body === 'sent' && (await fresh.get('mo@school.sch.uk')).marketingConsent === true, '["Yes"] text opts in');
+      const yesArray = await capture(() => fb.handler(fbEvent({
+        full_name: 'Nia', email: 'nia@school.sch.uk', subject: 'English', marketing_consent: ['Yes'],
+      })));
+      check(yesArray.result.body === 'sent' && (await fresh.get('nia@school.sch.uk')).marketingConsent === true, '["Yes"] array opts in');
+      const meta = await capture(() => fb.handler(fbEvent({
+        full_name: 'Meta', email: 'test@meta.com', subject: 'Maths', marketing_consent: 'Yes',
+      })));
+      check(meta.result.body === 'sent' && !(await fresh.get('test@meta.com')), 'test@meta.com gets the PDF and is not enrolled');
+      const own = await capture(() => fb.handler(fbEvent({
+        full_name: 'Support', email: 'support@dotheygetit.app', subject: 'Maths', marketing_consent: 'Yes',
+      })));
+      check(own.result.body === 'sent' && !(await fresh.get('support@dotheygetit.app')), 'support@ is not enrolled');
       const override = await capture(() => fb.handler(fbEvent({
         full_name: 'Gus',
         email: 'gus@school.sch.uk',
@@ -428,6 +494,37 @@ function formInner(html, formName) {
     });
   });
   sender.setClockForTests(null);
+
+  const previewStore = memoryStore();
+  setStoreForTests(previewStore);
+  await withEnv({ NURTURE_ENABLED: undefined, LEAD_WEBHOOK_SECRET: LEAD, PRIVATEEMAIL_PASSWORD: MAIL }, async () => {
+    await withFetch('ok', async (calls) => {
+      const seen = await capture(() => previewFn.handler({
+        httpMethod: 'POST',
+        headers: { 'x-lead-secret': LEAD },
+        body: JSON.stringify({ email: 'craig@school.sch.uk' }),
+      }));
+      check(seen.result.statusCode === 200 && seen.result.body === 'sent 5', 'preview sends five emails', seen.result.body + ' ' + seen.errs.join('\n'));
+      const sends = calls.filter((call) => call.url.includes('/sendmessage'));
+      check(sends.length === 5 && calls.filter((call) => call.url.includes('/connect/token')).length === 1, 'preview logs in once and sends each email');
+      const subjects = sends.map((call) => JSON.parse(call.opts.body).subject);
+      check(subjects.join('|') === [
+        'A hinge question in 2 minutes',
+        'An exit ticket that actually tells you something',
+        'Do they actually get it?',
+        'A free pack for new teachers (and their mentors)',
+        'Two-minute tip: start with one worked error',
+      ].join('|'), 'preview subjects are the five approved lines');
+      const first = JSON.parse(sends[0].opts.body);
+      check(first.from[0].name === 'Craig - Get It?' && first.from[0].address === 'support@dotheygetit.app', 'preview is from Craig');
+      check(first.textBody.includes('Hi Craig,') && /<a href="https:\/\/dotheygetit\.app\/hinge-questions"[^>]*>https:\/\/dotheygetit\.app\/hinge-questions<\/a>/.test(first.htmlBody), 'preview body is text and a visible link');
+      check((await previewStore.list()).blobs.length === 0, 'preview does not enrol anyone');
+    });
+    await withFetch('ok', async (calls) => {
+      const missing = await capture(() => previewFn.handler({ httpMethod: 'POST', headers: {}, body: '{}' }));
+      check(missing.result.statusCode === 401 && calls.length === 0, 'preview without the secret sends nothing');
+    });
+  });
 
   function walk(dir, out = []) {
     for (const name of fs.readdirSync(dir)) {

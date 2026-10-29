@@ -6,7 +6,7 @@
 const crypto = require('crypto');
 const COPY = require('./nurture-copy');
 const { updateRecord, openStore } = require('./nurture-store');
-const { SITE, TOOLKIT, str, validEmail, firstName, nameForMail, subjectKey } = require('./pdf-mail');
+const { SITE, str, validEmail, firstName, nameForMail, subjectKey, loginMailbox, sendWithToken } = require('./pdf-mail');
 
 const FIXED_DAYS = [2, 5, 9, 14];
 const TIP_START = 28;
@@ -54,9 +54,9 @@ function cleanName(value) {
   return first.slice(0, 80) || 'there';
 }
 
-// Opt-in only. Make sends the Facebook checkbox as the string "true", "false", or "".
-// "true", "1", and "yes" (any case) count, as do boolean true and the number 1.
-// Anything else is no consent. Empty or missing never throws.
+// Opt-in only. "true", "1", and "yes" (any case) count, including a Yes/No
+// answer that arrives as "Yes", ["Yes"], or the text ["Yes"]. "No", "", and
+// anything else are no consent. Empty or missing never throws.
 function marketingConsent(value) {
   try {
     if (Array.isArray(value)) {
@@ -72,11 +72,31 @@ function marketingConsent(value) {
       if (inner == null || typeof inner === 'object') return false;
       return marketingConsent(inner);
     }
-    const text = String(value).trim().toLowerCase();
+    const raw = String(value).trim();
+    if (raw.startsWith('[') && raw.endsWith(']') && raw.length <= 200) {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        try { parsed = JSON.parse(raw.replace(/'/g, '"')); } catch (e2) { parsed = null; }
+      }
+      if (Array.isArray(parsed)) return marketingConsent(parsed);
+      return false;
+    }
+    const text = raw.toLowerCase();
     return text === 'true' || text === '1' || text === 'yes';
   } catch (e) {
     return false;
   }
+}
+
+// Meta's test inbox, and every mailbox on our own domain, never joins the list.
+function blockedAddress(email) {
+  const key = normalizeEmail(email);
+  if (!key) return false;
+  if (key === 'test@meta.com') return true;
+  const domain = key.slice(key.lastIndexOf('@') + 1);
+  return domain === 'dotheygetit.app';
 }
 
 function iso(value) {
@@ -127,10 +147,10 @@ function nextStepDay(lastStep, age) {
   return null;
 }
 
+// The approved copy uses a lower-case subject ("maths"), not the PDF title.
+// Anything else, including a pack download or all five banks, falls back.
 function subjectLabel(key) {
-  if (TOOLKIT[key]) return TOOLKIT[key][0];
-  if (key === 'all') return 'GCSE';
-  if (key === 'pack') return 'your classroom';
+  if (key === 'maths' || key === 'science' || key === 'english' || key === 'history' || key === 'geography') return key;
   return 'your subject';
 }
 
@@ -151,11 +171,6 @@ function fill(text, vars) {
 
 function esc(text) {
   return String(text).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-}
-
-function safeUrl(url) {
-  const value = String(url || '').trim();
-  return /^https:\/\/[^\s"<>]+$/i.test(value) ? value : '';
 }
 
 function signToken(email, secret) {
@@ -190,34 +205,65 @@ function nurtureIdempotencyKey(email, day) {
   return crypto.createHash('sha256').update('nurture:' + email + ':' + day).digest('hex').slice(0, 32);
 }
 
+// --accent from landing-site/index.html. Email clients ignore CSS variables,
+// so the same hex is written on each link.
+const LINK_COLOUR = '#4f8cff';
+const PREVIEW_UNSUBSCRIBE = SITE + '/unsubscribe?token=preview';
+const PREVIEW_DAYS = [2, 5, 9, 14, 28];
+
+function textUrls(text) {
+  const found = String(text).match(/https:\/\/[^\s<>"']+/g) || [];
+  return found.map((url) => url.replace(/[),.;]+$/, ''));
+}
+
+function linkifyEscaped(escaped) {
+  return escaped.replace(/https:\/\/[^\s<"']+/g, (url) => {
+    let core = url;
+    let tail = '';
+    while (core && /[),.;]$/.test(core)) {
+      tail = core.slice(-1) + tail;
+      core = core.slice(0, -1);
+    }
+    if (!/^https:\/\//.test(core)) return url;
+    const style = 'color:' + LINK_COLOUR + ';text-decoration:underline';
+    return '<a href="' + core + '" style="' + style + '">' + core + '</a>' + tail;
+  });
+}
+
+// Plain text is the approved body with merge tags filled, and nothing added.
+// HTML is that same text, with every URL shown as the link itself.
 function renderTip(entry, vars) {
   const subject = fill(entry.subject, vars).replace(/[\r\n]+/g, ' ').trim();
   const preview = fill(entry.preview, vars).replace(/[\r\n]+/g, ' ').trim();
-  const paragraphs = fill(entry.body, vars).replace(/\r\n/g, '\n').split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
-  const ctaLabel = fill(entry.cta_label, vars).replace(/[\r\n]+/g, ' ').trim();
-  const ctaUrl = safeUrl(fill(entry.cta_url, vars));
-  const unsub = safeUrl(vars.unsubscribe_url);
-  const sign = ['Best wishes,', 'Craig', 'Founder, Get It?'];
-  const text = []
-    .concat(paragraphs)
-    .concat(ctaLabel && ctaUrl ? [ctaLabel + ': ' + ctaUrl] : [])
-    .concat(['', sign.join('\n'), '', unsub ? 'Unsubscribe: ' + unsub : ''])
-    .filter((part, index, all) => part !== '' || (all[index - 1] !== '' && index !== all.length - 1))
-    .join('\n\n');
-  const htmlParts = paragraphs.map((part) => '<p>' + esc(part).replace(/\n/g, '<br>') + '</p>');
-  if (ctaLabel && ctaUrl) {
-    htmlParts.push('<p><a href="' + esc(ctaUrl) + '" style="color:#4f8cff;font-weight:700">' + esc(ctaLabel) + '</a></p>');
-  }
-  htmlParts.push('<p>' + sign.map(esc).join('<br>') + '</p>');
-  if (unsub) {
-    htmlParts.push('<p style="color:#64748b;font-size:13px">Unsubscribe: <a href="' + esc(unsub) + '" style="color:#64748b">' + esc(unsub) + '</a></p>');
-  }
+  const text = fill(entry.body, vars).replace(/\r\n/g, '\n');
+  const paragraphs = text.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
   const html =
     '<div style="display:none;max-height:0;overflow:hidden">' + esc(preview) + '</div>' +
-    '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">' +
-    htmlParts.join('') +
+    '<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5;color:#111;max-width:36rem">' +
+    paragraphs.map((part) => '<p style="margin:0 0 16px">' + linkifyEscaped(esc(part)).replace(/\n/g, '<br>') + '</p>').join('') +
     '</div>';
   return { subject, preview, text, html };
+}
+
+function previewMessages() {
+  const vars = { first_name: 'Craig', subject: 'maths', unsubscribe_url: PREVIEW_UNSUBSCRIBE };
+  return PREVIEW_DAYS.map((day) => {
+    const entry = contentForDay(day);
+    if (!entry) throw new Error('missing nurture copy for day ' + day);
+    return Object.assign({ day }, renderTip(entry, vars));
+  });
+}
+
+// Sends the five emails once. Does not read or write the subscriber store.
+async function sendPreview(to) {
+  const email = normalizeEmail(to);
+  if (!email) throw new Error('bad email');
+  const messages = previewMessages();
+  const token = await loginMailbox();
+  for (const msg of messages) {
+    await sendWithToken(token, email, msg.subject, msg.text, msg.html);
+  }
+  return messages.map((msg) => msg.subject);
 }
 
 function blankRecord(input, nowIso) {
@@ -266,6 +312,7 @@ async function enrol(store, input) {
   const subject = String(input.subject || '');
   const source = input.source === 'facebook' ? 'facebook' : input.source === 'site' ? 'site' : '';
   if (!email || !subject || !source) return { ok: false, reason: 'invalid' };
+  if (blockedAddress(email)) return { ok: false, reason: 'blocked' };
   const nowIso = iso(input.now || new Date());
   const first = cleanName(input.firstName);
   const consent = marketingConsent(input.consent);
@@ -293,7 +340,7 @@ async function rememberDownload(input) {
     const store = await openStore();
     if (!store) return;
     const result = await enrol(store, input);
-    if (result && result.ok === false) console.error('nurture enrol skipped:', result.reason);
+    if (result && result.ok === false && result.reason !== 'blocked') console.error('nurture enrol skipped:', result.reason);
   } catch (e) {
     console.error('nurture enrol failed:', e.message);
   }
@@ -325,6 +372,7 @@ function classify(sub, now, copy) {
   const today = todayKey(now);
   const email = normalizeEmail(sub && sub.email);
   if (!email) return { email: str(sub && sub.email), reason: 'invalid email' };
+  if (blockedAddress(email)) return { email, reason: 'address not enrolled' };
   if (sub.unsubscribed) return { email, reason: 'unsubscribed' };
   if (!sub.marketingConsent) return { email, reason: 'no marketing consent' };
   const anchor = sub.enrolledAt || sub.consentedAt;
@@ -553,6 +601,12 @@ module.exports = {
   unsubscribeSecret,
   normalizeEmail,
   marketingConsent,
+  blockedAddress,
+  LINK_COLOUR,
+  PREVIEW_UNSUBSCRIBE,
+  textUrls,
+  previewMessages,
+  sendPreview,
   ukDate,
   daysBetween,
   nextStepDay,
