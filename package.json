@@ -10,6 +10,7 @@
     "test:marks": "node test-mark-colours.js",
     "test:fb-lead": "node test-fb-lead.js",
     "test:nurture": "node test-nurture.js",
+    "test:opt-out": "node test-marketing-opt-out.js",
     "ads": "node marketing/ad.js",
     "adfilm": "node marketing/ad-film.js",
     "story": "node tutorial/story-voice.js",

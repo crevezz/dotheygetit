@@ -283,7 +283,28 @@ function currentTeacher(req) {
   if (teacher) noteTeacher(teacher.id);
   return teacher;
 }
-function publicTeacher(t) { return { id: t.id, email: t.email, role: t.role || 'teacher', name: t.name || '' }; }
+/* A refusal is only an explicit yes. Anything else, including a missing field, is not an opt-out. */
+function refusedMarketing(value) {
+  if (value === true || value === 1) return true;
+  if (typeof value !== 'string') return false;
+  const s = value.trim().toLowerCase();
+  return s === 'true' || s === 'yes' || s === '1';
+}
+function signupRefusedMarketing(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  return refusedMarketing(b.marketing_opt_out) || refusedMarketing(b.marketingOptOut);
+}
+function marketingOptOut(t) { return !!(t && t.marketing_opt_out === true); }
+function publicTeacher(t) {
+  return {
+    id: t.id,
+    email: t.email,
+    role: t.role || 'teacher',
+    name: t.name || '',
+    marketing_opt_out: marketingOptOut(t),
+    marketing_choice_at: (t && t.marketing_choice_at) || null
+  };
+}
 
 // ----------------------------------------------------------------------- llm
 /* Gemini first when GEMINI_API_KEY is set; OpenRouter if that call fails.
@@ -2005,7 +2026,15 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
       if (store.teachers.find(t => t.email === email)) return sendErr(res, 'That email is already registered. Try logging in.');
       const salt = rid(8);
       const role = email === ADMIN_EMAIL ? 'admin' : 'teacher';
-      const t = { id: rid(6), email, salt, hash: hashPass(pw, salt), role, createdAt: Date.now() };
+      const now = Date.now();
+      /* Soft opt-in. The box starts unticked, so a normal sign-up is not a refusal.
+         marketing_choice_at is when that choice was recorded. Nothing here adds the
+         address to the teaching-tip list. */
+      const t = {
+        id: rid(6), email, salt, hash: hashPass(pw, salt), role, createdAt: now,
+        marketing_opt_out: signupRefusedMarketing(b),
+        marketing_choice_at: now
+      };
       store.teachers.push(t);
       const tok = rid(16);
       store.tokens[tok] = t.id;
@@ -2464,6 +2493,8 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
         });
         return {
           id: x.id, email: x.email, role: x.role || 'teacher', createdAt: x.createdAt,
+          marketing_opt_out: marketingOptOut(x),
+          marketing_choice_at: x.marketing_choice_at || null,
           classes, checkCount: classes.reduce((n, c) => n + c.checks, 0),
           studentCount: classes.reduce((n, c) => n + c.students, 0)
         };
@@ -2724,4 +2755,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact };
+module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut };
