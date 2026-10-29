@@ -121,8 +121,14 @@ async function doAuth(path) {
   if (!email || !password) return setMsg($('#authMsg'), 'Enter your email and a password.');
   const inv = document.getElementById('authInvite');
   const invite = inv ? inv.value.trim() : '';
+  const body = { email, password, invite };
+  /* Only account creation records this. Logging in must not opt anyone back in. */
+  if (path === '/api/signup') {
+    const box = document.getElementById('authMarketingOptOut');
+    body.marketing_opt_out = !!(box && box.checked);
+  }
   try {
-    await post(path, { email, password, invite });
+    await post(path, body);
     $('#authPass').value = '';
     await boot();
   } catch (e) { setMsg($('#authMsg'), e.message); }

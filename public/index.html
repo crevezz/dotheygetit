@@ -93,6 +93,13 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
       <label>Password</label>
       <input id="authPass" type="password" placeholder="At least 6 characters" autocomplete="current-password"/>
       <input id="authInvite" type="password" placeholder="Invite code" autocomplete="off" style="display:none"/>
+      <label class="optout">
+        <input type="checkbox" id="authMarketingOptOut" name="marketing_opt_out"/>
+        <span class="optout-copy">
+          <span class="optout-label">Don't send me teaching tips or updates by email</span>
+          <span class="optout-help">You'll still get account emails. Unsubscribe any time.</span>
+        </span>
+      </label>
       <div class="btnrow">
         <button id="btnLogin" class="primary" data-tip="Log in to your existing account.">Log in</button>
         <button id="btnSignup" class="ghost" data-tip="First time here? This makes your account.">Create account</button>

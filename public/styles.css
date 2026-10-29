@@ -505,6 +505,24 @@ a.tiktok svg{display:block;flex:0 0 auto}
 .consent input{ margin-top:2px; width:16px; height:16px; accent-color:var(--accent); flex:0 0 auto }
 .consent a{ color:var(--accent) }
 
+/* teacher sign-up: a clear, optional refusal of teaching tips. Unticked means they have not refused. */
+.optout{
+  display:flex; gap:10px; align-items:flex-start; margin:16px 0 0; padding:12px;
+  border:1px solid var(--line); border-radius:12px; background:var(--bg2); cursor:pointer;
+}
+.optout input{
+  width:18px; height:18px; margin:2px 0 0; padding:0; flex:0 0 auto;
+  accent-color:var(--accent); background:transparent; border-radius:4px; box-shadow:none;
+}
+.optout input:focus{ box-shadow:none; outline:2px solid var(--accent); outline-offset:2px }
+.optout-copy{ display:flex; flex-direction:column; gap:3px; min-width:0 }
+.optout-label{ font-size:14.5px; font-weight:600; line-height:1.4; color:var(--text) }
+.optout-help{ font-size:12.5px; line-height:1.45; color:var(--muted) }
+@media (max-width:640px){
+  .optout{ margin-top:14px; padding:12px 11px }
+  .optout input{ width:20px; height:20px }
+}
+
 /* folded card: just the name and the colour, so the teacher can see the board */
 .sresult > .head{ cursor:pointer; user-select:none }
 .sresult > .head .fnote{ margin-left:auto; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); opacity:.75 }
