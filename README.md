@@ -103,6 +103,27 @@ numbers before it asks, and nothing here can be undone.
 node test-admin-delete.js     :: 16 checks: a teacher is refused, the owner is allowed
 ```
 
+## Facebook lead ads (misconception PDFs)
+
+Instant Form leads can get the same PDF email as the on-site toolkit form.
+Point Make.com (Facebook Lead Ads trigger, then an HTTP module) at:
+
+`POST https://dotheygetit.app/.netlify/functions/fb-lead`
+
+Header: `x-lead-secret: <LEAD_WEBHOOK_SECRET>`
+
+```json
+{ "full_name": "Jane Smith", "email": "jane@school.sch.uk", "subject": "Maths" }
+```
+
+Set `LEAD_WEBHOOK_SECRET` on the Netlify site. The send still uses `PRIVATEEMAIL_PASSWORD`. A raw Facebook lead is also fine: `field_data` entries named `full_name`, `email`, and `subject` fill anything the flat body left out.
+
+`subject` is `Maths`, `Science`, `English`, `History`, `Geography`, or `Other` (any case). `Other`, a missing subject, or anything that is not one of those five gets an email linking all five PDFs. `400` means the email is invalid. `502` means the send failed and the caller should retry.
+
+```
+node test-fb-lead.js
+```
+
 ## Coming next (not built yet)
 
 - Voice (speak + listen) via OpenRouter's free speech models.
