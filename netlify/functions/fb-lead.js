@@ -7,7 +7,13 @@
 //   Body: { "full_name": "Jane Smith", "email": "jane@school.sch.uk", "subject": "Maths" }
 //
 // A raw lead object is also accepted. field_data entries named full_name,
-// email (or email_address), and subject fill any of those the flat body omitted.
+// email (or email_address), subject, and marketing_consent fill any of those
+// the flat body omitted.
+//
+// marketing_consent is optional. Make sends the string "true" when the
+// Facebook disclaimer is ticked, and "" or "false" when it is not. "true",
+// "1", and "yes" (any case) opt in. Anything else, including empty or missing,
+// does not. That field never changes the PDF email and never causes an error.
 //
 // subject is a human label: Maths, Science, English, History, Geography, or
 // Other (any case, or the longer labels the site shows, such as
@@ -27,7 +33,8 @@
 // node test-fb-lead.js
 
 const crypto = require('crypto');
-const { leadMessage, render, sendMail, str, validEmail } = require('./lib/pdf-mail');
+const { leadMessage, render, sendMail, str, validEmail, subjectKey } = require('./lib/pdf-mail');
+const { rememberDownload, storedFirstName } = require('./lib/nurture');
 
 const res = (statusCode, body) => ({ statusCode, body });
 
@@ -66,10 +73,18 @@ function normKey(s) {
 // Flat {full_name, email, subject} wins. field_data only fills the gaps,
 // which is what Make sends if the HTTP module forwards the lead as-is.
 function leadFields(data) {
-  const out = { full_name: '', email: '', subject: '' };
+  const out = { full_name: '', email: '', subject: '', marketing_consent: undefined };
   const take = (key, value) => {
-    if (value == null || value === '') return;
     const k = normKey(key);
+    if (k === 'marketing_consent' || k === 'marketingconsent') {
+      // "" is an explicit no. Keep it so a later field_data "true" cannot override it,
+      // and so an empty value is not treated as a bad request.
+      if (out.marketing_consent !== undefined) return;
+      if (value == null) return;
+      out.marketing_consent = value;
+      return;
+    }
+    if (value == null || value === '') return;
     if ((k === 'full_name' || k === 'fullname') && out.full_name === '') out.full_name = value;
     else if ((k === 'email' || k === 'email_address') && out.email === '') out.email = value;
     else if (k === 'subject' && out.subject === '') out.subject = value;
@@ -110,9 +125,21 @@ exports.handler = async (event) => {
     const { text, html } = render(msg.lines);
     await sendMail(to, msg.subject, text, html);
     console.log('fb lead pdf email sent', msg.subject);
-    return res(200, 'sent');
   } catch (e) {
     console.error('fb lead pdf email error:', e.message);
     return res(502, 'error');
   }
+  try {
+    await rememberDownload({
+      email: to,
+      firstName: storedFirstName('facebook', null, fields.full_name),
+      subject: subjectKey(fields.subject) || 'all',
+      source: 'facebook',
+      consent: fields.marketing_consent,
+      now: new Date(),
+    });
+  } catch (e) {
+    console.error('nurture enrol failed:', e.message);
+  }
+  return res(200, 'sent');
 };

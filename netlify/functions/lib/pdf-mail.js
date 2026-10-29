@@ -125,7 +125,7 @@ function render(lines) {
   return { text, html };
 }
 
-async function sendMail(to, subject, text, html) {
+async function loginMailbox() {
   const pw = process.env.PRIVATEEMAIL_PASSWORD;
   if (!pw) throw new Error('PRIVATEEMAIL_PASSWORD not set');
   const tok = await fetch(BASE + '/connect/token', {
@@ -135,11 +135,18 @@ async function sendMail(to, subject, text, html) {
   });
   if (!tok.ok) throw new Error('login failed: HTTP ' + tok.status);
   const { access_token } = await tok.json();
+  return access_token;
+}
+
+// The sendmessage body has no documented custom-header field. List-Unsubscribe
+// is left out: an unknown property can fail the send. Tips put the link in the body.
+// opts.idempotencyKey is optional. Day 0 omits it, so each PDF email gets a new id.
+async function sendWithToken(accessToken, to, subject, text, html, opts) {
   const r = await fetch(MC + '/sendmessage', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'User-Agent': 'getit-site/1.0', Authorization: 'Bearer ' + access_token },
+    headers: { 'Content-Type': 'application/json', 'User-Agent': 'getit-site/1.0', Authorization: 'Bearer ' + accessToken },
     body: JSON.stringify({
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey: (opts && opts.idempotencyKey) || crypto.randomUUID(),
       from: [{ address: USER, name: 'Craig - Get It?' }],
       to: [{ address: to }], cc: [], bcc: [],
       subject, htmlBody: html, textBody: text, importance: 'Normal',
@@ -150,13 +157,22 @@ async function sendMail(to, subject, text, html) {
   if (r.status >= 300) throw new Error('send failed: HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
 }
 
+async function sendMail(to, subject, text, html) {
+  const accessToken = await loginMailbox();
+  await sendWithToken(accessToken, to, subject, text, html);
+}
+
 module.exports = {
   SITE,
   TOOLKIT,
   str,
   validEmail,
+  firstName,
+  nameForMail,
   build,
   render,
+  loginMailbox,
+  sendWithToken,
   sendMail,
   subjectKey,
   leadMessage,

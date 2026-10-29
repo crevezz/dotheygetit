@@ -45,7 +45,18 @@
       var r = nav.getBoundingClientRect();
       if ((pos === 'sticky' || pos === 'fixed') && r.bottom > 0) top = Math.round(r.bottom);
     }
+    var bottom = 12;
+    var cookie = document.getElementById('getit-cookie');
+    if (cookie && cookie.classList.contains('is-open')) {
+      var cr = cookie.getBoundingClientRect();
+      if (cr.height > 0) bottom = Math.round(cr.height) + 12;
+    }
     root.style.setProperty('--getit-top', top + 'px');
+    root.style.setProperty('--getit-bottom', bottom + 'px');
+  }
+  var cookieBar = document.getElementById('getit-cookie');
+  if (cookieBar && window.MutationObserver) {
+    new MutationObserver(function () { if (!root.hidden) navOffset(); }).observe(cookieBar, { attributes: true, attributeFilter: ['class'] });
   }
   window.addEventListener('scroll', function () { if (!root.hidden) navOffset(); }, { passive: true });
   window.addEventListener('resize', function () { if (!root.hidden) navOffset(); });

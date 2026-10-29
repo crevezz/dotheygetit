@@ -231,6 +231,10 @@ const TOOLKIT = `
         <input type="checkbox" name="consent" value="yes" required/>
         <span>I'm happy to get occasional emails from Get It?, unsubscribe any time. <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <a href="/terms/">Terms</a>.</span>
       </label>
+      <label class="getit-capture-consent">
+        <input type="checkbox" name="marketing_consent" value="yes"/>
+        <span>Send me occasional teaching tips from Get It? (unsubscribe anytime)</span>
+      </label>
       <button class="getit-capture-send" type="submit">Send me the PDF</button>
     </form>
   </div>
@@ -278,7 +282,9 @@ function assertToolkit(html, label) {
     'value="english"',
     'value="history"',
     'value="geography"',
-    "I'm happy to get occasional emails from Get It?, unsubscribe any time."
+    "I'm happy to get occasional emails from Get It?, unsubscribe any time.",
+    'name="marketing_consent"',
+    'Send me occasional teaching tips from Get It? (unsubscribe anytime)'
   ];
   need.forEach((bit) => {
     if (!html.includes(bit)) throw new Error('toolkit form incomplete on ' + label + ': ' + bit);
