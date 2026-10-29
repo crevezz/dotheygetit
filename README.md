@@ -124,6 +124,38 @@ Set `LEAD_WEBHOOK_SECRET` on the Netlify site. The send still uses `PRIVATEEMAIL
 node test-fb-lead.js
 ```
 
+`marketing_consent` is optional on that webhook. `"Yes"`, `"true"`, `"1"`, and `"yes"` (any case) opt the lead into teaching tips, including when the value arrives as `["Yes"]`. `"No"`, `""`, `"false"`, or a missing field do not, and the PDF email is still sent.
+
+## Teaching tips
+
+People who opt in on the misconception-bank form, the survival-pack form, or the Facebook lead webhook can get a follow-up sequence: day 2, day 5, day 9, day 14, then every 14 days. Copy lives in `netlify/functions/lib/nurture-copy.js`. The PDF email itself is unchanged, and it still goes out when the optional box is left unticked.
+
+Nothing in the sequence sends until `NURTURE_ENABLED` is set to `true` on the Netlify site. Also set `NURTURE_UNSUBSCRIBE_SECRET` (at least 16 characters) before turning it on. `PRIVATEEMAIL_PASSWORD` is the mailbox password the PDF emails already use. Subscribers are stored in Netlify Blobs. There is no separate database.
+
+```
+node test-nurture.js
+node scripts/nurture-dry-run.js --date 2026-10-29
+```
+
+The dry run prints which tip would go to which sample subscriber on that UK date. It does not send.
+
+To read all five emails in an inbox before turning the switch on (this does not enrol the address):
+
+```
+curl -X POST https://dotheygetit.app/.netlify/functions/nurture-preview \
+  -H 'content-type: application/json' \
+  -H 'x-lead-secret: YOUR_LEAD_WEBHOOK_SECRET' \
+  -d '{"email":"you@example.com"}'
+```
+
+The same send from a machine that has `PRIVATEEMAIL_PASSWORD` set:
+
+```
+node scripts/send-nurture-preview.js you@example.com
+```
+
+Those previews use the name Craig and the subject maths. `test@meta.com` and any `@dotheygetit.app` address, including `support@dotheygetit.app`, are never added to the list.
+
 ## Coming next (not built yet)
 
 - Voice (speak + listen) via OpenRouter's free speech models.

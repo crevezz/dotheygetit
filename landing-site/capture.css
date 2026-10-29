@@ -223,8 +223,8 @@ html.getit-capture-lock body { overflow: hidden; }
   animation: getit-capture-down .25s ease;
 }
 .getit-capture.is-banner:not(.is-collapsed) .getit-capture-panel {
-  max-height: calc(100vh - var(--getit-top, 0px) - 12px);
-  max-height: calc(100dvh - var(--getit-top, 0px) - 12px);
+  max-height: calc(100vh - var(--getit-top, 0px) - var(--getit-bottom, 12px));
+  max-height: calc(100dvh - var(--getit-top, 0px) - var(--getit-bottom, 12px));
 }
 @keyframes getit-capture-down {
   from { transform: translateY(-100%); opacity: 0; }

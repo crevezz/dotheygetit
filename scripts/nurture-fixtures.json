@@ -1,0 +1,110 @@
+[
+  {
+    "email": "ada@school.sch.uk",
+    "firstName": "Ada",
+    "subject": "maths",
+    "source": "site",
+    "signedUpAt": "2026-10-27T09:00:00.000Z",
+    "enrolledAt": "2026-10-27T09:00:00.000Z",
+    "consentedAt": "2026-10-27T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 0,
+    "unsubscribed": false
+  },
+  {
+    "email": "grace@school.sch.uk",
+    "firstName": "Grace",
+    "subject": "all",
+    "source": "facebook",
+    "signedUpAt": "2026-10-24T09:00:00.000Z",
+    "enrolledAt": "2026-10-24T09:00:00.000Z",
+    "consentedAt": "2026-10-24T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 2,
+    "unsubscribed": false
+  },
+  {
+    "email": "bob@school.sch.uk",
+    "firstName": "Bob",
+    "subject": "science",
+    "source": "site",
+    "signedUpAt": "2026-10-29T09:00:00.000Z",
+    "enrolledAt": "2026-10-29T09:00:00.000Z",
+    "consentedAt": "2026-10-29T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 0,
+    "unsubscribed": false
+  },
+  {
+    "email": "cara@school.sch.uk",
+    "firstName": "Cara",
+    "subject": "english",
+    "source": "site",
+    "signedUpAt": "2026-10-20T09:00:00.000Z",
+    "marketingConsent": false,
+    "lastStepSent": 0,
+    "unsubscribed": false
+  },
+  {
+    "email": "dan@school.sch.uk",
+    "firstName": "Dan",
+    "subject": "history",
+    "source": "facebook",
+    "signedUpAt": "2026-10-27T09:00:00.000Z",
+    "enrolledAt": "2026-10-27T09:00:00.000Z",
+    "consentedAt": "2026-10-27T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 0,
+    "unsubscribed": true,
+    "unsubscribedAt": "2026-10-28T09:00:00.000Z"
+  },
+  {
+    "email": "eve@school.sch.uk",
+    "firstName": "Eve",
+    "subject": "geography",
+    "source": "site",
+    "signedUpAt": "2026-10-01T09:00:00.000Z",
+    "enrolledAt": "2026-10-01T09:00:00.000Z",
+    "consentedAt": "2026-10-01T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 14,
+    "unsubscribed": false
+  },
+  {
+    "email": "fay@school.sch.uk",
+    "firstName": "Fay",
+    "subject": "maths",
+    "source": "site",
+    "signedUpAt": "2026-10-01T09:00:00.000Z",
+    "enrolledAt": "2026-10-01T09:00:00.000Z",
+    "consentedAt": "2026-10-01T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 14,
+    "lastSentAt": "2026-10-29T08:00:00.000Z",
+    "unsubscribed": false
+  },
+  {
+    "email": "gus@school.sch.uk",
+    "firstName": "Gus",
+    "subject": "pack",
+    "source": "site",
+    "signedUpAt": "2026-10-27T09:00:00.000Z",
+    "enrolledAt": "2026-10-27T09:00:00.000Z",
+    "consentedAt": "2026-10-27T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 0,
+    "unsubscribed": false
+  },
+  {
+    "email": "helen@school.sch.uk",
+    "firstName": "Helen",
+    "subject": "english",
+    "source": "site",
+    "signedUpAt": "2026-10-01T09:00:00.000Z",
+    "enrolledAt": "2026-10-27T09:00:00.000Z",
+    "consentedAt": "2026-10-27T09:00:00.000Z",
+    "marketingConsent": true,
+    "lastStepSent": 0,
+    "unsubscribed": false
+  }
+]

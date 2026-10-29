@@ -9,6 +9,11 @@
   publish = "landing-site"
   command = ""
 
+# @netlify/blobs needs Node 22. This site has no build step; the setting
+# also selects the function runtime.
+[build.environment]
+  NODE_VERSION = "22"
+
 # Paths that belong to the app, not the landing page. Without these they 404
 # on dotheygetit.app, which is what Google would otherwise find.
 [[redirects]]
@@ -27,6 +32,13 @@
   from = "/privacy"
   to = "https://app.dotheygetit.app/privacy"
   status = 301
+  force = true
+
+# One-click unsubscribe for teaching tips. The token is in the query string.
+[[redirects]]
+  from = "/unsubscribe"
+  to = "/.netlify/functions/nurture-unsubscribe"
+  status = 200
   force = true
 
 [[redirects]]
@@ -195,3 +207,8 @@
   status = 301
   force = true
 # END blog-post-redirects
+
+# 09:00, 09:15, 09:30 and 09:45 UTC. That is 9am UK in winter and 10am in summer.
+# Several runs in that hour drain the queue. Each person still gets at most one tip per UK day.
+[functions."nurture-send"]
+  schedule = "*/15 9 * * *"
