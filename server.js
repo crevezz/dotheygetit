@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const qrcode = require('qrcode');
 const { chatComplete, describeProvider, runWithUsage, takeUsage } = require('./llm');
+const { sendMail } = require('./netlify/functions/lib/pdf-mail');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -295,6 +296,100 @@ function signupRefusedMarketing(body) {
   return refusedMarketing(b.marketing_opt_out) || refusedMarketing(b.marketingOptOut);
 }
 function marketingOptOut(t) { return !!(t && t.marketing_opt_out === true); }
+
+/* A short note to support when a teacher account is created. It uses the same
+   Private Email mailbox as the toolkit PDF (PRIVATEEMAIL_PASSWORD, from
+   support@dotheygetit.app, "Craig - Get It?"). SIGNUP_NOTIFY_TO is optional.
+   The send is never awaited. Owner accounts are not notified. Accounts have
+   no test flag, so nothing else is skipped. */
+const SIGNUP_NOTIFY_DEFAULT = 'support@dotheygetit.app';
+let deliverSignupNotice = (notice) => sendMail(notice.to, notice.subject, notice.text, notice.html);
+function setSignupNoticeDelivery(fn) {
+  deliverSignupNotice = fn || ((notice) => sendMail(notice.to, notice.subject, notice.text, notice.html));
+}
+function signupNotifyTo() {
+  const raw = process.env.SIGNUP_NOTIFY_TO;
+  const to = raw == null ? SIGNUP_NOTIFY_DEFAULT : String(raw).trim();
+  return to || SIGNUP_NOTIFY_DEFAULT;
+}
+function clipLine(value) {
+  return String(value == null ? '' : value).replace(/[\r\n\t]+/g, ' ').trim().slice(0, 300);
+}
+function formatLondon(ms) {
+  const date = new Date(ms);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    timeZoneName: 'short'
+  }).format(date);
+}
+function signupArrival(body, req) {
+  const b = body && typeof body === 'object' ? body : {};
+  const lines = [];
+  const seen = new Set();
+  const push = (label, value) => {
+    const s = clipLine(value);
+    if (!s || seen.has(label)) return;
+    seen.add(label);
+    lines.push(label + ': ' + s);
+  };
+  push('Referrer', b.referrer || b.ref);
+  push('Source', b.source);
+  push('Toolkit', b.toolkit || b.pdf);
+  const utm = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+  utm.forEach(k => push(k, b[k]));
+  const referer = req && req.headers && (req.headers.referer || req.headers.referrer);
+  if (referer) {
+    let url = null;
+    try { url = new URL(referer); } catch {}
+    if (url) {
+      utm.forEach(k => push(k, url.searchParams.get(k)));
+      const host = url.hostname;
+      const ownApp = host === 'app.dotheygetit.app' || host === 'localhost' || host === '127.0.0.1';
+      const hasUtm = utm.some(k => url.searchParams.get(k));
+      if (!ownApp || hasUtm) push('Referrer', referer);
+    }
+  }
+  return lines;
+}
+function signupNotice(teacher, body, req) {
+  if (!teacher || (teacher.role || 'teacher') === 'admin') return null;
+  const email = clipLine(teacher.email).toLowerCase();
+  if (!email || !email.includes('@')) return null;
+  const name = clipLine(teacher.name || (body && body.name) || '');
+  const when = formatLondon(teacher.createdAt || Date.now());
+  const arrived = signupArrival(body, req);
+  const lines = ['A new teacher account was created.', '', 'Email: ' + email];
+  if (name) lines.push('Name: ' + name);
+  lines.push('Role: ' + (teacher.role || 'teacher'));
+  lines.push('Signed up (UK time): ' + when);
+  if (arrived.length) lines.push('', 'How they arrived:', ...arrived);
+  const text = lines.join('\n');
+  const html = '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">' +
+    lines.map(l => '<p style="margin:0 0 8px">' + l.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) + '</p>').join('') +
+    '</div>';
+  return {
+    to: signupNotifyTo(),
+    subject: 'New Get It? sign-up: ' + email,
+    text,
+    html
+  };
+}
+function noteSignupNotifyError(e) {
+  const message = (e && e.message) || String(e || 'signup notify failed');
+  console.error('signup notify failed', message);
+  try { logError('signup-notify', message); } catch {}
+}
+function notifyNewSignup(teacher, body, req) {
+  let notice = null;
+  try { notice = signupNotice(teacher, body, req); }
+  catch (e) { noteSignupNotifyError(e); return; }
+  if (!notice) return;
+  Promise.resolve().then(() => deliverSignupNotice(notice)).catch(noteSignupNotifyError);
+}
+
 function publicTeacher(t) {
   return {
     id: t.id,
@@ -2039,6 +2134,7 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
       const tok = rid(16);
       store.tokens[tok] = t.id;
       saveStore();
+      try { notifyNewSignup(t, b, req); } catch (e) { noteSignupNotifyError(e); }
       return sendJson(res, { teacher: publicTeacher(t) }, { 'Set-Cookie': `sid=${tok}; HttpOnly; Path=/; Max-Age=2592000` });
     }
 
@@ -2755,4 +2851,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut };
+module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut, signupNotice, notifyNewSignup, setSignupNoticeDelivery, formatLondon };
