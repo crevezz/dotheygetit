@@ -9,7 +9,7 @@ const path = require('path');
 
 delete process.env.REDIS_URL;
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'getit-notify-unit-'));
-const { signupNotice, notifyNewSignup, setSignupNoticeDelivery, formatLondon } = require('./server');
+const { signupNotice, notifyNewSignup, signupWelcome, welcomeNewSignup, setSignupNoticeDelivery, formatLondon } = require('./server');
 
 const pass = [], fail = [];
 const check = (ok, what, extra) => (ok ? pass : fail).push(what + (extra ? ' -> ' + extra : ''));
@@ -69,6 +69,32 @@ check(nasty.html.includes('a&lt;b&gt;@school.sch.uk') && nasty.html.includes('A 
 check(signupNotice({ email: 'owner@test.com', role: 'admin', createdAt: teacher.createdAt }, {}, null) === null, 'an owner account is not notified');
 check(signupNotice({ email: 'nope', role: 'teacher' }, {}, null) === null, 'a bad email is not notified');
 
+const welcome = signupWelcome(teacher, { name: 'Ada Lovelace' });
+check(welcome && welcome.to === 'ada@school.sch.uk', 'welcome goes to the new teacher', welcome && welcome.to);
+check(welcome.subject === 'Welcome to Get It?', 'welcome subject', welcome.subject);
+check(welcome.text.startsWith('Hi Ada Lovelace,'), 'welcome uses the name', welcome.text.split('\n')[0]);
+check(welcome.text.includes("Thanks for signing up.") && welcome.text.includes("It's free while we're in beta."), 'welcome thanks them and says beta is free');
+check(welcome.text.includes('Watch the quick tutorials: https://app.dotheygetit.app/help'), 'plain text has the tutorials URL');
+check(welcome.text.includes('Open the app: https://app.dotheygetit.app'), 'plain text has the app URL');
+check(welcome.text.includes("If anything's clunky, just reply to this email."), 'welcome says they can reply');
+check(welcome.text.includes('https://www.facebook.com/dotheygetit'), 'plain text has the Facebook URL');
+check(welcome.text.trim().endsWith('Craig'), 'welcome is signed Craig');
+check(!welcome.text.includes('\u2014') && !welcome.html.includes('\u2014') && !welcome.text.includes('\u2013'), 'welcome has no em dash');
+const buttonAt = welcome.html.indexOf('>Watch the quick tutorials<');
+const plainAt = welcome.html.indexOf('style="color:#4f8cff;text-decoration:underline">https://app.dotheygetit.app/help<');
+check(buttonAt > 0 && plainAt > buttonAt, 'the tutorials URL sits under the button');
+check(welcome.html.includes('background:#4f8cff') && welcome.html.includes('color:#ffffff') && welcome.html.includes('padding:14px 22px') && welcome.html.includes('border-radius:8px'),
+  'the tutorials button is blue, white, padded and rounded');
+check(welcome.html.includes('style="color:#4f8cff;text-decoration:underline">https://www.facebook.com/dotheygetit<'),
+  'the Facebook page is a blue underlined link');
+check(welcome.html.includes('style="color:#4f8cff;text-decoration:underline">https://app.dotheygetit.app<'),
+  'the app URL is a blue underlined link');
+check(signupWelcome(teacher, {}).text.startsWith('Hi there,'), 'a missing name is hi there');
+const escapedWelcome = signupWelcome({ email: 'ada@school.sch.uk', role: 'teacher', name: 'A & "B"' }, {});
+check(escapedWelcome.html.includes('Hi A &amp; &quot;B&quot;,') && !escapedWelcome.html.includes('A & "B"'), 'the welcome escapes the name');
+check(signupWelcome({ email: 'owner@test.com', role: 'admin' }, { name: 'Owner' }) === null, 'an owner gets no welcome');
+check(signupWelcome({ email: 'nope', role: 'teacher' }, {}) === null, 'a bad email gets no welcome');
+
 let calls = 0;
 let sawReject = false;
 let returnedBeforeSend = false;
@@ -117,6 +143,10 @@ async function up() {
   notifyNewSignup({ email: 'owner@test.com', role: 'admin', createdAt: teacher.createdAt }, {}, null);
   await new Promise(r => setTimeout(r, 30));
   check(calls === 1, 'a failing mailbox is still called once, and the owner is skipped', String(calls));
+  welcomeNewSignup(teacher, { name: 'Ada' });
+  welcomeNewSignup({ email: 'owner@test.com', role: 'admin', createdAt: teacher.createdAt }, {});
+  await new Promise(r => setTimeout(r, 30));
+  check(calls === 2, 'the welcome is sent too, and the owner is skipped', String(calls));
   check(!sawReject, 'a mailbox error is not an unhandled rejection');
 
   setSignupNoticeDelivery(() => new Promise((resolve) => {
@@ -151,9 +181,12 @@ async function up() {
   check(login.status === 200, 'logging in still works', login.status);
 
   await new Promise(r => setTimeout(r, 200));
-  const notes = srvErr.split('\n').filter(l => l.includes('signup notify failed'));
-  check(notes.length === 1 && notes[0].includes('PRIVATEEMAIL_PASSWORD not set'),
-    'the teacher sign-up logs the mail error once, and the owner does not', JSON.stringify(notes));
+  const notifyNotes = srvErr.split('\n').filter(l => l.includes('signup notify failed'));
+  const welcomeNotes = srvErr.split('\n').filter(l => l.includes('signup welcome failed'));
+  check(notifyNotes.length === 1 && notifyNotes[0].includes('PRIVATEEMAIL_PASSWORD not set'),
+    'the teacher sign-up logs the support-mail error once, and the owner does not', JSON.stringify(notifyNotes));
+  check(welcomeNotes.length === 1 && welcomeNotes[0].includes('PRIVATEEMAIL_PASSWORD not set'),
+    'the teacher sign-up logs the welcome-mail error once, and the owner does not', JSON.stringify(welcomeNotes));
 
   console.log('\nPASS ' + pass.length + ', FAIL ' + fail.length);
   pass.forEach(x => console.log('  ok   ' + x));

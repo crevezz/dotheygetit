@@ -377,17 +377,76 @@ function signupNotice(teacher, body, req) {
     html
   };
 }
-function noteSignupNotifyError(e) {
-  const message = (e && e.message) || String(e || 'signup notify failed');
-  console.error('signup notify failed', message);
-  try { logError('signup-notify', message); } catch {}
+function noteSignupMailError(where, e) {
+  const message = (e && e.message) || String(e || where);
+  console.error(where, message);
+  try { logError(where, message); } catch {}
 }
+function noteSignupNotifyError(e) { noteSignupMailError('signup notify failed', e); }
+function noteSignupWelcomeError(e) { noteSignupMailError('signup welcome failed', e); }
 function notifyNewSignup(teacher, body, req) {
   let notice = null;
   try { notice = signupNotice(teacher, body, req); }
   catch (e) { noteSignupNotifyError(e); return; }
   if (!notice) return;
   Promise.resolve().then(() => deliverSignupNotice(notice)).catch(noteSignupNotifyError);
+}
+
+/* Welcome to the teacher who just signed up. Same mailbox and the same
+   fire-and-forget rule as the support note. Owner accounts are skipped. */
+const WELCOME_APP = 'https://app.dotheygetit.app';
+const WELCOME_TUTORIALS = WELCOME_APP + '/help';
+const WELCOME_FACEBOOK = 'https://www.facebook.com/dotheygetit';
+function escHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+function welcomeName(teacher, body) {
+  const raw = clipLine((teacher && teacher.name) || (body && body.name) || '');
+  if (!raw || !/[A-Za-z]/.test(raw)) return 'there';
+  return raw.slice(0, 80);
+}
+function signupWelcome(teacher, body) {
+  if (!teacher || (teacher.role || 'teacher') === 'admin') return null;
+  const email = clipLine(teacher.email).toLowerCase();
+  if (!email || !email.includes('@')) return null;
+  const who = welcomeName(teacher, body);
+  const text = [
+    'Hi ' + who + ',',
+    '',
+    'Thanks for signing up.',
+    "It's free while we're in beta.",
+    '',
+    'Watch the quick tutorials: ' + WELCOME_TUTORIALS,
+    '',
+    'Open the app: ' + WELCOME_APP,
+    '',
+    "If anything's clunky, just reply to this email.",
+    '',
+    "There's a Facebook page here too: " + WELCOME_FACEBOOK,
+    '',
+    'Craig'
+  ].join('\n');
+  const linkStyle = 'color:#4f8cff;text-decoration:underline';
+  const html =
+    '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">' +
+    '<p style="margin:0 0 12px">Hi ' + escHtml(who) + ',</p>' +
+    '<p style="margin:0 0 8px">Thanks for signing up.</p>' +
+    '<p style="margin:0 0 16px">It\'s free while we\'re in beta.</p>' +
+    '<p style="margin:0 0 10px"><a href="' + WELCOME_TUTORIALS + '" style="display:inline-block;background:#4f8cff;color:#ffffff;padding:14px 22px;border-radius:8px;font-weight:700;text-decoration:none;font-size:16px">Watch the quick tutorials</a></p>' +
+    '<p style="margin:0 0 16px"><a href="' + WELCOME_TUTORIALS + '" style="' + linkStyle + '">' + WELCOME_TUTORIALS + '</a></p>' +
+    '<p style="margin:0 0 12px">Open the app: <a href="' + WELCOME_APP + '" style="' + linkStyle + '">' + WELCOME_APP + '</a></p>' +
+    '<p style="margin:0 0 12px">If anything\'s clunky, just reply to this email.</p>' +
+    '<p style="margin:0 0 12px">There\'s a Facebook page here too: <a href="' + WELCOME_FACEBOOK + '" style="' + linkStyle + '">' + WELCOME_FACEBOOK + '</a></p>' +
+    '<p style="margin:0">Craig</p>' +
+    '</div>';
+  return { to: email, subject: 'Welcome to Get It?', text, html };
+}
+function welcomeNewSignup(teacher, body) {
+  let mail = null;
+  try { mail = signupWelcome(teacher, body); }
+  catch (e) { noteSignupWelcomeError(e); return; }
+  if (!mail) return;
+  Promise.resolve().then(() => deliverSignupNotice(mail)).catch(noteSignupWelcomeError);
 }
 
 function publicTeacher(t) {
@@ -2135,6 +2194,7 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
       store.tokens[tok] = t.id;
       saveStore();
       try { notifyNewSignup(t, b, req); } catch (e) { noteSignupNotifyError(e); }
+      try { welcomeNewSignup(t, b); } catch (e) { noteSignupWelcomeError(e); }
       return sendJson(res, { teacher: publicTeacher(t) }, { 'Set-Cookie': `sid=${tok}; HttpOnly; Path=/; Max-Age=2592000` });
     }
 
@@ -2851,4 +2911,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut, signupNotice, notifyNewSignup, setSignupNoticeDelivery, formatLondon };
+module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut, signupNotice, notifyNewSignup, signupWelcome, welcomeNewSignup, setSignupNoticeDelivery, formatLondon };
