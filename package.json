@@ -11,6 +11,7 @@
     "test:fb-lead": "node test-fb-lead.js",
     "test:nurture": "node test-nurture.js",
     "test:opt-out": "node test-marketing-opt-out.js",
+    "test:signup-notify": "node test-signup-notify.js",
     "ads": "node marketing/ad.js",
     "adfilm": "node marketing/ad-film.js",
     "story": "node tutorial/story-voice.js",
