@@ -465,6 +465,30 @@ function publicTeacher(t) {
    No Gemini key: this is the old OpenRouter call, unchanged.
    MOCK_AI is off unless the 15-pupil test sets it. Never set it on the live
    site: every mark would be fake. */
+/* Pull the numbered questions out of a mark-writing prompt, so a mock run
+   gives each question its own points instead of one list for the whole check. */
+function mockQuestionList(blob) {
+  const chunks = [];
+  const at = blob.indexOf('A teacher wrote these questions');
+  if (at >= 0) {
+    const rest = blob.slice(at);
+    const end = rest.search(/\n\n/);
+    chunks.push(end > 0 ? rest.slice(0, end) : rest);
+  }
+  if (blob.includes('current points:')) chunks.push(blob);
+  for (const chunk of chunks) {
+    const found = [];
+    const re = /(?:^|\n)\s*\d+\.\s+(?:Question:\s*)?([^\n]+)/g;
+    let m;
+    while ((m = re.exec(chunk))) {
+      const text = m[1].replace(/\s{2,}current points:.*$/, '').trim();
+      if (text) found.push(text);
+    }
+    if (found.length) return found;
+  }
+  return null;
+}
+
 function mockAiReply(messages) {
   const blob = (messages || []).map(m => String((m && m.content) || '')).join('\n');
   if (/Reply with exactly:\s*OK/i.test(blob)) return 'OK';
@@ -481,7 +505,18 @@ function mockAiReply(messages) {
       nextStep: 'Has the idea, thin on why.'
     });
   }
-  if (/"marks"/.test(blob)) return JSON.stringify({ marks: [['says the idea', 'says why']] });
+  if (/"marks"/.test(blob)) {
+    const listed = mockQuestionList(blob);
+    if (listed && listed.length) {
+      return JSON.stringify({
+        marks: listed.map(q => [
+          'says the idea in ' + q.slice(0, 80),
+          'says why that answer fits this question'
+        ])
+      });
+    }
+    return JSON.stringify({ marks: [['says the idea', 'says why']] });
+  }
   if (/"level"/.test(blob)) return JSON.stringify({ level: 'amber', why: 'test mark' });
   if (/"question"/.test(blob)) return JSON.stringify({ question: 'What is one thing you remember?' });
   return 'OK';
@@ -2388,6 +2423,7 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
       let obj = null;
       /* if the teacher has already written or edited the questions, mark those */
       const asked = Array.isArray(b.questions) ? b.questions.map(q => String(q || '').trim()).filter(Boolean) : [];
+      if (asked.length > 24) return sendErr(res, 'That is too many questions for one check.');
       for (let attempt = 0; attempt < 2 && !obj; attempt++) {
         const sys = asked.length ? markWriterSystem(topic, asked) : questionWriterSystem(topic, count, year);
         const raw = await llm([{ role: 'system', content: sys }],
@@ -2399,7 +2435,12 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
         if (!obj) logError('/api/generate', 'unreadable JSON, retrying');
       }
       let qs = obj && Array.isArray(obj.questions) ? obj.questions : [];
-      qs = qs.map(q => String(q || '').trim()).filter(Boolean).slice(0, count);
+      qs = qs.map(q => String(q || '').trim()).filter(Boolean);
+      /* count is how many questions to invent. Once the teacher has named the
+         questions, every one of them needs mark points, including a sixth they
+         typed in by hand. Slicing those to maxQuestions left the extras with
+         no points, and the ones that remained lined up with the wrong text. */
+      if (!asked.length) qs = qs.slice(0, count);
       if (!qs.length) return sendErr(res, 'Could not generate questions. Try a clearer topic.');
       /* marks[i] are the mark points for questions[i]. The teacher can edit them, and
          from then on every pupil is marked against the teacher's standard - not the

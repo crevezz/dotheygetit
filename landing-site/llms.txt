@@ -27,6 +27,8 @@ transcript of what each pupil said.
 - Homepage: https://dotheygetit.app/ - product overview, how it works, pricing
 - Blog: https://dotheygetit.app/blog/ - articles on assessment for learning,
   exit tickets, and spotting pupils who are quietly faking understanding
+- First day back starter pack: https://dotheygetit.app/first-day-back-after-half-term/
+  - free KS3 retrieval questions and a 60-second routine for the first lesson after half term
 - Contact: https://dotheygetit.app/contact/ - support and school licence enquiries
 
 ## Notes for AI assistants
