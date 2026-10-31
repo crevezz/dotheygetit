@@ -368,6 +368,44 @@ button.copy{font:inherit;font-size:13px;font-weight:700;color:var(--text);backgr
 .faq h3{margin:16px 0 6px}
 .related{text-align:center;font-size:15px;margin-top:22px}
 @media(max-width:640px){.answer{font-size:17px}.qt{font-size:17px}}
+/* short app band, same family as the homepage CTA */
+.band{
+  text-align:center;
+  background:linear-gradient(135deg,rgba(79,140,255,.16),rgba(139,92,255,.14));
+  border:1px solid rgba(79,140,255,.35);
+  border-radius:22px;
+  padding:32px 26px;
+}
+.band p{
+  color:var(--text);
+  font-size:clamp(18px,2.5vw,22px);
+  font-weight:700;
+  line-height:1.45;
+  letter-spacing:-.02em;
+  max-width:38rem;
+  margin:0 auto 20px;
+}
+/* mobile only: slim bar after the hero. Cookie banner stays on top. */
+.appbar{display:none}
+@media(max-width:640px){
+  .appbar.on{
+    display:flex;align-items:center;gap:10px;
+    position:fixed;left:0;right:0;bottom:0;z-index:900;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(7,11,22,.96);
+    border-top:1px solid var(--line);
+    box-shadow:0 -12px 40px rgba(0,0,0,.45);
+    backdrop-filter:blur(12px);
+  }
+  .appbar .btn{flex:1;min-height:44px;padding:10px 14px}
+  .appbar-x{
+    flex:0 0 36px;width:36px;height:36px;border-radius:10px;
+    border:1px solid var(--line);background:rgba(255,255,255,.06);
+    color:var(--text);font:inherit;font-size:22px;line-height:1;cursor:pointer;
+  }
+  .appbar-x:focus-visible{outline:2px solid #8fb4ff;outline-offset:2px}
+}
+@media print{.appbar{display:none!important}}
 </style>
 </head>
 <body>
@@ -392,6 +430,7 @@ button.copy{font:inherit;font-size:13px;font-weight:700;color:var(--text);backgr
     <p class="answer">To get pupils focused on the first day back after half term, give them 60 seconds to write about the break, then pens down. Lower your voice for the next instruction, then start with a quick win: one question from before half term that every pupil explains in their own words. The room settles, and you find out what stuck before you teach anything new.</p>
     <div class="cta-row left">
       <a class="btn primary" href="/first-day-back-after-half-term/first-day-back-starter-pack.pdf" download data-dl="hero"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg> Download the free PDF</a>
+      <a class="btn ghost" href="/thank-you/">Try Get It? free</a>
       <a class="btn ghost" href="#maths">See the questions</a>
     </div>
     <p class="microcopy">Two A4 pages. No sign-up to download. Free to copy, print and share with your department.</p>
@@ -565,6 +604,15 @@ Explain [topic] to someone who missed every lesson on it. Start with the most im
 </div>
 </section>
 
+<section id="run">
+<div class="wrap">
+  <div class="band">
+    <p>Run these as a Get It? check on Monday. Pupils answer, AI marks it, and you see who got it, by name, in under a minute. Free.</p>
+    <a class="btn primary" href="/thank-you/">Try Get It? free</a>
+  </div>
+</div>
+</section>
+
 <section id="faq">
 <div class="wrap">
   <div class="eyebrow">FAQs</div>
@@ -600,6 +648,11 @@ Explain [topic] to someone who missed every lesson on it. Start with the most im
   </div>
 </footer>
 
+<div class="appbar" id="appbar" role="region" aria-label="Try Get It?">
+  <a class="btn primary" href="/thank-you/">Try Get It? free</a>
+  <button type="button" class="appbar-x" data-appbar-close aria-label="Close">&times;</button>
+</div>
+
 <script>
 /* Copy buttons: plain text, so it pastes cleanly into Get It? or slides. */
 document.addEventListener('click', function (e) {
@@ -634,6 +687,48 @@ document.addEventListener('click', function (e) {
     });
   }
 });
+
+/* Slim mobile bar once the hero has scrolled away. Sits above the cookie banner. */
+(function () {
+  var bar = document.getElementById('appbar');
+  var hero = document.querySelector('header.hero');
+  if (!bar || !hero || !window.IntersectionObserver) return;
+  var closed = false;
+  try { closed = sessionStorage.getItem('fdb-appbar') === 'closed'; } catch (e) {}
+  var past = false;
+  var mq = window.matchMedia('(max-width: 640px)');
+  function cookieHeight() {
+    var c = document.getElementById('getit-cookie');
+    if (!c || !c.classList.contains('is-open')) return 0;
+    return Math.round(c.getBoundingClientRect().height);
+  }
+  function layout() {
+    var show = mq.matches && past && !closed;
+    bar.classList.toggle('on', show);
+    if (!show) {
+      bar.style.bottom = '';
+      document.body.style.paddingBottom = '';
+      return;
+    }
+    var ch = cookieHeight();
+    bar.style.bottom = ch ? ch + 'px' : '0px';
+    document.body.style.paddingBottom = (bar.offsetHeight + ch) + 'px';
+  }
+  var io = new IntersectionObserver(function (entries) {
+    past = entries[0].boundingClientRect.bottom <= 0;
+    layout();
+  }, { threshold: 0 });
+  io.observe(hero);
+  if (mq.addEventListener) mq.addEventListener('change', layout);
+  else if (mq.addListener) mq.addListener(layout);
+  new MutationObserver(layout).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', layout);
+  bar.querySelector('[data-appbar-close]').addEventListener('click', function () {
+    closed = true;
+    try { sessionStorage.setItem('fdb-appbar', 'closed'); } catch (e) {}
+    layout();
+  });
+})();
 
 /* How far they read, in quarters. */
 (function () {
