@@ -71,6 +71,11 @@ let activeClass = null;
 let activeCheckId = null;
 let checks = [];
 let generated = [];
+/* The questions and points from the last Generate click, before any edits.
+   Create check compares the published text with this, so a pasted question
+   is not marked against the points of whatever used to sit in that slot. */
+let generatedOriginal = [];
+let generatedMarks = [];
 let resultFilter = 'all';
 let pollTimer = null;
 let hereTimer = null;
@@ -264,6 +269,8 @@ async function openClass(id) {
   $('#btnGenerate').textContent = '1. Generate questions';
   setMsg($('#checkMsg'), '');
   generated = [];
+  generatedOriginal = [];
+  generatedMarks = [];
   $('#liveBar').classList.add('hidden');
   $('#rosterEdit').classList.add('hidden');
   $('#rosterMsg').textContent = '';
@@ -439,8 +446,9 @@ $('#btnGenerate').addEventListener('click', async () => {
   $('#btnGenerate').textContent = 'Writing questions...';
   try {
     const j = await post('/api/generate', { topic, year: (activeClass && activeClass.year) || '' });
-    generated = j.questions;
-    generated.marks = j.marks || [];
+    generated = (j.questions || []).map(q => String(q || '').trim());
+    generatedOriginal = generated.slice();
+    generatedMarks = (j.marks || []).map(row => Array.isArray(row) ? row.slice() : []);
     renderQuestions();
     $('#qwrap').classList.remove('hidden');
     $('#btnCreateCheck').classList.remove('hidden');
@@ -489,13 +497,41 @@ $('#btnCreateCheck').addEventListener('click', async () => {
   if (!activeClass) return setMsg($('#checkMsg'), 'Pick a class first.');
   $('#btnCreateCheck').disabled = true;
   try {
-    const j = await post('/api/session', { classId: activeClass.id, topic: $('#topic').value.trim(), questions, marks: generated.marks || [] });
+    const plan = planCheckMarks(generatedOriginal, generatedMarks, questions);
+    let marks = plan.marks;
+    /* Same questions, same order: keep the points already written. Removing
+       one, or swapping two that were both generated, just moves those points.
+       Only text the model has not seen yet is sent back to be marked. */
+    if (plan.missing.length) {
+      setMsg($('#checkMsg'), 'Updating the marking points...');
+      const fresh = await post('/api/generate', {
+        topic: $('#topic').value.trim(),
+        year: (activeClass && activeClass.year) || '',
+        questions: plan.missing.map(m => m.question),
+        count: plan.missing.length
+      });
+      const backQ = (fresh.questions || []).map(q => String(q || '').trim());
+      const backM = fresh.marks || [];
+      plan.missing.forEach(m => {
+        const at = backQ.indexOf(m.question);
+        marks[m.index] = at >= 0 && Array.isArray(backM[at]) ? backM[at] : null;
+      });
+      if (marks.some(m => m == null)) throw new Error('Could not write marking points for the edited questions. Try again.');
+    }
+    const j = await post('/api/session', {
+      classId: activeClass.id,
+      topic: $('#topic').value.trim(),
+      questions: plan.questions,
+      marks
+    });
     activeCheckId = j.check.id;
     $('#qwrap').classList.add('hidden');
     $('#btnCreateCheck').classList.add('hidden');
     $('#topic').value = '';
     $('#btnGenerate').textContent = '1. Generate questions';
     generated = [];
+    generatedOriginal = [];
+    generatedMarks = [];
     $('#liveText').textContent = 'Live now — students use code ' + activeClass.code;
     $('#liveBar').classList.remove('hidden');
     await loadChecks();

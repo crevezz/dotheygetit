@@ -23,6 +23,7 @@ const NETLIFY = path.join(__dirname, '..', 'netlify.toml');
 /* Paths that already belong to the site. A post slug must not use one. */
 const RESERVED = new Set([
   'blog', 'contact', 'terms', 'thank-you', 'new-teacher-pack',
+  'first-day-back-after-half-term',
   'help', 'privacy', 'app', 'index', 'media', 'og',
   'pack-thanks', 'newsletter-thanks', 'toolkit', 'toolkit-thanks'
 ]);
@@ -185,6 +186,7 @@ const NEWSLETTER = `
         </label>
         <button class="btn" type="submit">Send me the checks</button>
         <p class="fine">New to teaching? <a href="/new-teacher-pack/">The survival pack</a> is free to read, with a PDF if you want one.</p>
+        <p class="fine">First lesson back after half term? <a href="/first-day-back-after-half-term/">12 free KS3 starter questions</a>.</p>
       </form>
     </div>
   </div>
@@ -656,6 +658,8 @@ function renderSitemap(all) {
     { loc: `${SITE}/contact/`, lastmod: '2026-09-20', changefreq: 'yearly', priority: '0.6' },
     { loc: `${SITE}/terms/`, lastmod: '2026-10-17', changefreq: 'yearly', priority: '0.4' },
     { loc: `${SITE}/new-teacher-pack/`, lastmod: '2026-10-27', changefreq: 'monthly', priority: '0.9' },
+    { loc: `${SITE}/first-day-back-after-half-term/`, lastmod: '2026-10-31', changefreq: 'monthly', priority: '0.9' },
+    { loc: `${SITE}/first-day-back-after-half-term/first-day-back-starter-pack.pdf`, lastmod: '2026-10-31', changefreq: 'yearly', priority: '0.6' },
     { loc: `${SITE}/blog/`, lastmod: '2026-10-27', changefreq: 'weekly', priority: '0.8' },
     ...all.map((p) => ({
       loc: `${SITE}/${p.slug}`,
@@ -760,6 +764,7 @@ function main() {
   fs.writeFileSync(homePath, home);
   [
     'new-teacher-pack/index.html',
+    'first-day-back-after-half-term/index.html',
     'pack-thanks/index.html',
     'newsletter-thanks/index.html',
     'toolkit-thanks/index.html',
