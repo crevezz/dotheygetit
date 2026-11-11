@@ -397,6 +397,7 @@ function notifyNewSignup(teacher, body, req) {
 const WELCOME_APP = 'https://app.dotheygetit.app';
 const WELCOME_TUTORIALS = WELCOME_APP + '/help';
 const WELCOME_FACEBOOK = 'https://www.facebook.com/dotheygetit';
+const WELCOME_GROUP = 'https://www.facebook.com/groups/1724704585295277';
 function escHtml(s) {
   return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
@@ -424,6 +425,8 @@ function signupWelcome(teacher, body) {
     '',
     "There's a Facebook page here too: " + WELCOME_FACEBOOK,
     '',
+    "Join other teachers using Get It? in our Facebook group, share how you're using it and tell us what to build next: " + WELCOME_GROUP,
+    '',
     'Craig'
   ].join('\n');
   const linkStyle = 'color:#4f8cff;text-decoration:underline';
@@ -437,6 +440,7 @@ function signupWelcome(teacher, body) {
     '<p style="margin:0 0 12px">Open the app: <a href="' + WELCOME_APP + '" style="' + linkStyle + '">' + WELCOME_APP + '</a></p>' +
     '<p style="margin:0 0 12px">If anything\'s clunky, just reply to this email.</p>' +
     '<p style="margin:0 0 12px">There\'s a Facebook page here too: <a href="' + WELCOME_FACEBOOK + '" style="' + linkStyle + '">' + WELCOME_FACEBOOK + '</a></p>' +
+    '<p style="margin:0 0 12px">Join other teachers using Get It? in our Facebook group, share how you\'re using it and tell us what to build next: <a href="' + WELCOME_GROUP + '" style="' + linkStyle + '">' + WELCOME_GROUP + '</a></p>' +
     '<p style="margin:0">Craig</p>' +
     '</div>';
   return { to: email, subject: 'Welcome to Get It?', text, html };

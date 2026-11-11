@@ -7,6 +7,8 @@ const BASE = 'https://privateemail.com';
 const MC = BASE + '/gateway/api/v1/mailcore';
 const USER = 'support@dotheygetit.app';
 const SITE = 'https://dotheygetit.app';
+const GROUP = 'https://www.facebook.com/groups/1724704585295277';
+const GROUP_LINE = "Join other teachers using Get It? in our Facebook group, share how you're using it and tell us what to build next:";
 
 const TOOLKIT = {
   maths: ['GCSE Maths', 'gcse-maths-misconceptions.pdf'],
@@ -42,6 +44,7 @@ function closing() {
     "I put these together because the hardest part of teaching isn't explaining something, it's knowing whether it actually landed. If there's a topic you'd like covered next, just reply to this email and let me know. I read every reply.",
     'If you ever want to run those checks live, with every pupil answering on their own device, that is what Get It? does. It is free while we are in beta:',
     { url: SITE },
+    { text: GROUP_LINE, url: GROUP },
   ];
 }
 
@@ -73,6 +76,7 @@ function build(form, d) {
         "If there's anything you'd like added, or something you're stuck on right now, just reply to this email. I read every reply.",
         'If you ever want to see live which pupils have understood, Get It? does that in under a minute. It is free while we are in beta:',
         { url: SITE },
+        { text: GROUP_LINE, url: GROUP },
       ],
     };
   }
@@ -115,12 +119,23 @@ function leadMessage(fullName, subject) {
   return allBanksMessage(name);
 }
 
+function lineText(l) {
+  if (typeof l === 'string') return l;
+  return l.text ? l.text + ' ' + l.url : l.url;
+}
+
+function lineHtml(l) {
+  if (typeof l === 'string') return '<p>' + esc(l) + '</p>';
+  if (l.text) return '<p>' + esc(l.text) + ' ' + link(l.url) + '</p>';
+  return '<p>' + link(l.url) + '</p>';
+}
+
 function render(lines) {
   const sign = ['Best wishes,', 'Craig', 'Founder, Get It?'];
-  const text = lines.map((l) => (typeof l === 'string' ? l : l.url)).concat('', sign.join('\n')).join('\n\n');
+  const text = lines.map(lineText).concat('', sign.join('\n')).join('\n\n');
   const html =
     '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">' +
-    lines.map((l) => `<p>${typeof l === 'string' ? esc(l) : link(l.url)}</p>`).join('') +
+    lines.map(lineHtml).join('') +
     `<p>${sign.map(esc).join('<br>')}</p></div>`;
   return { text, html };
 }

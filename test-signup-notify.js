@@ -87,6 +87,10 @@ check(welcome.html.includes('background:#4f8cff') && welcome.html.includes('colo
   'the tutorials button is blue, white, padded and rounded');
 check(welcome.html.includes('style="color:#4f8cff;text-decoration:underline">https://www.facebook.com/dotheygetit<'),
   'the Facebook page is a blue underlined link');
+check(welcome.text.includes('Join other teachers using Get It? in our Facebook group, share how you\'re using it and tell us what to build next: https://www.facebook.com/groups/1724704585295277'),
+  'plain text has the Facebook group line');
+check(welcome.html.includes('style="color:#4f8cff;text-decoration:underline">https://www.facebook.com/groups/1724704585295277<'),
+  'the Facebook group is a blue underlined link showing the full URL');
 check(welcome.html.includes('style="color:#4f8cff;text-decoration:underline">https://app.dotheygetit.app<'),
   'the app URL is a blue underlined link');
 check(signupWelcome(teacher, {}).text.startsWith('Hi there,'), 'a missing name is hi there');

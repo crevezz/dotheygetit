@@ -29,6 +29,7 @@ const MATHS_TEXT = paras([
   WHY,
   BETA,
   'https://dotheygetit.app',
+  "Join other teachers using Get It? in our Facebook group, share how you're using it and tell us what to build next: https://www.facebook.com/groups/1724704585295277",
 ]);
 
 const MATHS_HTML =
@@ -40,6 +41,7 @@ const MATHS_HTML =
   '<p>' + WHY + '</p>' +
   '<p>' + BETA + '</p>' +
   '<p><a href="https://dotheygetit.app" style="color:#4f8cff;font-weight:600">https://dotheygetit.app</a></p>' +
+  "<p>Join other teachers using Get It? in our Facebook group, share how you're using it and tell us what to build next: <a href=\"https://www.facebook.com/groups/1724704585295277\" style=\"color:#4f8cff;font-weight:600\">https://www.facebook.com/groups/1724704585295277</a></p>" +
   '<p>Best wishes,<br>Craig<br>Founder, Get It?</p></div>';
 
 const PACK_TEXT = paras([
@@ -50,6 +52,7 @@ const PACK_TEXT = paras([
   "If there's anything you'd like added, or something you're stuck on right now, just reply to this email. I read every reply.",
   'If you ever want to see live which pupils have understood, Get It? does that in under a minute. It is free while we are in beta:',
   'https://dotheygetit.app',
+  "Join other teachers using Get It? in our Facebook group, share how you're using it and tell us what to build next: https://www.facebook.com/groups/1724704585295277",
 ]);
 
 const PDFS = [
