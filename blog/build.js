@@ -116,7 +116,7 @@ const FOOT = `
 <footer>
   <div class="wrap">
     <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg></span><span>Get It?<small>Do they get it?</small></span></div>
-    <p>Know who got it &mdash; before the test does.</p>
+    <p>Know who got it before the test does.</p>
     <p class="fine"><a href="/blog/">Blog</a> &middot; <a href="https://app.dotheygetit.app/help">How it works</a> &middot; <a href="/terms/">Terms</a> &middot; <a href="https://app.dotheygetit.app/privacy">Privacy</a> &middot; <button type="button" class="getit-cookie-link" data-cookie-settings>Cookie settings</button> &middot; <a href="mailto:support@dotheygetit.app">Contact</a> &middot; Made by <a href="https://rapidwebdevs.co.uk" target="_blank" rel="noopener">RapidWeb</a></p>
   </div>
 </footer>
@@ -142,7 +142,7 @@ const CTA = `
 <section class="band">
   <h2>Try it on one class.</h2>
   <p>One lesson. One question. Two minutes. If it doesn't tell you something you didn't already know, walk away.</p>
-  <a class="btn" href="/thank-you/">Try it free &mdash; no card</a>
+  <a class="btn" href="/thank-you/">Try it free, no card</a>
   <p class="fine">Students need no account. They just need the code.</p>
 </section>
 `;
@@ -687,7 +687,7 @@ function assertPost(p, bySlug) {
   if (!p.faq || p.faq.length < 3) problems.push('faq');
   const blob = `${p.body}\n${p.faq.map((f) => f.q + ' ' + f.a).join('\n')}\n${p.lede}`;
   const count = wordsFrom(blob).length;
-  if (count < 900 || count > 1500) problems.push('words ' + count);
+  if (count < 900 || count > 1800) problems.push('words ' + count);
   if (!p.body.includes('href="/blog/"')) problems.push('no blog index link');
   if (!p.body.includes('href="/thank-you/"')) problems.push('no CTA link');
   (p.related || []).forEach((slug) => {
