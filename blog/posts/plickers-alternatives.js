@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'plickers-alternatives',
-  title: 'Plickers alternatives: a fair look at free checks that are not cards',
+  title: 'Plickers alternatives: checks that are not cards',
   h1: 'Plickers alternatives: a fair look at free checks that are <em>not cards</em>',
   desc: 'What Plickers does well, where multiple-choice cards run out, and how mini whiteboards, quizzes and a short written check compare.',
   metaDesc: 'Plickers alternatives for UK teachers: when to keep the cards, when boards or a quiz are enough, and when you need a written check instead of A to D.',

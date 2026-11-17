@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'exit-ticket-ideas',
-  title: 'Exit ticket ideas: examples that tell you who got it',
+  title: 'Exit ticket ideas that show who got it',
   h1: 'Exit ticket ideas: examples that tell you <em>who got it</em>',
   desc: 'One exit ticket question per subject, written so a wrong answer tells you what to reteach. Maths, English, science and the rest of the timetable.',
   metaDesc: 'Exit ticket ideas for maths, English, science and the rest of a UK timetable. One question each, so a wrong answer tells you what to reteach.',

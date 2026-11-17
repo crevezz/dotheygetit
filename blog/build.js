@@ -46,13 +46,13 @@ const POST_ORDER = [
 
 const ORIGINAL = {
   'how-do-you-know-who-understood': {
-    title: 'How do you know who actually understood the lesson?',
+    title: 'How do you know who understood the lesson?',
     desc: 'The nod is not evidence. Why "does that make sense?" tells you nothing, and how to find out in two minutes who understood, who is shaky, and who is quietly bluffing.',
     date: '2026-09-20',
     mins: 6
   },
   'exit-tickets-why-teachers-stop': {
-    title: 'Exit tickets: why most teachers quietly stop using them',
+    title: 'Exit tickets: why teachers stop using them',
     desc: 'Exit tickets are good practice. The paper is the problem. Four reasons they get abandoned within a term, and how to keep the ritual without the pile.',
     date: '2026-09-20',
     mins: 6
@@ -625,7 +625,7 @@ function renderIndex(all) {
     }))
   };
   const html = head({
-    title: 'Blog | Get It?',
+    title: 'The Get It? blog | AfL notes for UK teachers',
     canonical: SITE + '/blog/',
     desc,
     metaDesc: desc,
@@ -637,7 +637,7 @@ function renderIndex(all) {
   <div class="wrap">
     <div class="kicker">Blog</div>
     <h1>Checking understanding, without the <em>pile of paper</em></h1>
-    <p class="lede">Short, practical writing for teachers. What actually tells you whether the class got it &mdash; and what just feels like it does.</p>
+    <p class="lede">Short, practical writing for teachers. What actually tells you whether the class got it, and what just feels like it does.</p>
   </div>
 </header>
 

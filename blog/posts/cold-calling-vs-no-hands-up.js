@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'cold-calling-vs-no-hands-up',
-  title: 'Cold calling vs no-hands-up: how to find who is actually lost',
+  title: 'Cold calling vs no-hands-up: who is lost',
   h1: 'Cold calling vs no-hands-up: how to find who is <em>actually</em> lost',
   desc: 'Cold calling and no-hands-up are not the same routine. How to run each one without a humiliation, and why neither shows you the whole class.',
   metaDesc: 'Cold calling vs no-hands-up: what each routine actually does in class, how to run them fairly, and how to find who is lost.',

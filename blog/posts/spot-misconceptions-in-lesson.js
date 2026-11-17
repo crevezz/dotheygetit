@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'spot-misconceptions-in-lesson',
-  title: 'How to spot misconceptions before the end of the lesson',
+  title: 'Spot misconceptions before the lesson ends',
   h1: 'How to spot misconceptions <em>before</em> the end of the lesson',
   desc: 'A misconception is a wrong idea that hangs together, not a slip. How to hear it while you can still reteach it, with checks that fit the last part of a lesson.',
   metaDesc: 'How to spot misconceptions before the end of the lesson. The difference between a slip and a wrong idea, and what to do with the time left.',

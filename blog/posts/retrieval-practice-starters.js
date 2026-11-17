@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'retrieval-practice-starters',
-  title: 'Retrieval practice starters: do-now ideas that show you what stuck',
+  title: 'Retrieval starters that show what stuck',
   h1: 'Retrieval practice starters: do-now ideas that show you <em>what stuck</em>',
   desc: 'Retrieval practice starters and do-now ideas for KS3 and GCSE. Short tasks that bring last lesson back, and a way to see who has kept it.',
   metaDesc: 'Retrieval practice starters and do-now ideas for KS3 and GCSE. What to ask, what to skip, and how to see what actually stuck.',

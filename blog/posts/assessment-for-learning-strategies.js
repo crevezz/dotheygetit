@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'assessment-for-learning-strategies',
-  title: 'Assessment for learning strategies that survive a real lesson',
+  title: 'Assessment for learning strategies',
   h1: 'Assessment for learning strategies that <em>survive</em> a real lesson',
   desc: 'AfL strategies worth keeping in a real KS3 or GCSE lesson, and the ones that only look like assessment. What to do with the answer once you have it.',
   metaDesc: 'Assessment for learning strategies that work in a real KS3 or GCSE lesson: what to keep, what to drop, and how to act on the answer.',

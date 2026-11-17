@@ -1,9 +1,9 @@
 module.exports = {
   slug: 'hinge-questions',
-  title: 'Hinge questions: what they are, how to write one, and examples',
+  title: 'Hinge questions: what they are, with examples',
   h1: 'Hinge questions: what they are, and examples you can use <em>tomorrow</em>',
   desc: 'What hinge questions, or hinge point questions, are, how to write one, and examples in maths, English, science and humanities.',
-  metaDesc: 'What hinge questions (or hinge point questions) are, how to write one, and examples in maths, English, science and humanities. The idea a lot of UK teachers meet through Dylan Wiliam.',
+  metaDesc: 'What a hinge question is, how to write one, and examples in maths, English, science and humanities for UK KS3 to GCSE teachers.',
   twitter: 'What hinge questions, or hinge point questions, are, how to write one, and examples you can use tomorrow. The idea a lot of UK teachers meet through Dylan Wiliam.',
   date: '2026-10-27',
   dateModified: '2026-11-16',

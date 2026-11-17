@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'checking-for-understanding',
-  title: 'Checking for understanding: quick techniques that show you the whole class',
+  title: 'Checking for understanding in a real lesson',
   h1: 'Checking for understanding: quick techniques that show you the <em>whole class</em>',
   desc: 'Seven checks you can run without a worksheet. What each one shows you, what it hides, and when a private answer is the one that tells the truth.',
   metaDesc: 'Checking for understanding in a real lesson: quick techniques that show the whole class, not just the pupils with their hands up.',

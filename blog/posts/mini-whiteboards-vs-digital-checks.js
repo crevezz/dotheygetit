@@ -1,6 +1,6 @@
 module.exports = {
   slug: 'mini-whiteboards-vs-digital-checks',
-  title: 'Mini whiteboards vs a digital check: when to use each',
+  title: 'Mini whiteboards vs a digital check',
   h1: 'Mini whiteboards vs a digital check: when to use <em>each</em>',
   desc: 'Show-me boards are fast and public. A digital check is private and named. When to use mini whiteboards, when they hide the pupil who is copying, and how to combine them.',
   metaDesc: 'Mini whiteboards vs a digital check: when show-me boards tell the truth, when pupils copy, and when you need a private answer.',
