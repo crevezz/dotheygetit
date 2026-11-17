@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>"Three things I learnt", "one question I still have", "confidence from one to five": they feel productive and tell you almost nothing. The pupil who is lost writes "nothing" or a 4. The pupil who has got it writes a paragraph you do not need.</p>
 
-<p>This page is the questions. Why teachers start exit tickets and quietly drop them &mdash; the pile, the deadline, the anonymous slip &mdash; is a different problem, covered in <a href="/exit-tickets-why-teachers-stop">why exit tickets get abandoned</a>. The questions below are written so a wrong answer is useful. More of these notes are on <a href="/blog/">the blog</a>.</p>
+<p>This page is the questions. Why teachers start exit tickets and quietly drop them &mdash; the pile, the deadline, the anonymous slip &mdash; is a different problem, covered in <a href="/exit-tickets-why-teachers-stop">why exit tickets get abandoned</a>. The questions below are written so a wrong answer is useful. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. More of these notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>What a usable exit ticket does</h2>
 

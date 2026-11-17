@@ -45,7 +45,7 @@ module.exports = {
   <p class="fine">Type the topic you just taught, keep the question that hinges, pupils answer in their own words with a class code, no account. See <a href="/">Get It?</a> or the <a href="/#pricing">current free plan</a>.</p>
 </section>
 
-<p>When the wrong answer is a real misconception, see <a href="/spot-misconceptions-in-lesson">spotting misconceptions before the bell</a>. Where hinges sit among other AfL moves is in <a href="/assessment-for-learning-strategies">assessment for learning strategies</a>. More on <a href="/blog/">the blog</a>.</p>
+<p>When the wrong answer is a real misconception, see <a href="/spot-misconceptions-in-lesson">spotting misconceptions before the bell</a>. Where hinges sit among other AfL moves is in <a href="/assessment-for-learning-strategies">assessment for learning strategies</a>. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. More on <a href="/blog/">the blog</a>.</p>
 
 <h2>What a hinge question is, and what a hinge point is</h2>
 

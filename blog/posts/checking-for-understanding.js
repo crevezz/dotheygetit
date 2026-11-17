@@ -28,7 +28,7 @@ module.exports = {
     }
   ],
   body: `
-<p>You already know the lecture version of checking for understanding. Ask if it makes sense. Watch the nods. Carry on. The reason that fails is set out in <a href="/how-do-you-know-who-understood">how you know who actually understood</a>. This page assumes you have given that up. It is a menu of checks that fit inside a normal lesson, including period 5, including the class that packs up early. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
+<p>You already know the lecture version of checking for understanding. Ask if it makes sense. Watch the nods. Carry on. The reason that fails is set out in <a href="/how-do-you-know-who-understood">how you know who actually understood</a>. This page assumes you have given that up. It is a menu of checks that fit inside a normal lesson, including period 5, including the class that packs up early. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
 
 <p>Every technique below has a hole. The point is to pick the hole you can live with for this question, not to pretend one routine sees everything.</p>
 

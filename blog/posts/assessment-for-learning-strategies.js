@@ -30,7 +30,7 @@ module.exports = {
   body: `
 <p>Assessment for learning, AfL if that is what the department calls it, has a plain meaning. You find out whether they have got the thing you just taught, and you change what you do next because of what you found. If nothing changes, it was not assessment for learning. It was a ritual.</p>
 
-<p>This is not a history of the term, and it is not the piece about why a nod is worthless. That argument is in <a href="/how-do-you-know-who-understood">how you know who understood</a>. This is the short list worth keeping on a day when you teach five lessons and eat lunch at a desk. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
+<p>This is not a history of the term, and it is not the piece about why a nod is worthless. That argument is in <a href="/how-do-you-know-who-understood">how you know who understood</a>. This is the short list worth keeping on a day when you teach five lessons and eat lunch at a desk. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>Start from the decision, not the activity</h2>
 
