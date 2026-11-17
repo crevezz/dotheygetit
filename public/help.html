@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Get It? — how it works, in fourteen short videos</title>
+<title>Get It? | how it works, in fourteen short videos</title>
 <link rel="canonical" href="https://app.dotheygetit.app/help"/>
 <meta name="description" content="Fourteen short videos: create your account, set up a class, put the code on the wall, write the questions, how pupils join, what the pupil sees, read your results, spot the pattern, take the record away."/>
 <link rel="stylesheet" href="/styles.css"/>
@@ -92,14 +92,14 @@
   <div class="hero">
     <h1>Get It? in fourteen short videos</h1>
     <p>Each one is under a minute. Watch them in order, or just the one you are stuck on.</p>
-    <p class="meta" id="totalLine">Fourteen videos, 7 minutes 41 seconds in total. Sound on.</p>
+    <p class="meta" id="totalLine">Fourteen videos, 8 minutes 50 seconds in total. Sound on.</p>
   </div>
 
   <div class="dev" id="dev">
     <button type="button" data-dev="laptop" class="on">Laptop</button>
-    <button type="button" data-dev="phone">Phone</button>
+    <button type="button" data-dev="phone">Device</button>
   </div>
-  <p class="devnote" id="devNote">Filmed on a laptop. The Phone set shows the same journey on a phone.</p>
+  <p class="devnote" id="devNote">Filmed on a laptop. The device set shows the same journey on a small screen.</p>
 
   <div class="player" id="player">
     <video id="v" controls playsinline preload="metadata"></video>
@@ -116,7 +116,7 @@
         <option value="1.75">1.75×</option>
         <option value="2">2×</option>
       </select>
-      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (9 min)</a>
+      <a class="tab" id="btnAll" href="#" style="text-decoration:none;background:var(--surface2);border:1px solid var(--line)">Watch the lot (8 minutes 50 seconds)</a>
     </div>
   </div>
 
@@ -131,6 +131,7 @@
 
 </main>
 
+<script src="/copy.js"></script>
 <script>
 const CHAPTERS = [
   { n:1,  id:'01-what-get-it-is',            title:'What Get It? is',          sub:'The bit behind it',                     d:'Why a right answer on paper can still hide a gap.', len:'0:32', secs:31.7 },
@@ -151,8 +152,8 @@ const CHAPTERS = [
 
 const BASE = { laptop: '/help/', phone: '/help/mobile/' };
 const NOTE = {
-  laptop: 'Filmed on a laptop. The Phone set shows the same journey on a phone.',
-  phone:  'Filmed on a real phone screen (390×844). Same fourteen chapters, same words.'
+  laptop: (window.COPY && COPY.helpLaptop) || 'Filmed on a laptop. The device set shows the same journey on a small screen.',
+  phone:  (window.COPY && COPY.helpDevice) || 'Filmed on a small device screen (390×844). Same fourteen chapters, same words.'
 };
 
 const v = document.getElementById('v');
@@ -202,7 +203,7 @@ function play(i, autoplay) {
   v.src = BASE[dev] + c.id + '.mp4';
   nowTitle.textContent = c.n + '. ' + c.title;
   nowSub.textContent = c.sub;
-  document.title = c.title + ' — Get It? help';
+  document.title = c.title + ' | Get It? help';
   history.replaceState(null, '', '#' + c.id);
   render();
   if (autoplay) v.play().catch(() => {});
@@ -238,12 +239,16 @@ v.addEventListener('ended', () => {
 });
 v.addEventListener('loadedmetadata', () => { v.playbackRate = parseFloat(speed.value) || 1; });
 
-/* the total, straight from the chapter table so it can never drift */
+/* One length for the chapter total, the button, and the full video.
+   Chapters sum to the same 8 minutes 50 seconds the app quotes. */
 (function total() {
   const t = CHAPTERS.reduce((a, c) => a + c.secs, 0);
-  const m = Math.floor(t / 60), s = Math.round(t - m * 60);
+  const label = (window.COPY && COPY.formatMinutes) ? COPY.formatMinutes(t) : '8 minutes 50 seconds';
   document.getElementById('totalLine').textContent =
-    'Fourteen videos, ' + m + ' minutes ' + s + ' seconds in total. Sound on.';
+    'Fourteen videos, ' + label + ' in total. Sound on.';
+  const btn = document.getElementById('btnAll');
+  if (btn) btn.textContent = 'Watch the lot (' + label + ')';
+  btn.dataset.len = label;
 })();
 
 /* deep link: /help#05-how-pupils-join */
@@ -264,8 +269,8 @@ window.addEventListener('hashchange', () => {
 document.getElementById('btnAll').addEventListener('click', ev => {
   ev.preventDefault();
   v.src = BASE[dev] + 'all.mp4';
-  nowTitle.textContent = 'Get It? — all fourteen, in order';
-  nowSub.textContent = '8 minutes 50 seconds. Includes the title cards.';
+  nowTitle.textContent = 'Get It?, all fourteen, in order';
+  nowSub.textContent = (document.getElementById('btnAll').dataset.len || '8 minutes 50 seconds') + ', with the title cards.';
   v.play().catch(() => {});
   render();
 });

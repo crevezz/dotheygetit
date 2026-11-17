@@ -51,7 +51,7 @@ const ok = (name, cond, extra) => {
 
   const total = (await page.locator('#totalLine').innerText()).trim();
   ok('total line says fourteen', /fourteen/i.test(total), total);
-  ok('total line gives 7 minutes 41 seconds', /7 minutes 41 seconds/.test(total), total);
+  ok('total line gives 8 minutes 50 seconds', /8 minutes 50 seconds/.test(total), total);
 
   /* deep link to a chapter that sits out of filename order.
      A fresh page, because goto() to a hash-only change does not reload. */

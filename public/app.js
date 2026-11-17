@@ -45,13 +45,26 @@ function when(ts) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + time;
 }
 function levelsOf(students) {
-  const L = { green: 0, amber: 0, red: 0 };
+  const L = { green: 0, amber: 0, red: 0, unclear: 0 };
   (students || []).forEach(st => {
-    const l = (st.verdict && st.verdict.level) || 'amber';
-    L[l] = (L[l] || 0) + 1;
+    const v = st.verdict || {};
+    const l = st.teacherLevel || v.level || 'unclear';
+    if (l === 'green' || l === 'amber' || l === 'red') L[l]++;
+    else L.unclear++;
   });
   return L;
 }
+function applySharedCopy() {
+  document.querySelectorAll('[data-copy]').forEach(el => {
+    const key = el.getAttribute('data-copy');
+    if (COPY[key]) el.textContent = COPY[key];
+  });
+  document.querySelectorAll('[data-copy-tip]').forEach(el => {
+    const key = el.getAttribute('data-copy-tip');
+    if (COPY[key]) el.setAttribute('data-tip', COPY[key]);
+  });
+}
+applySharedCopy();
 
 // --------------------------------------------------------------------- tabs
 document.querySelectorAll('.tab').forEach(btn => {
@@ -357,17 +370,17 @@ async function openPupil(name) {
     }
     $('#pupBody').innerHTML = rs.map(r => {
       const v = r.verdict || {};
-      const lv = v.level || 'amber';
+      const lv = v.level || 'unclear';
       const bits = [];
-      if (v.gets) bits.push('<div><span class="k">Gets</span>' + esc(v.gets) + '</div>');
+      if (v.gets && v.gets !== COPY.verdictLabel(lv)) bits.push('<div><span class="k">Gets</span>' + esc(v.gets) + '</div>');
       if (v.shaky) bits.push('<div><span class="k">Shaky</span>' + esc(v.shaky) + '</div>');
-      if (v.nextStep) bits.push('<div class="nextstep"><span class="k">Next</span>' + esc(v.nextStep) + '</div>');
+      if (v.nextStep) bits.push('<div class="nextstep">' + esc(v.nextStep) + (v.nextTry ? '<div class="nexttry">' + esc(v.nextTry) + '</div>' : '') + '</div>');
       const said = r.transcript
         ? '<details class="said"><summary>What they actually said</summary><pre>' + esc(r.transcript) + '</pre></details>'
         : '';
       return '<div class="sresult lv-' + esc(lv) + '">' +
         '<div class="head"><span class="name">' + esc(r.topic) + '</span>' +
-        '<span class="tag lv-' + esc(lv) + '">' + esc(lv) + '</span></div>' +
+        '<span class="tag lv-' + esc(lv) + '">' + esc(COPY.verdictLabel(lv)) + '</span></div>' +
         '<div class="cmeta">' + esc(when(r.at)) + '</div>' +
         (bits.length ? '<div class="detail">' + bits.join('') + '</div>' : '') +
         said + '</div>';
@@ -562,7 +575,7 @@ function renderChecks() {
     const w = (v) => (n ? (v / n) * 100 : 0);
     const bar = n
       ? `<div class="cbar"><i class="g" style="width:${w(L.green)}%"></i><i class="a" style="width:${w(L.amber)}%"></i><i class="r" style="width:${w(L.red)}%"></i></div>
-         <div class="clegend"><b>${L.green}</b> got it &nbsp;·&nbsp; <b>${L.amber}</b> shaky &nbsp;·&nbsp; <b>${L.red}</b> struggling</div>`
+         <div class="clegend"><b>${L.green || 0}</b> ${esc(COPY.legendGot)} &nbsp;·&nbsp; <b>${L.amber || 0}</b> ${esc(COPY.legendPart)} &nbsp;·&nbsp; <b>${L.red || 0}</b> ${esc(COPY.legendNot)}</div>`
       : `<div class="cbar"></div><div class="clegend">Nobody has finished yet</div>`;
     const qs = (c.questions || []).map(q => `<li>${esc(q)}</li>`).join('');
     return `<div class="checkcard${activeCheckId === c.id ? ' on' : ''}${i === 0 ? ' fresh' : ''}" data-id="${esc(c.id)}">
@@ -660,10 +673,19 @@ function drawResults(s, students) {
         const tag = row.querySelector('.tag');
         if (tag) {
           const l = final || (row.dataset.ailevel || '');
-          if (l) { tag.className = 'tag lv-' + l; tag.textContent = l + (final ? ' (you)' : ''); }
+          if (l) { tag.className = 'tag lv-' + l; tag.textContent = COPY.verdictLabel(l); }
         }
+        let changed = row.querySelector('.changed');
+        if (final) {
+          if (!changed) {
+            changed = document.createElement('span');
+            changed.className = 'changed';
+            if (tag) tag.after(changed);
+          }
+          changed.textContent = COPY.changedByYou;
+        } else if (changed) changed.remove();
       }
-      toast(final ? 'Marked ' + final + ' — overruling the marking' : 'Back to the marking');
+      toast(final ? COPY.changedByYou : 'Back to the marking');
     });
 
     /* Fold a card down to the name and the colour. Thirty finished pupils is thirty long
@@ -689,20 +711,21 @@ function drawResults(s, students) {
   if (!students.length) {
     $('#results').innerHTML =
       `<div class="card"><h3>${esc(s.topic || '')}</h3>
-        <p class="muted">Nobody has finished yet. Give the class the code <b>${esc((activeClass && activeClass.code) || '')}</b> and leave this page open — it updates by itself.</p>
+        <p class="muted">Nobody has finished yet. Give the class the code <b>${esc((activeClass && activeClass.code) || '')}</b> and leave this page open. It updates by itself.</p>
       </div>`;
     return;
   }
 
   const L = levelsOf(students);
-  const noReasonCount = students.filter(st => (st.verdict || {}).noReason).length;
+  const noReasonCount = students.filter(st => (st.verdict || {}).noReason && !st.teacherLevel).length;
   const order = { red: 0, amber: 1, green: 2 };
+  const shownLevel = (st) => st.teacherLevel || ((st.verdict && st.verdict.level) || 'unclear');
   const shown = students
-    .filter(st => { const lv = (st.verdict && st.verdict.level) || 'amber'; if (resultFilter === 'all') return true; if (resultFilter === 'noreason') return !!(st.verdict && st.verdict.noReason); return lv !== 'green'; })
+    .filter(st => { const lv = shownLevel(st); if (resultFilter === 'all') return true; if (resultFilter === 'noreason') return !!(st.verdict && st.verdict.noReason) && !st.teacherLevel; return lv !== 'green'; })
     .slice()
     .sort((a, b) => {
-      const la = order[(a.verdict && a.verdict.level) || 'amber'] ?? 3;
-      const lb = order[(b.verdict && b.verdict.level) || 'amber'] ?? 3;
+      const la = order[shownLevel(a)] ?? 3;
+      const lb = order[shownLevel(b)] ?? 3;
       if (la !== lb) return la - lb;
       return String(a.name).localeCompare(String(b.name));
     });
@@ -720,100 +743,103 @@ function drawResults(s, students) {
   }).join('');
 
   const rows = shown.map(st => {    const v = st.verdict || {};
-    const lv = st.teacherLevel || v.level || 'amber';
-    const tip = st.teacherLevel ? 'You set this mark.' : lv === 'green' ? 'Really understands it.'
-              : lv === 'amber' ? 'Partly knows it, with clear gaps.'
-              : 'Got little right — needs help.';
+    const lv = st.teacherLevel || v.level || 'unclear';
+    const tip = st.teacherLevel ? COPY.tipYours : lv === 'green' ? COPY.tipGreen
+              : lv === 'amber' ? COPY.tipAmber
+              : lv === 'red' ? COPY.tipRed
+              : COPY.unclear;
     /* The mark points ARE the evidence. The teacher set them, so seeing hit or missed
        against the pupil's own words is a claim they can check - which is the difference
        between a card that tells them something and a card that just has a colour on it. */
     const ev = Array.isArray(v.evidence) ? v.evidence : [];
     const gotAll = ev.reduce((n, e) => n + e.got, 0);
     const ofAll = ev.reduce((n, e) => n + e.total, 0);
+    const notes = st.teacherLevel ? '' : (v.notes && v.notes !== COPY.verdictLabel(lv) ? v.notes : '');
     return `<div class="sresult lv-${esc(lv)}${drawResults.folded && drawResults.folded.has(String(st.name)) ? ' folded' : ''}" data-ailevel="${esc(v.level || '')}">
-      <div class="head"><span class="name">${esc(st.name)}</span><span class="tag lv-${esc(lv)}" data-tip="${esc(tip)}">${esc(lv)}</span></div>
-      ${v.notes ? `<div class="notes">${esc(v.notes)}</div>` : ''}
+      <div class="head"><span class="name">${esc(st.name)}</span><span class="tag lv-${esc(lv)}" data-tip="${esc(tip)}">${esc(COPY.verdictLabel(lv))}</span>${st.teacherLevel ? `<span class="changed">${esc(COPY.changedByYou)}</span>` : ''}</div>
+      ${notes ? `<div class="notes">${esc(notes)}</div>` : ''}
       ${ev.length ? `<div class="evwrap">
-        <div class="evhead" data-tip="Your own mark points, one line each - what they showed and what they did not. The words in quotes are exactly what the pupil typed. The colour comes from the questions, not from this count.">What they had to show <b>${gotAll} of ${ofAll}</b>${v.qs ? ` &middot; something on <b>${v.shown} of ${v.qs}</b> questions` : ''}</div>
+        <div class="evhead" data-tip="Key points from your mark scheme. A tick is one their answer showed. The words in quotes are exactly what the pupil typed.">${esc(COPY.countLine(gotAll, ofAll))}</div>
         ${ev.map(e => `<div class="evq">
           ${e.q ? `<div class="evqt">${esc(e.q)}</div>` : ''}
           <ul class="evlist">${e.points.map(p => `<li class="${p.hit ? 'hit' : 'miss'}">
-            <span class="evmark" data-tip="${p.hit ? 'Their answer showed this.' : 'Nothing they said showed this.'}">${p.hit ? 'yes' : 'no'}</span>
+            <span class="evmark" aria-label="${p.hit ? COPY.tickLabel : COPY.crossLabel}" data-tip="${p.hit ? 'Their answer showed this.' : 'Nothing they said showed this.'}">${p.hit ? COPY.tick : COPY.cross}</span>
             <span class="evt">${esc(p.t)}</span>
             ${p.said ? `<span class="evsaid">"${esc(p.said)}"</span>` : ''}
           </li>`).join('')}</ul>
         </div>`).join('')}
       </div>` : ''}
       <div class="detail">
-        ${!ev.length && v.gets ? `<div><span class="k" data-tip="What they truly understand.">Gets</span>${esc(v.gets)}</div>` : ''}
+        ${!ev.length && v.gets && v.gets !== COPY.verdictLabel(lv) ? `<div><span class="k" data-tip="What they truly understand.">Gets</span>${esc(v.gets)}</div>` : ''}
         ${!ev.length && v.shaky ? `<div><span class="k" data-tip="Where they are weak.">Shaky</span>${esc(v.shaky)}</div>` : ''}
-        ${v.nextStep ? `<div class="nextstep"><span class="k" data-tip="What to go over with this pupil next.">Next</span>${esc(v.nextStep)}</div>` : ''}
+        ${v.nextStep ? `<div class="nextstep" data-tip="What to go over with this pupil next.">${esc(v.nextStep)}${v.nextTry ? `<div class="nexttry">${esc(v.nextTry)}</div>` : ''}</div>` : ''}
         ${v.faked ? `<div class="warn" data-tip="Their answers sounded copied or AI-written.">Possible bluffing</div>` : ''}
       </div>
       <div class="ovrow">
-        <span class="ovlab" data-tip="The teacher has the final say. Anything you change here is remembered, and it helps the marking learn.">You decide</span>
+        <span class="ovlab" data-tip="${esc(COPY.noticeShort)}">${esc(COPY.yourCall)}</span>
         ${['green', 'amber', 'red'].map(x =>
-          `<button type="button" class="ovbtn${lv === x ? ' on' : ''}" aria-pressed="${lv === x}" data-sid="${esc(s.id)}" data-name="${esc(st.name)}" data-lv="${x}">${x}</button>`).join('')}
-        ${st.teacherLevel ? `<span class="ovnote" data-tip="The marking said ${esc(st.aiLevel || '?')}. You changed it.">you changed this</span>` : ''}
+          `<button type="button" class="ovbtn${lv === x ? ' on' : ''}" aria-pressed="${lv === x}" data-sid="${esc(s.id)}" data-name="${esc(st.name)}" data-lv="${x}">${esc(COPY.buttonLabel(x))}</button>`).join('')}
       </div>
       ${st.transcript ? `<details class="transcript"><summary data-tip="Read the conversation word for word.">See their answers</summary><div class="tlog">${tlog(st.transcript)}</div></details>` : ''}
     </div>`;
   }).join('');
 
-  const needHelp = L.amber + L.red;
+  const needHelp = L.amber + L.red + L.unclear;
 
   /* Read the class together. A mark point that most of them missed is usually how it was
      taught, not thirty separate pupils being weak - and that is the one thing a colour
      per child can never show. Only worth saying when it is a real pattern. */
-  const withEv = students.filter(st => ((st.verdict || {}).evidence || []).length).length;
+  const classSize = students.length;
   const missTally = {};
-  students.forEach(st => ((st.verdict || {}).evidence || []).forEach(e => e.points.forEach(p => {
-    if (p.hit) return;
-    if (!missTally[p.t]) missTally[p.t] = { t: p.t, n: 0 };
-    missTally[p.t].n++;
-  })));
-  const worst = Object.keys(missTally).map(k => missTally[k])
+  students.forEach(st => {
+    const seen = new Set();
+    ((st.verdict || {}).evidence || []).forEach(e => e.points.forEach(p => {
+      if (p.hit || seen.has(p.t)) return;
+      seen.add(p.t);
+      if (!missTally[p.t]) missTally[p.t] = { t: p.t, names: new Set() };
+      missTally[p.t].names.add(String(st.name || ''));
+    }));
+  });
+  const worst = Object.keys(missTally).map(k => {
+    const w = missTally[k];
+    return { t: w.t, n: Math.min(w.names.size, classSize) };
+  })
     .sort((a, b) => b.n - a.n)
-    .filter(w => withEv >= 3 && w.n >= 2)
+    .filter(w => classSize >= 3 && w.n >= 2 && w.n <= classSize)
     .slice(0, 3);
 
   /* the point of the whole thing: not colours per child, but one list of who to
      go back to and what to do with them. Read together, the same gap shows up
      again and again - which usually means how it was taught, not who was off. */
   const todo = students
-    .filter(st => ((st.verdict && st.verdict.level) || 'amber') !== 'green')
+    .filter(st => shownLevel(st) !== 'green')
     .sort((a, b) => {
-      const la = order[(a.verdict && a.verdict.level) || 'amber'] ?? 3;
-      const lb = order[(b.verdict && b.verdict.level) || 'amber'] ?? 3;
+      const la = order[shownLevel(a)] ?? 3;
+      const lb = order[shownLevel(b)] ?? 3;
       if (la !== lb) return la - lb;
       return String(a.name).localeCompare(String(b.name));
     })
     .map(st => {
       const v = st.verdict || {};
-      return { name: st.name, lv: v.level || 'amber', next: v.nextStep || v.shaky || '' };
+      return { name: st.name, lv: shownLevel(st), next: v.nextStep || v.shaky || '' };
     });
 
   $('#results').innerHTML =
     `<div class="card">
        <div class="srow"><h3>${esc(s.topic || '')}</h3><span class="small">updates by itself</span></div>
-       <div class="cover">
-         <b>AI guidance, not a grade.</b> This helps you see who needs help, but it can be wrong &mdash; it is not a formal assessment. Please check it before you act on it.
-         <b>Think it got someone wrong? Change their colour:</b> click green, amber or red under their name. Your change is remembered, and the marking keeps its own answer beside it so you can see you changed it.
-       </div>
+       <p class="guide">${esc(COPY.notice)}</p>
        <div class="stat-row">
-         <div class="stat green" data-tip="Really understands it."><b>${L.green}</b><span>get it</span></div>
-         <div class="stat amber" data-tip="Partly knows it, with clear gaps."><b>${L.amber}</b><span>shaky</span></div>
-         <div class="stat red" data-tip="Got little right — needs help."><b>${L.red}</b><span>struggling</span></div>
-         <div class="stat green" data-tip="Right answer, but they did not say why. They may look fine now and fall apart later."><b>${noReasonCount}</b><span>no reason</span></div>
+         <div class="stat green" data-tip="${esc(COPY.tipGreen)}"><b>${L.green}</b><span>${esc(COPY.statGreen)}</span></div>
+         <div class="stat amber" data-tip="${esc(COPY.tipAmber)}"><b>${L.amber}</b><span>${esc(COPY.statAmber)}</span></div>
+         <div class="stat red" data-tip="${esc(COPY.tipRed)}"><b>${L.red}</b><span>${esc(COPY.statRed)}</span></div>
+         <div class="stat green" data-tip="${esc(COPY.tipNoReason)}"><b>${noReasonCount}</b><span>${esc(COPY.statNoReason)}</span></div>
        </div>
        <p class="summary"><b>${students.length}</b> finished · <b>${needHelp}</b> need${needHelp === 1 ? 's' : ''} a hand</p>
        ${worst.length ? `<div class="lostit">
-         <div class="tline"><span class="tk">Re-teach</span><span class="tv">what the class mostly missed</span></div>
-         <ul>${worst.map(w => `<li><span class="lostn">${w.n} of ${withEv}</span>${esc(w.t)}</li>`).join('')}</ul>
-         <div class="lostnote">Read across the class, a point most of them missed is usually how it was taught - not a room full of pupils who were not listening.</div>
+         <ul>${worst.map(w => `<li><div>${esc(COPY.reteachLine(w.t))}</div><div class="lostn">${esc(COPY.missedLine(w.n))}</div></li>`).join('')}</ul>
        </div>` : ''}
        ${todo.length ? `<div class="tomorrow">
-         <div class="tline"><span class="tk">Tomorrow</span><span class="tv">${todo.length} to go back to — and what to do with them</span></div>
+         <div class="tline"><span class="tk">${esc(COPY.goBack(todo.length))}</span></div>
          <ul>${todo.map(t => `<li><i class="dot2 lv-${esc(t.lv)}"></i><b>${esc(t.name)}</b>${t.next ? '<span class="tnext">' + esc(t.next) + '</span>' : ''}</li>`).join('')}</ul>
        </div>` : ''}
        <div class="filters">
@@ -978,10 +1004,11 @@ function renderNamePicker(names) {
   area.innerHTML =
     '<label>Your name</label>' +
     '<select id="studentName">' +
-    '<option value="">Pick your name...</option>' +
+    '<option value="">' + esc(COPY.pickName) + '</option>' +
+    '<option value="__other">' + esc(COPY.addName) + '</option>' +
     names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') +
-    '<option value="__other">My name is not here</option>' +
     '</select>' +
+    '<p class="namehint">' + esc(COPY.joinHint) + '</p>' +
     '<input id="otherName" class="hidden" placeholder="Type your full name" style="margin-top:8px"/>';
   /* If they typed their name into the box before the list arrived, keep it - never wipe what a
      pupil has just typed. A match is preselected; anything else is offered as "not here". */
@@ -1056,7 +1083,7 @@ $('#btnJoin').addEventListener('click', async () => {
       joinCache = { code, data: j };
       if ((j.names || []).length) {
         renderNamePicker(j.names);
-        setMsg($('#joinMsg'), 'Now pick your name from the list.', true);
+        setMsg($('#joinMsg'), COPY.joinHint, true);
         $('#btnJoin').disabled = false;
         return;
       }
@@ -1070,7 +1097,7 @@ $('#btnJoin').addEventListener('click', async () => {
 
   /* Nothing is sent anywhere until the pupil has said they understand where their answers
      go. The tick is what turns a privacy notice into agreement. */
-  if (hasPicker && !pickedName()) return setMsg($('#joinMsg'), 'Pick your name from the list.');
+  if (hasPicker && !pickedName()) return setMsg($('#joinMsg'), COPY.joinPick);
   const tick = document.getElementById('consent');
   if (tick && !tick.checked) return setMsg($('#joinMsg'), 'Please tick the box above first.');
 
@@ -1153,7 +1180,7 @@ async function nextTurn() {
     }
   } catch (e) {
     typing.remove();
-    addBubble('examiner', 'Sorry — something went wrong. Tell your teacher.');
+    addBubble('examiner', 'Sorry, something went wrong. Tell your teacher.');
     setMsg($('#chatMsg'), e.message);
   }
 }
@@ -1267,7 +1294,7 @@ async function finish() {
   $('#progress').textContent = 'Finished';
   const d = document.createElement('div');
   d.className = 'endline';
-  d.textContent = '✓ All done — thanks! Your answers have gone to your teacher.';
+  d.textContent = 'All done. Your answers have gone to your teacher.';
   $('#chat').appendChild(d);
   d.scrollIntoView({ block: 'end', behavior: 'smooth' });
 }
