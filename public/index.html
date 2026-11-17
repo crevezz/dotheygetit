@@ -61,13 +61,13 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
 
     <!-- prominent: the first thing a teacher sees in this tab -->
     <div class="tutbar">
-      <a class="tutbtn" href="/help" data-tip="Fourteen short videos - seven and a half minutes for the lot.">
+      <a class="tutbtn" href="/help" data-copy-tip="videoTip">
         <span class="tutplay" aria-hidden="true">&#9654;</span> Watch the tutorials
       </a>
       <a class="tutdisc" href="https://www.facebook.com/groups/1724704585295277" target="_blank" rel="noopener" data-tip="Ask a question, report a bug, or swap lesson ideas.">
         <span aria-hidden="true">&#128172;</span> Facebook community
       </a>
-      <span class="tutnote">Fourteen short videos &middot; seven and a half minutes for the lot</span>
+      <span class="tutnote" data-copy="videoNote">Fourteen short videos, 8 minutes 50 seconds for the lot</span>
     </div>
 
     
@@ -230,7 +230,7 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
     </div>
 
     <p class="sitenote" style="text-align:center;margin-top:20px">
-      New to it? <a href="/help">Fourteen short videos</a> &mdash; seven and a half minutes for the lot.
+      New to it? <a href="/help">Fourteen short videos</a>, 8 minutes 50 seconds for the lot.
       If you are handing it out tomorrow, start with <em>How pupils join</em>.
     </p>
 
@@ -281,7 +281,7 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
 </main>
 
 <footer class="sitenote">
-  Get It? is a teaching aid, not an assessment. The AI reads the answers and can be wrong. It is guidance to help you decide &mdash; your professional judgement is the one that counts. Provided as-is, with no warranty and no fitness for any formal purpose.
+  Get It? is a teaching aid, not an assessment. The AI reads the answers and can be wrong. It is guidance to help you decide. Your professional judgement is the one that counts. Provided as-is, with no warranty and no fitness for any formal purpose.
  <button type="button" id="cookieSettings" style="background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-decoration:underline">Cookie settings</button> &middot; <a href="/help">Help</a> &middot; <a href="/privacy">Privacy: what is collected, and what happens to it</a> &middot; <a href="https://dotheygetit.app/terms/">Terms</a> &middot; <a href="https://www.facebook.com/groups/1724704585295277" target="_blank" rel="noopener">Facebook community</a> &middot; <a href="mailto:support@dotheygetit.app">support@dotheygetit.app</a> &middot; Made by <a href="https://rapidwebdevs.co.uk" target="_blank" rel="noopener">RapidWeb</a>.</footer>
 
 <div id="toast"></div>
@@ -295,7 +295,7 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
       <span class="qror">or type this code</span>
       <span class="qrcode" id="qrCode"></span>
     </div>
-    <p class="qrhint">Point a phone camera at the code. It opens the join page with the class already filled in. This never changes, so it stays good all year.</p>
+    <p class="qrhint" data-copy="deviceNote">Point a device camera at the code. It opens the join page with the class already filled in. This never changes, so it stays good all year.</p>
     <div class="srow noprint">
       <button class="small-btn" id="btnQrPrint">Print this</button>
       <button class="small-btn" id="btnQrClose">Close</button>
@@ -315,6 +315,7 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
   </div>
 </div>
 
+<script src="copy.js"></script>
 <script src="check-marks.js"></script>
 <script src="app.js"></script>
 </body>

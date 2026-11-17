@@ -225,6 +225,71 @@ const EXTRA = [
       'They had to take the soldiers back because of trouble at home, and it was expensive to stay.': ans([], true)
     },
     read: read('green', 'The army went home and Britain cost too much.') },
+  { name: 'Denom only', topic: 'Equivalent fractions',
+    questions: [
+      'How can you make 3/4 the same as 6/8?',
+      'Why is 3/4 bigger than 2/3?',
+      'What does 2/3 look like if you cut it into sixths?'
+    ],
+    marks: [
+      ['makes 3 into 6', 'makes 4 into 8'],
+      ['3/4 is bigger than 2/3', 'a quarter is bigger than a third'],
+      ['makes 2 into 4', 'makes 3 into 6']
+    ],
+    expect: ['red'],
+    answers: [
+      'Change the 4 into 8 and leave the 3 the same, so 3/4 becomes 3/8',
+      'Because 4 is bigger than 3',
+      'It becomes 2/6: I double the denominator from 3 to 6, but leave the 2 alone'
+    ],
+    byAnswer: {
+      'Change the 4 into 8 and leave the 3 the same, so 3/4 becomes 3/8': ans([2], false),
+      'Because 4 is bigger than 3': ans([], false),
+      'It becomes 2/6: I double the denominator from 3 to 6, but leave the 2 alone': ans([6], true)
+    },
+    read: read('amber', 'They changed some of the numbers.') },
+  { name: 'Denom right', topic: 'Equivalent fractions',
+    questions: [
+      'How can you make 3/4 the same as 6/8?',
+      'Why is 3/4 bigger than 2/3?',
+      'What does 2/3 look like if you cut it into sixths?'
+    ],
+    marks: [
+      ['makes 3 into 6', 'makes 4 into 8'],
+      ['3/4 is bigger than 2/3', 'a quarter is bigger than a third'],
+      ['makes 2 into 4', 'makes 3 into 6']
+    ],
+    expect: ['green'], noReason: false,
+    answers: [
+      'Times the top and the bottom by 2. 3 becomes 6 and 4 becomes 8, so 3/4 is the same as 6/8.',
+      'A quarter is bigger than a third, so 3/4 is bigger than 2/3.',
+      'Split each piece into 2. 2 becomes 4 and 3 becomes 6, so 2/3 is 4/6.'
+    ],
+    byAnswer: {
+      'Times the top and the bottom by 2. 3 becomes 6 and 4 becomes 8, so 3/4 is the same as 6/8.': ans([1, 2], true),
+      'A quarter is bigger than a third, so 3/4 is bigger than 2/3.': ans([3, 4], true),
+      'Split each piece into 2. 2 becomes 4 and 3 becomes 6, so 2/3 is 4/6.': ans([5, 6], true)
+    },
+    read: read('green', 'Both parts of each fraction.') },
+  { name: 'Half the key points', topic: 'The water cycle',
+    questions: [
+      'What happens to rain after it lands?',
+      'Why does it fall again?',
+      'Where does the water go next?'
+    ],
+    marks: [
+      ['it soaks into the ground', 'it runs into rivers'],
+      ['it evaporates and cools', 'clouds get heavy'],
+      ['it flows to the sea', 'it goes round again']
+    ],
+    expect: ['amber'],
+    answers: ['It soaks into the ground.', 'Clouds get heavy.', 'It flows to the sea.'],
+    byAnswer: {
+      'It soaks into the ground.': ans([1], false),
+      'Clouds get heavy.': ans([4], false),
+      'It flows to the sea.': ans([5], false)
+    },
+    read: read('green', 'Something on each question.') },
   { name: 'Romans, no idea', topic: 'Why the Romans left Britain',
     questions: ['Why did the Romans leave Britain?'],
     marks: [['the army was needed back home', 'Britain was costing more than it was worth']],
@@ -293,7 +358,17 @@ function hasKey() {
       const q2 = (v.evidence || [])[1];
       okThree = !!(q2 && q2.points && q2.points[0] && q2.points[0].hit);
     }
-    const ok = okLevel && okReason && okSums && okKai && okThree;
+    let okDenom = true;
+    if (c.name === 'Denom only') {
+      const hitText = (v.evidence || []).flatMap(e => (e.points || []).filter(p => p.hit).map(p => p.t));
+      okDenom = !hitText.some(t => /makes 4 into 8|makes 3 into 6/i.test(t));
+    }
+    let okRight = true;
+    if (c.name === 'Denom right') {
+      const hitText = (v.evidence || []).flatMap(e => (e.points || []).filter(p => p.hit).map(p => p.t));
+      okRight = hitText.some(t => /makes 4 into 8/i.test(t)) && hitText.some(t => /makes 3 into 6/i.test(t));
+    }
+    const ok = okLevel && okReason && okSums && okKai && okThree && okDenom && okRight;
     if (ok) pass++; else fail++;
     const bits = [v.level];
     if (v.noReason) bits.push('no reason');
@@ -302,6 +377,8 @@ function hasKey() {
     if (!okSums) bits.push('a wrong sum still has a tick');
     if (!okKai) bits.push('two quarters was not read as a half');
     if (!okThree) bits.push('3/4 was not kept as three quarters');
+    if (!okDenom) bits.push('a denominator-only step was still ticked');
+    if (!okRight) bits.push('a correct method lost makes 4 into 8 or makes 3 into 6');
     console.log('  ' + (ok ? 'OK  ' : 'FAIL') + '  ' + c.name.padEnd(22) + ' ' + bits.join(', '));
   }
   if (!LIVE && temps.some(t => t !== 0)) {

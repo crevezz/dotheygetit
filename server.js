@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const qrcode = require('qrcode');
 const { chatComplete, describeProvider, runWithUsage, takeUsage } = require('./llm');
 const { sendMail } = require('./netlify/functions/lib/pdf-mail');
+const COPY = require('./public/copy.js');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -1390,9 +1391,16 @@ function dropUndemonstrated(marks, questions, hit, offset) {
       const have = new Set(contentStems(quotes[k]));
       const parts = String(ps[k]).split(/\s+\band\b\s+/i).map(x => x.trim()).filter(part => contentStems(part).length);
       const need = contentStems(ps[k]);
-      const shown = parts.length >= 2
+      const pointNums = nums(ps[k]);
+      const haveNums = nums(quotes[k]);
+      /* "makes 4 into 8" is shown by an answer that says 4 and 8, even when
+         the pupil says "becomes" rather than "makes" and "into". The digits
+         are the point. A point with no digits still has to share a real word,
+         so "towns and cities" does not tick "industrial areas". */
+      const numsShown = pointNums.length > 0 && pointNums.every(n => haveNums.includes(n));
+      const shown = numsShown || (parts.length >= 2
         ? parts.every(part => contentStems(part).some(w => have.has(w)))
-        : (!need.length || need.some(w => have.has(w)));
+        : (!need.length || need.some(w => have.has(w))));
       if (!shown) hit.delete(lo + k);
     }
   }
@@ -1403,10 +1411,10 @@ function tidyFact(s) {
   if (t.length > 90) t = t.slice(0, 87).replace(/\s+\S*$/, '');
   return t;
 }
-/* The NEXT line was a second copy of the summary. Teachers need the gap: which
-   question, and the fact that was missing. Complete misses come first, then a
-   question that was only partly there. Two gaps is enough to act on. */
-function nextStepFromGaps(evidence) {
+/* One teaching move, from the first real gap. Complete misses come first.
+   The line is "Next: recap {skill}" and the question sits underneath as "Try:".
+   A green card does not get this line: the caller clears it. */
+function nextStepFromGaps(evidence, topic) {
   const gaps = [];
   for (const e of evidence || []) {
     const points = e.points || [];
@@ -1417,20 +1425,96 @@ function nextStepFromGaps(evidence) {
       all: points.length > 0 && missed.length === points.length
     });
   }
-  if (!gaps.length) return 'Move on. These answers cover what the questions asked.';
-  const ordered = gaps.filter(g => g.all).concat(gaps.filter(g => !g.all)).slice(0, 2);
-  const bit = (g, n) => {
-    const facts = g.missed.slice(0, n).join('; ');
-    if (!g.q) return facts;
-    const q = g.q.replace(/\?+$/, '').trim();
-    const head = q.charAt(0).toUpperCase() + q.slice(1);
-    return head + '? ' + facts + '.';
+  if (!gaps.length) return { line: '', tryQ: '' };
+  const g = gaps.filter(x => x.all).concat(gaps.filter(x => !x.all))[0];
+  /* Prefer a missed point that already fits the line, so a trim does not
+     drop the useful words off the end of a longer one. */
+  const skill = g.missed.find(m => {
+    const n = m.trim().split(/\s+/).filter(Boolean).length;
+    return n >= 2 && n <= 7;
+  }) || g.missed[0];
+  return {
+    line: COPY.nextLine(skill, topic),
+    tryQ: COPY.tryLine(g.q)
   };
-  /* Two missing facts per question when they fit. If that runs long, keep one
-     fact each so the line is never cut off in the middle of a point. */
-  let line = 'Recap: ' + ordered.map(g => bit(g, 2)).join(' ');
-  if (line.length > 420) line = 'Recap: ' + ordered.map(g => bit(g, 1)).join(' ');
-  return line.replace(/[\u2014\u2013]/g, ',').replace(/\s+/g, ' ').trim();
+}
+
+/* "Change the 4 into 8 and leave the 3" is not partial credit for "makes 4 into 8".
+   The step only counts when the method is right: both parts of the fraction move
+   by the same factor, and the fraction they land on matches the one they started from. */
+function fracParts(s) {
+  const out = [];
+  fracs(s).forEach(f => {
+    const m = String(f).match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (!m) return;
+    const n = Number(m[1]), d = Number(m[2]);
+    if (!d) return;
+    out.push({ n: n, d: d, v: fracValue(n + '/' + d) });
+  });
+  return out;
+}
+function sameAmount(a, b) {
+  return a != null && b != null && Math.abs(a - b) < 1e-6;
+}
+function explicitLeaveNumerator(answer) {
+  const a = String(answer || '');
+  if (/\b(?:do not|don't|dont)\s+leave\b/i.test(a)) return false;
+  if (/\bleave\s+(?:the\s+)?(?:numerator|top number|top)\s+(?:the\s+)?(?:same|alone|unchanged)\b/i.test(a)) return true;
+  if (/\bleave\s+the\s+\d+\s+(?:the\s+)?(?:same|alone|unchanged)\b/i.test(a)) return true;
+  if (/\bleave\s+the\s+\d+\s+alone\b/i.test(a)) return true;
+  if (/\b(?:only|just)\s+(?:change|changed|double|doubled|multiply|multiplied|times)\s+the\s+(?:denominator|bottom)\b/i.test(a)) return true;
+  if (/\b(?:double|change|multiply)\w*\s+the\s+(?:denominator|bottom)\b/i.test(a) && /\bleave\b/i.test(a)) return true;
+  return false;
+}
+/* Fractions the pupil offers as the result, not the ones they were given to start from.
+   "1/4 + 1/2 = 3/4" claims 3/4. "3/4 becomes 3/8" claims 3/8. */
+function claimedResultFractions(answer) {
+  const t = String(answer || '');
+  const out = [];
+  const re = /(?:becomes?|become|equals?|the same as|you get|gives you|it is|it's|which is|=)\s*([^.;:]{0,48})/gi;
+  let m;
+  while ((m = re.exec(t))) fracParts(m[1]).forEach(f => out.push(f));
+  if (!out.length && t.trim().split(/\s+/).filter(Boolean).length <= 8) fracParts(t).forEach(f => out.push(f));
+  return out;
+}
+function denominatorOnlyMisconception(question, answer) {
+  const src = fracParts(question);
+  const text = String(answer || '');
+  if (!src.length || !text.trim()) return false;
+  const explicit = explicitLeaveNumerator(text);
+  let claimed = claimedResultFractions(text);
+  if (!claimed.length && explicit) claimed = fracParts(text);
+  if (!claimed.length) return false;
+  let bad = false, good = false;
+  for (const s of src) {
+    for (const g of claimed) {
+      if (g.n === s.n && g.d === s.d) continue;
+      /* 3/4 to 3/8 keeps the top and stretches the bottom. 1/4 to 1/2 is
+         simplifying, so the new bottom is smaller, and it is not this mistake. */
+      const stretched = g.n === s.n && g.d > s.d && g.d % s.d === 0 && !sameAmount(s.v, g.v);
+      if (stretched) bad = true;
+      if (sameAmount(s.v, g.v)) good = true;
+    }
+  }
+  return bad && !good;
+}
+function voidMisconceptionCredit(answers, marks, questions, hit, offset) {
+  const flagged = [];
+  if (!Array.isArray(answers) || answers.length !== marks.length) return flagged;
+  for (let qi = 0; qi < marks.length; qi++) {
+    if (!denominatorOnlyMisconception((questions && questions[qi]) || '', answers[qi] || '')) continue;
+    flagged.push(qi);
+    const ps = (marks[qi] || []).filter(Boolean);
+    for (let k = 0; k < ps.length; k++) hit.delete(offset[qi] + k);
+  }
+  return flagged;
+}
+function mostlyMisconceptions(g) {
+  if (!g || !(g.misconceptionQs > 0) || !(g.qs > 0)) return false;
+  return g.misconceptionQs * 2 > g.qs && g.full < g.misconceptionQs;
+}
+function pointsCovered(hit, total) {
+  return total > 0 && hit * 2 > total;
 }
 
 async function marksFromAnswers(topic, marks, transcript, questions, year) {
@@ -1500,6 +1584,7 @@ ${points.map((p, i) => ({ n: i + 1, p })).filter(x => x.n - 1 >= lo && x.n - 1 <
 Tick a point only when this answer actually says that point. The same words cannot be the evidence for a different point. "towns and cities" does not show "industrial areas". A person's name does not show an extra fact the pupil did not say.
 Abbreviations and other names for the same thing count. WW2, WWII, World War 2, World War Two and the Second World War are the same answer.
 A right amount ticks the point that names that amount, and the method point that got it there. "3/4" for 1/4 + 1/2 ticks "says three quarters" and "adds the top numbers". A bare number never ticks a why or explain point. A point that only names the claim ("1/2 is bigger") is ticked by that claim. A point that asks why is not.
+Do not tick a point when the method is wrong. Changing only the denominator and leaving the numerator the same is a misconception, not part of a right method. "3/4 becomes 3/8" does not show "makes 4 into 8". "2/3 becomes 2/6" does not show "makes 3 into 6". A point is shown only when this answer's method is mathematically right for the question.
 reason is true only when they explain why, however short. A bare amount is reason false.
 ${yearNote}
 Return ONLY JSON: {"shown":[1],"reason":false}`;
@@ -1760,10 +1845,15 @@ Return ONLY JSON: {"shown":[1],"reason":false}`;
     }
   }
   dropUndemonstrated(marks, questions, hit, offset);
+  /* A denominator-only change is the wrong method. Take the points back, including a
+     step like "makes 4 into 8" that happens to be part of the right method. */
+  const misconceptionQs = paired ? voidMisconceptionCredit(answers, marks, questions, hit, offset).length : 0;
   /* The BAND comes from the QUESTIONS the pupil showed something on, not from the pooled
      points. Both earlier rules failed the same way: per-question voting let a one-point
      question read green, and the pooled share parked a pupil on 36% - a number no teacher
-     can call amber or red. Points are still counted, and still shown, as detail. */
+     can call amber or red. Points are still counted, and still shown, as detail.
+     Green needs more than half the key points, not one tick on every question.
+     Half the points is "partly there", which is amber. */
   const evidence = [];
   let base = 0, hitPool = 0, allPool = 0, blanks = 0, answered = 0, valueQs = 0, valueFirm = 0, valueWrong = 0, valueHedged = 0;
   for (let qi = 0; qi < marks.length; qi++) {
@@ -1804,21 +1894,25 @@ Return ONLY JSON: {"shown":[1],"reason":false}`;
   const fullQs = evidence.filter(e => e.got >= e.total).length;
   /* Every checkable answer wrong is red, even if one why-question picked up a stray
      point. Every checkable answer firmly right is green: green follows the answer.
-     A hedged answer ("I think", "not sure") is not firm, so it stays in the middle
-     unless the questions themselves were shown. Anything else is unchanged:
-     nothing shown is red, something on every question is green, the rest amber. */
+     A hedged answer ("I think", "not sure") is not firm, so it stays in the middle.
+     Nothing shown is red. Green on a mixed check needs more than half the key
+     points, and something on every question. Half the points is amber. A sheet
+     that is mostly the denominator-only misconception is red. */
   const allWrong = valueQs > 0 && valueWrong === valueQs;
   const allFirm = valueQs > 0 && valueFirm === valueQs;
+  const covered = pointsCovered(hitPool, allPool);
+  const mostlyWrong = mostlyMisconceptions({ misconceptionQs: misconceptionQs, qs: qCount, full: fullQs });
   const level = allWrong ? 'red'
+    : mostlyWrong ? 'red'
     : allFirm ? 'green'
     : !shownQs ? 'red'
-    : (shownQs === qCount && !valueHedged) ? 'green'
+    : (shownQs === qCount && !valueHedged && covered) ? 'green'
     : 'amber';
   const whyQs = (questions || []).map((q, i) => (/why|explain|how do you know|how can you tell/i.test(q || '') ? i : -1)).filter(i => i >= 0);
   const reason = whyQs.length ? whyQs.every(i => whyReason[i]) : reasonYes >= qCount;
   return {
     level, hit: hitPool, total: allPool, blanks, shown: shownQs, qs: qCount, full: fullQs,
-    reason, evidence, answered, valueQs, valueFirm, valueWrong, valueHedged
+    reason, evidence, answered, valueQs, valueFirm, valueWrong, valueHedged, misconceptionQs
   };
 }
 
@@ -1870,7 +1964,10 @@ function settleLevel(graded, readLevelRaw, gets) {
   const allWrong = graded.valueQs > 0 && graded.valueWrong === graded.valueQs;
   const allFirm = graded.valueQs > 0 && graded.valueFirm === graded.valueQs;
   const answeredAll = graded.answered === graded.qs && graded.qs > 0;
-  if (read === 'green' && graded.valueQs === 0 && answeredAll) level = 'green';
+  /* A green read can lift a pupil the point list missed entirely, because they
+     used their own words. It cannot lift a pupil who matched half the points
+     or fewer: that count already says partly there. */
+  if (read === 'green' && graded.valueQs === 0 && answeredAll && graded.shown === 0) level = 'green';
   if (allFirm) level = 'green';
   /* "I think" / "not sure" on a sum is not a firm pass, even when every
      phrase on the card was ticked. */
@@ -1879,6 +1976,8 @@ function settleLevel(graded, readLevelRaw, gets) {
   if (read && !fullSheet && !allFirm && rank[read] < rank[level]) level = read;
   if (read === 'red' && !fullSheet && rank[read] < rank[level]) level = 'red';
   if (/^\s*nothing\b/i.test(String(gets || '').trim()) && level !== 'red') level = 'red';
+  /* Mostly misconceptions stays red even if the read said amber. */
+  if (mostlyMisconceptions(graded)) level = 'red';
   return level;
 }
 
@@ -1892,23 +1991,28 @@ function needsTranscriptRead(graded) {
   const allFirm = graded.valueQs > 0 && graded.valueFirm === graded.valueQs;
   const fullSheet = graded.qs > 0 && graded.full === graded.qs;
   if (allWrong) return false;
+  if (mostlyMisconceptions(graded)) return false;
+  /* A full sheet is already green, and a red read is not allowed to pull it
+     down, so the extra read cannot change the colour. Skip it. */
+  if (fullSheet) return false;
   if (allFirm && fullSheet) return false;
   return true;
 }
 
 function cardFromCount(graded) {
   const level = graded.level;
+  const notes = COPY.notesFor(level);
   if (level === 'green') return {
-    level, gotRight: ['the answers'], gets: 'The answers are there.', shaky: '', faked: false,
-    notes: 'The answers line up.', nextStep: 'Solid on the questions that were asked.'
+    level, gotRight: ['the answers'], gets: COPY.verdict.green, shaky: '', faked: false,
+    notes, nextStep: ''
   };
   if (level === 'red') return {
-    level, gotRight: [], gets: 'Little of this yet.', shaky: 'The main idea.', faked: false,
-    notes: 'The answers do not line up.', nextStep: 'The main idea is not there yet.'
+    level, gotRight: [], gets: COPY.verdict.red, shaky: 'The main idea.', faked: false,
+    notes, nextStep: ''
   };
   return {
-    level: 'amber', gotRight: ['part of it'], gets: 'Some of it, not all.', shaky: 'Not the whole idea.', faked: false,
-    notes: 'Some answers line up and some do not.', nextStep: 'Part way there.'
+    level: 'amber', gotRight: ['part of it'], gets: COPY.verdict.amber, shaky: 'Not the whole idea.', faked: false,
+    notes, nextStep: ''
   };
 }
 
@@ -1936,7 +2040,7 @@ async function gradeCheck(topic, transcript, questions, marks, year) {
       const lite = cfg.model;
       const flash = cfg.verdictModel || cfg.model;
       v = await readTranscript(topic, transcript, lite, 280);
-      if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+      if (!v || !v.level) v = { level: 'unclear', gets: '', shaky: '', faked: false, notes: COPY.unclear, nextStep: '' };
       if (graded && flash !== lite) {
         const moved = settleLevel(graded, v.level, v.gets);
         if (moved !== graded.level) {
@@ -1950,9 +2054,9 @@ async function gradeCheck(topic, transcript, questions, marks, year) {
     }
   } catch (e) {
     logError('/api/verdict grading', e.message);
-    v = v && v.level ? v : { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+    v = v && v.level ? v : { level: 'unclear', gets: '', shaky: '', faked: false, notes: COPY.unclear, nextStep: '' };
   }
-  if (!v || !v.level) v = { level: 'amber', gets: '', shaky: '', faked: false, notes: 'Could not read a clear verdict.', nextStep: '' };
+  if (!v || !v.level) v = { level: 'unclear', gets: '', shaky: '', faked: false, notes: COPY.unclear, nextStep: '' };
   try {
     if (graded) {
       v.evidence = graded.evidence;
@@ -1968,8 +2072,16 @@ async function gradeCheck(topic, transcript, questions, marks, year) {
       v.level = settleLevel(graded, readLevelRaw, v.gets);
       v.noReason = v.level === 'green' && !graded.reason;
       /* The model was asked for a description and it copied the summary into NEXT.
-         The gaps are already on the card, so the line is built from the misses. */
-      if (Array.isArray(graded.evidence) && graded.evidence.length) v.nextStep = nextStepFromGaps(graded.evidence);
+         The gaps are already on the card, so the line is built from the misses.
+         Green means the key points are there, so it does not also say "recap". */
+      if (v.level === 'green') {
+        v.nextStep = '';
+        v.nextTry = '';
+      } else if (Array.isArray(graded.evidence) && graded.evidence.length) {
+        const step = nextStepFromGaps(graded.evidence, topic);
+        v.nextStep = step.line;
+        v.nextTry = step.tryQ;
+      }
       if (/^\s*nothing\b/i.test(String(v.gets || '').trim()) && v.level === 'red') {
         v.cappedBy = String(v.gets || '').trim().slice(0, 80);
       }
@@ -1986,6 +2098,8 @@ function verdictSystem(topic) {
 Judge the idea, not the spelling. A right answer in rough words is still right.
 green = the main idea is right. amber = part of it is right, with a real gap. red = they did not answer, or the idea itself is wrong.
 If the sums are right but the explanation is the wrong idea, the level is red.
+Changing only the denominator, and leaving the numerator the same, is the wrong idea. That level is red, not amber.
+If you cannot tell, do not invent a level. Leave level empty.
 A true fact that does not answer the question is not a point.
 faked is true only when the wording is copied or machine-written, not when a child is simply wrong.
 Return ONLY JSON:
@@ -2375,7 +2489,7 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
         .map(s => {
           const levels = { green: 0, amber: 0, red: 0 };
           s.students.forEach(st => {
-            const l = (st.verdict && st.verdict.level) || 'amber';
+            const l = st.teacherLevel || (st.verdict && st.verdict.level) || 'unclear';
             levels[l] = (levels[l] || 0) + 1;
           });
           return { id: s.id, topic: s.topic, createdAt: s.createdAt, students: s.students.length, questions: s.questions || [], levels };
