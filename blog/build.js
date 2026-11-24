@@ -55,6 +55,7 @@ const ORIGINAL = {
     title: 'Exit tickets: why teachers stop using them',
     desc: 'Exit tickets are good practice. The paper is the problem. Four reasons they get abandoned within a term, and how to keep the ritual without the pile.',
     date: '2026-09-20',
+    dateModified: '2026-11-24',
     mins: 6
   },
   'pupils-quietly-faking-it': {
@@ -743,7 +744,7 @@ function main() {
       title: post.title,
       desc: post.desc,
       date: post.date,
-      dateModified: slug in ORIGINAL ? '2026-10-27' : (post.dateModified || post.date),
+      dateModified: slug in ORIGINAL ? (post.dateModified || '2026-10-27') : (post.dateModified || post.date),
       mins: post.mins
     };
   });

@@ -1,30 +1,31 @@
 module.exports = {
   slug: 'spot-misconceptions-in-lesson',
-  title: 'Spot misconceptions before the lesson ends',
+  title: 'How to spot misconceptions in a lesson',
   h1: 'How to spot misconceptions <em>before</em> the end of the lesson',
   desc: 'A misconception is a wrong idea that hangs together, not a slip. How to hear it while you can still reteach it, with checks that fit the last part of a lesson.',
-  metaDesc: 'How to spot misconceptions before the end of the lesson. The difference between a slip and a wrong idea, and what to do with the time left.',
-  twitter: 'How to spot a misconception while the lesson is still going, and what to reteach before the bell.',
+  metaDesc: 'How to spot misconceptions in a lesson. Tell a slip from a wrong idea, then use the minutes you still have. For UK KS3 to GCSE teachers.',
+  twitter: 'How to spot misconceptions in a lesson. Tell a slip from a wrong idea, and what to do before the bell.',
   date: '2026-10-27',
+  dateModified: '2026-11-24',
   mins: 8,
   lede: 'A wrong answer is not always a misconception. Sometimes they rushed. A misconception is a wrong idea that makes sense to the person holding it, which is why it shows up again in the next question, wearing a different example.',
   related: ['hinge-questions', 'pupils-quietly-faking-it', 'checking-for-understanding'],
   faq: [
     {
       q: 'What is a misconception in the classroom?',
-      a: 'A misconception is a wrong idea that is internally consistent. The pupil can explain it, and they will use it again on a new question. A slip is inconsistent: they get it right a moment later, or they cannot repeat the error on purpose. The reteach is different for each.'
+      a: 'A misconception is a wrong idea that still makes sense to the pupil. They can explain it, and they will use it again on a new question. A slip is a one-off: they get it right a moment later, or they cannot repeat the error on purpose. The reteach is different for each.'
     },
     {
-      q: 'How do you identify student misconceptions?',
-      a: 'Ask for the reason, not only the answer. Give a new example of the same idea and see whether the same error returns. Use a question where each wrong option is a mistake you have heard before. Listen for the phrases: "because the bottom number is bigger", "the current gets used up", "it is biased so it is useless".'
+      q: 'How do you spot misconceptions in a lesson?',
+      a: 'Look at the reason, then try the same idea on a new example. If the same error comes back, it is a misconception, not a slip. Use a question where each wrong option is a mistake you have heard before, and listen for the phrases that give the idea away, such as "because the bottom number is bigger", "the current gets used up", or "it is biased so it is useless".'
     },
     {
       q: 'What is the difference between a mistake and a misconception?',
-      a: 'A mistake or a slip is often a lapse: a sign error, a missed word, a moment of not reading. A misconception survives an explanation and reappears when the surface of the question changes. Correcting a slip is a reminder. Correcting a misconception means replacing the model, then checking the new model on a fresh question.'
+      a: 'A mistake or a slip is often a lapse: a sign error, a missed word, a moment of not reading. A misconception survives an explanation and shows up again when you change the example. Correcting a slip is a reminder. Correcting a misconception means replacing the idea, then checking it on a fresh question.'
     },
     {
       q: 'What should I do if I find a misconception near the end of the lesson?',
-      a: 'Do not start a new topic, and do not set thirty different corrections. Name the wrong idea without naming the pupil, show why it feels right, teach the replacement in one example, and ask one new question before they leave. If you are out of time, that new question is tomorrow\'s starter. Do not hope the homework will fix a model.'
+      a: 'Do not start a new topic, and do not set a long list of corrections. Name the wrong idea without naming the pupil. Show why it feels right, teach the better idea in one example, and ask one new question before they leave. If you are out of time, that new question is tomorrow\'s starter. Do not hope the homework will fix it.'
     }
   ],
   body: `
