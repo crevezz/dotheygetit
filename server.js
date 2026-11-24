@@ -156,14 +156,17 @@ function ipOf(req) {
   const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   return fwd || req.socket.remoteAddress || 'unknown';
 }
-function tooMany(req, bucket, max, winMs) {
-  const k = bucket + ':' + ipOf(req), now = Date.now();
-  let a = HITS.get(k);
-  if (!a) { a = []; HITS.set(k, a); }
+function tooManyKey(key, max, winMs) {
+  const now = Date.now();
+  let a = HITS.get(key);
+  if (!a) { a = []; HITS.set(key, a); }
   while (a.length && now - a[0] > winMs) a.shift();
   if (a.length >= max) return true;
   a.push(now);
   return false;
+}
+function tooMany(req, bucket, max, winMs) {
+  return tooManyKey(bucket + ':' + ipOf(req), max, winMs);
 }
 // keep the map from growing forever
 setInterval(() => {
@@ -463,6 +466,108 @@ function publicTeacher(t) {
     marketing_opt_out: marketingOptOut(t),
     marketing_choice_at: (t && t.marketing_choice_at) || null
   };
+}
+
+/* Forgotten password. The reply is the same whether or not the email has an
+   account, so the form cannot be used to find out who signed up. The link in
+   the email is the only secret. We store a hash of it, it lasts an hour, and
+   a successful reset wipes every outstanding link for that account. The mail
+   goes through the same Private Email mailbox as the welcome note
+   (PRIVATEEMAIL_PASSWORD). No new service. */
+const RESET_SENT = 'If that email has an account, a reset link is on its way. It lasts an hour and works once.';
+const RESET_BAD = 'That reset link has expired or has already been used. Request a new one.';
+function envInt(name, fallback, max) {
+  const raw = process.env[name];
+  if (raw == null || String(raw).trim() === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  const v = Math.floor(n);
+  return max && v > max ? max : v;
+}
+function resetTtlMs() { return envInt('RESET_TTL_MS', 60 * 60 * 1000, 24 * 60 * 60 * 1000); }
+function resetQuietMs() {
+  const raw = process.env.RESET_QUIET_MS;
+  if (raw == null || String(raw).trim() === '') return 60000;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return 60000;
+  return Math.floor(n);
+}
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+function resetHashesMatch(stored, token) {
+  let a, b;
+  try {
+    a = crypto.createHash('sha256').update(String(token)).digest();
+    b = Buffer.from(String(stored || ''), 'hex');
+  } catch { return false; }
+  if (b.length !== a.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+function liveResets(t, now) {
+  const list = t && Array.isArray(t.resets) ? t.resets : [];
+  return list.filter(r => r && r.hash && r.exp > now);
+}
+function teacherForReset(token) {
+  const raw = String(token || '').trim();
+  if (raw.length < 20 || raw.length > 200) return null;
+  const now = Date.now();
+  for (const t of store.teachers) {
+    for (const r of liveResets(t, now)) {
+      if (resetHashesMatch(r.hash, raw)) return t;
+    }
+  }
+  return null;
+}
+function clearResets(t) {
+  if (t) delete t.resets;
+}
+function signOutTeacher(id) {
+  if (!id) return;
+  for (const tok of Object.keys(store.tokens)) {
+    if (store.tokens[tok] === id) delete store.tokens[tok];
+  }
+  forgetTeacher(id);
+}
+function passwordResetMail(email, link) {
+  const to = clipLine(email).toLowerCase();
+  if (!to || !to.includes('@')) return null;
+  const safe = escHtml(link);
+  const text = [
+    'Hi,',
+    '',
+    'Someone asked to reset the password on this Get It? account.',
+    'If that was you, open this link. It works once and lasts an hour:',
+    '',
+    link,
+    '',
+    "If you didn't ask, ignore this email. Your password stays as it is.",
+    '',
+    'Craig'
+  ].join('\n');
+  const linkStyle = 'color:#4f8cff;text-decoration:underline';
+  const html =
+    '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">' +
+    '<p style="margin:0 0 12px">Hi,</p>' +
+    '<p style="margin:0 0 12px">Someone asked to reset the password on this Get It? account.</p>' +
+    '<p style="margin:0 0 12px">If that was you, open this link. It works once and lasts an hour.</p>' +
+    '<p style="margin:0 0 10px"><a href="' + safe + '" style="display:inline-block;background:#4f8cff;color:#ffffff;padding:14px 22px;border-radius:8px;font-weight:700;text-decoration:none;font-size:16px">Reset password</a></p>' +
+    '<p style="margin:0 0 16px"><a href="' + safe + '" style="' + linkStyle + '">' + safe + '</a></p>' +
+    '<p style="margin:0 0 12px">If you didn\'t ask, ignore this email. Your password stays as it is.</p>' +
+    '<p style="margin:0">Craig</p>' +
+    '</div>';
+  return { to, subject: 'Reset your Get It? password', text, html };
+}
+let deliverResetMail = (mail) => sendMail(mail.to, mail.subject, mail.text, mail.html);
+function setResetMailDelivery(fn) {
+  deliverResetMail = typeof fn === 'function'
+    ? fn
+    : (mail) => sendMail(mail.to, mail.subject, mail.text, mail.html);
+}
+function noteResetMailError(e) { noteSignupMailError('password reset mail failed', e); }
+function sendResetMail(mail) {
+  if (!mail) return;
+  Promise.resolve().then(() => deliverResetMail(mail)).catch(noteResetMailError);
 }
 
 // ----------------------------------------------------------------------- llm
@@ -2162,6 +2267,7 @@ function serveStatic(req, res, p) {
   let rel = p === '/' ? 'index.html' : p;
   if (rel === '/help' || rel === '/help/') rel = 'help.html';           // the tutorials page
   if (rel === '/privacy' || rel === '/privacy/') rel = 'privacy.html';  // the privacy notice
+  if (rel === '/reset') rel = 'index.html';                             // forgot-password page
   const file = path.join(PUBLIC, rel);
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end('no'); }
 
@@ -2209,6 +2315,11 @@ const server = http.createServer((req, res) => runWithUsage(async () => {
   const p = url.pathname;
 
   try {
+    /* A trailing slash would make the page ask for /reset/styles.css. */
+    if (p === '/reset/') {
+      res.writeHead(302, { Location: '/reset' + (url.search || '') });
+      return res.end();
+    }
     if (!p.startsWith('/api/')) return serveStatic(req, res, p);
 
     // ---- health
@@ -2958,8 +3069,60 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
       if (next === cur) return sendErr(res, 'That is already your password.');
       t.salt = rid(8);
       t.hash = hashPass(next, t.salt);
+      clearResets(t);
       saveStore();
       return sendJson(res, { ok: true });
+    }
+
+    /* Ask for a reset link. Always the same reply, so a missing account looks
+       like one that exists. A second click within a minute does not send a
+       second email or kill the link already on its way. */
+    if (p === '/api/forgot' && req.method === 'POST') {
+      const ipMax = envInt('RESET_IP_MAX', 10, 100);
+      if (tooMany(req, 'reset', ipMax, 3600000)) {
+        return sendErr(res, 'Too many reset requests from here just now. Try again shortly.', 429);
+      }
+      const b = await readBody(req);
+      const email = String(b.email || '').trim().toLowerCase().slice(0, 254);
+      if (!email || !email.includes('@')) return sendErr(res, 'Please enter a valid email.');
+      const t = store.teachers.find(x => x.email === email);
+      const now = Date.now();
+      const quiet = resetQuietMs();
+      const outstanding = t ? liveResets(t, now) : [];
+      const latest = outstanding.length ? outstanding[outstanding.length - 1] : null;
+      const held = !!(latest && (now - (latest.at || 0)) < quiet);
+      if (t && !held) {
+        const emailMax = envInt('RESET_EMAIL_MAX', 3, 20);
+        if (!tooManyKey('reset-mail:' + email, emailMax, 3600000)) {
+          const token = crypto.randomBytes(32).toString('base64url');
+          outstanding.push({ hash: hashResetToken(token), exp: now + resetTtlMs(), at: now });
+          t.resets = outstanding;
+          saveStore();
+          try {
+            sendResetMail(passwordResetMail(t.email, APP_URL + '/reset?token=' + encodeURIComponent(token)));
+          } catch (e) { noteResetMailError(e); }
+        }
+      }
+      return sendJson(res, { ok: true, message: RESET_SENT });
+    }
+
+    // ---- set a new password from the emailed link
+    if (p === '/api/reset' && req.method === 'POST') {
+      if (tooMany(req, 'reset-use', 20, 3600000)) {
+        return sendErr(res, 'Too many attempts. Wait a minute and try again.', 429);
+      }
+      const b = await readBody(req);
+      const next = String(b.password || '');
+      if (next.length < 6) return sendErr(res, 'The new password must be at least 6 characters.');
+      const t = teacherForReset(b.token);
+      if (!t) return sendErr(res, RESET_BAD);
+      if (hashPass(next, t.salt) === t.hash) return sendErr(res, 'That is already your password.');
+      t.salt = rid(8);
+      t.hash = hashPass(next, t.salt);
+      clearResets(t);
+      signOutTeacher(t.id);
+      saveStore();
+      return sendJson(res, { ok: true }, { 'Set-Cookie': 'sid=; HttpOnly; Path=/; Max-Age=0' });
     }
 
     // ---- one pupil: every check they have done, oldest first
@@ -3070,4 +3233,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut, signupNotice, notifyNewSignup, signupWelcome, welcomeNewSignup, setSignupNoticeDelivery, formatLondon };
+module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut, signupNotice, notifyNewSignup, signupWelcome, welcomeNewSignup, setSignupNoticeDelivery, formatLondon, server, passwordResetMail, setResetMailDelivery, RESET_SENT, RESET_BAD };

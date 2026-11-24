@@ -94,7 +94,34 @@ let pollTimer = null;
 let hereTimer = null;
 let liveTimer = null;
 
+function onResetPage() {
+  return location.pathname === '/reset' || location.pathname === '/reset/';
+}
+
+function showResetPage() {
+  $('#signinCard').classList.add('hidden');
+  $('#dash').classList.add('hidden');
+  const tut = document.querySelector('.tutbar');
+  if (tut) tut.classList.add('hidden');
+  const token = window.__resetToken || '';
+  const request = $('#resetRequest');
+  const choose = $('#resetChoose');
+  if (token) {
+    request.classList.add('hidden');
+    choose.classList.remove('hidden');
+    $('#resetPass').focus();
+  } else {
+    choose.classList.add('hidden');
+    request.classList.remove('hidden');
+    $('#resetEmail').focus();
+  }
+}
+
 async function boot() {
+  if (onResetPage()) {
+    showResetPage();
+    return;
+  }
   try { const j = await api('/api/me'); me = j.teacher; } catch { me = null; }
   if (me) {
     $('#signinCard').classList.add('hidden');
@@ -131,6 +158,50 @@ function startHere() {
 
 $('#btnLogin').addEventListener('click', () => doAuth('/api/login'));
 $('#btnSignup').addEventListener('click', () => doAuth('/api/signup'));
+
+const RESET_SENT = 'If that email has an account, a reset link is on its way. It lasts an hour and works once.';
+
+$('#btnResetSend').addEventListener('click', async () => {
+  setMsg($('#resetSendMsg'), '');
+  const email = $('#resetEmail').value.trim();
+  if (!email || email.indexOf('@') < 1) return setMsg($('#resetSendMsg'), 'Enter your email.');
+  const btn = $('#btnResetSend');
+  btn.disabled = true;
+  try {
+    const j = await post('/api/forgot', { email });
+    setMsg($('#resetSendMsg'), j.message || RESET_SENT, true);
+  } catch (e) {
+    setMsg($('#resetSendMsg'), e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+$('#resetEmail').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#btnResetSend').click();
+});
+
+$('#btnResetSave').addEventListener('click', async () => {
+  setMsg($('#resetSaveMsg'), '');
+  const password = $('#resetPass').value;
+  const again = $('#resetPass2').value;
+  if (password.length < 6) return setMsg($('#resetSaveMsg'), 'Six characters or more.');
+  if (password !== again) return setMsg($('#resetSaveMsg'), 'Those two passwords do not match.');
+  const btn = $('#btnResetSave');
+  btn.disabled = true;
+  try {
+    await post('/api/reset', { token: window.__resetToken || '', password });
+    window.__resetToken = '';
+    $('#resetPass').value = '';
+    $('#resetPass2').value = '';
+    setMsg($('#resetSaveMsg'), 'Password saved. You can sign in with it now.', true);
+  } catch (e) {
+    setMsg($('#resetSaveMsg'), e.message);
+    btn.disabled = false;
+  }
+});
+$('#resetPass2').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#btnResetSave').click();
+});
 
 async function doAuth(path) {
   setMsg($('#authMsg'), '');

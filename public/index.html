@@ -92,6 +92,7 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
       <input id="authEmail" type="email" placeholder="you@school.sch.uk" autocomplete="email"/>
       <label>Password</label>
       <input id="authPass" type="password" placeholder="At least 6 characters" autocomplete="current-password"/>
+      <p class="forgot"><a href="/reset" id="forgotLink">Forgot password?</a></p>
       <input id="authInvite" type="password" placeholder="Invite code" autocomplete="off" style="display:none"/>
       <label class="optout">
         <input type="checkbox" id="authMarketingOptOut" name="marketing_opt_out"/>
@@ -105,6 +106,32 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
         <button id="btnSignup" class="ghost" data-tip="First time here? This makes your account.">Create account</button>
       </div>
       <p class="msg" id="authMsg"></p>
+    </div>
+
+    <div class="card narrow hidden" id="resetRequest">
+      <h2>Reset your password</h2>
+      <p class="muted">Enter the email on your account. If we have it, we'll send a link. It lasts an hour and works once.</p>
+      <label>Email</label>
+      <input id="resetEmail" type="email" placeholder="you@school.sch.uk" autocomplete="email"/>
+      <div class="btnrow">
+        <button id="btnResetSend" class="primary" type="button">Email me a link</button>
+      </div>
+      <p class="msg" id="resetSendMsg"></p>
+      <p class="forgot"><a href="/">Back to sign in</a></p>
+    </div>
+
+    <div class="card narrow hidden" id="resetChoose">
+      <h2>Choose a new password</h2>
+      <p class="muted">At least 6 characters. You can sign in with it straight after.</p>
+      <label>New password</label>
+      <input id="resetPass" type="password" placeholder="At least 6 characters" autocomplete="new-password"/>
+      <label>Type it again</label>
+      <input id="resetPass2" type="password" placeholder="Same password again" autocomplete="new-password"/>
+      <div class="btnrow">
+        <button id="btnResetSave" class="primary" type="button">Save password</button>
+      </div>
+      <p class="msg" id="resetSaveMsg"></p>
+      <p class="forgot"><a href="/">Back to sign in</a></p>
     </div>
 
     <div class="hidden" id="dash">
@@ -315,6 +342,24 @@ gtag("set","ads_data_redaction",true);gtag("set","url_passthrough",true);
   </div>
 </div>
 
+<script>
+/* Take the reset token out of the address bar before anything else runs,
+   so it is not sent to analytics or left behind for the next link click. */
+window.__resetToken = '';
+(function () {
+  var path = location.pathname;
+  if (path !== '/reset' && path !== '/reset/') return;
+  var token = '';
+  try { token = new URLSearchParams(location.search).get('token') || ''; } catch (e) {}
+  if (!token) return;
+  window.__resetToken = token;
+  var meta = document.createElement('meta');
+  meta.name = 'referrer';
+  meta.content = 'no-referrer';
+  document.head.appendChild(meta);
+  try { history.replaceState(null, '', '/reset'); } catch (e) {}
+})();
+</script>
 <script src="copy.js"></script>
 <script src="check-marks.js"></script>
 <script src="app.js"></script>
