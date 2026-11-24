@@ -12,6 +12,7 @@
     "test:nurture": "node test-nurture.js",
     "test:opt-out": "node test-marketing-opt-out.js",
     "test:signup-notify": "node test-signup-notify.js",
+    "test:reset": "node test-password-reset.js",
     "ads": "node marketing/ad.js",
     "adfilm": "node marketing/ad-film.js",
     "story": "node tutorial/story-voice.js",

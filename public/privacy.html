@@ -117,7 +117,9 @@
       persistent storage, recent data can be lost - so do not treat this as a permanent record. Export
       anything you need to keep.</li>
     <li>Teacher accounts are separate: an email and a password, stored hashed, and a sign-in cookie that
-      keeps a teacher logged in for 30 days. The cookie is not used to track anyone.</li>
+      keeps a teacher logged in for 30 days. The cookie is not used to track anyone. A forgotten-password
+      link is emailed to that address. The link is stored as a hash, lasts an hour, works once, and is
+      removed when the password changes.</li>
   </ul>
 
   <h2>What is not done</h2>
