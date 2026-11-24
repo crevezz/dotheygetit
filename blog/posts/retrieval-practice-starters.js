@@ -1,11 +1,12 @@
 module.exports = {
   slug: 'retrieval-practice-starters',
-  title: 'Retrieval starters that show what stuck',
+  title: 'Retrieval practice starters that show what stuck',
   h1: 'Retrieval practice starters: do-now ideas that show you <em>what stuck</em>',
   desc: 'Retrieval practice starters and do-now ideas for KS3 and GCSE. Short tasks that bring last lesson back, and a way to see who has kept it.',
   metaDesc: 'Retrieval practice starters and do-now ideas for KS3 and GCSE. What to ask, what to skip, and how to see what actually stuck.',
   twitter: 'Retrieval practice starters and do-now ideas that show you what stuck, not who copied the date.',
   date: '2026-10-27',
+  dateModified: '2026-11-24',
   mins: 8,
   lede: 'A retrieval starter asks pupils to bring something back from memory, before you teach anything new and before the books are open. A do-now that is just on the board to be copied is a settling task. It is not retrieval.',
   related: ['exit-ticket-ideas', 'spot-misconceptions-in-lesson', 'assessment-for-learning-strategies'],

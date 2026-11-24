@@ -3,15 +3,16 @@ module.exports = {
   title: 'Exit ticket ideas that show who got it',
   h1: 'Exit ticket ideas: examples that tell you <em>who got it</em>',
   desc: 'One exit ticket question per subject, written so a wrong answer tells you what to reteach. Maths, English, science and the rest of the timetable.',
-  metaDesc: 'Exit ticket ideas for maths, English, science and the rest of a UK timetable. One question each, so a wrong answer tells you what to reteach.',
+  metaDesc: 'Exit ticket ideas and questions for maths, English, science and the rest of a UK timetable. One question each, so a wrong answer tells you what to reteach.',
   twitter: 'Exit ticket ideas by subject. One question, written so you can see who understood before the bell.',
   date: '2026-10-27',
+  dateModified: '2026-11-24',
   mins: 8,
   lede: 'An exit ticket is one question at the bell. Most of the lists online would fit any lesson, which is why they fit none. Here are questions you can put on the board, and what the answers are actually telling you.',
   related: ['exit-tickets-why-teachers-stop', 'hinge-questions', 'retrieval-practice-starters'],
   faq: [
     {
-      q: 'What are good exit ticket ideas?',
+      q: 'What are good exit ticket questions?',
       a: 'A good exit ticket is one question about the point of the lesson, written so it cannot be copied off the board. Ask for the first step rather than the final answer, ask pupils to spot a realistic mistake, or give them a new example of the same idea. A wrong answer should tell you what to reteach.'
     },
     {
@@ -20,7 +21,7 @@ module.exports = {
     },
     {
       q: 'How long should an exit ticket take?',
-      a: 'Two or three minutes of pupil time is enough. One question. If it needs a paragraph, you will not read thirty of them before the next class, and the ticket stops being useful the same week you start it.'
+      a: 'Two or three minutes of pupil time is enough. One question. If it needs a paragraph, you will not get them all read before the next class, and the ticket stops being useful the same week you start it.'
     },
     {
       q: 'What should I do with exit ticket answers?',
@@ -30,7 +31,7 @@ module.exports = {
   body: `
 <p>"Three things I learnt", "one question I still have", "confidence from one to five": they feel productive and tell you almost nothing. The pupil who is lost writes "nothing" or a 4. The pupil who has got it writes a paragraph you do not need.</p>
 
-<p>This page is the questions. Why teachers start exit tickets and quietly drop them &mdash; the pile, the deadline, the anonymous slip &mdash; is a different problem, covered in <a href="/exit-tickets-why-teachers-stop">why exit tickets get abandoned</a>. The questions below are written so a wrong answer is useful. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. More of these notes are on <a href="/blog/">the blog</a>.</p>
+<p>This page is the questions. Why teachers start exit tickets and then quietly drop them (the pile, the deadline, the anonymous slip) is a different problem, covered in <a href="/exit-tickets-why-teachers-stop">why exit tickets get abandoned</a>. The questions below are written so a wrong answer is useful. For a wider look at what is actually free in a UK school, see <a href="/free-formative-assessment-tools">free formative assessment tools</a>. More of these notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>What a usable exit ticket does</h2>
 
@@ -90,6 +91,6 @@ module.exports = {
 
 <p>Put names on. Anonymous slips tell you the piles exist and not who is in them. The next morning, repeat the question with the surface changed. That is a <a href="/retrieval-practice-starters">retrieval starter</a>, and it shows whether yesterday's correction survived the evening.</p>
 
-<p>If the carrier bag of paper is why you stopped, the question does not have to live on a slip. <a href="/thank-you/">Get It?</a> drafts the questions, you edit them, and pupils answer on a phone or a school device with a code. No account. In two minutes you see who has got it, who is unsure, and who needs help. Free for a limited time, no card. If the room has no devices, use the slip.</p>
+<p>If the carrier bag of paper is why you stopped, the question does not have to live on a slip. <a href="/thank-you/">Get It?</a> drafts the questions, you edit them, and pupils answer on a device with a code. No account. In two minutes you see who has got it, who is unsure, and who needs help. Free plan, no card needed. If the room has no devices, use the slip.</p>
 `
 };
