@@ -2308,6 +2308,151 @@ function latestSessionForClass(classId) {
   return list[0] || null;
 }
 
+/* Owner directory. lastActive is the newest check or answer already stored
+   on that teacher's classes — nothing new is written, and pupil names stay
+   out of the payload. recentChecks is the latest few checks only. */
+const ADMIN_RECENT_CHECKS = 8;
+function sessionActivity(s) {
+  let lastAnswerAt = 0;
+  const students = (s && s.students) || [];
+  for (const st of students) {
+    const at = (st && st.at) || 0;
+    if (at > lastAnswerAt) lastAnswerAt = at;
+  }
+  const at = (s && s.createdAt) || 0;
+  return { at, lastAnswerAt, activity: Math.max(at, lastAnswerAt), answers: students.length };
+}
+function adminTeacherRows() {
+  const byClass = new Map();
+  for (const s of store.sessions) {
+    if (!s || !s.classId) continue;
+    let list = byClass.get(s.classId);
+    if (!list) { list = []; byClass.set(s.classId, list); }
+    list.push(s);
+  }
+  const classesByTeacher = new Map();
+  for (const c of store.classes) {
+    if (!c || !c.teacherId) continue;
+    let list = classesByTeacher.get(c.teacherId);
+    if (!list) { list = []; classesByTeacher.set(c.teacherId, list); }
+    list.push(c);
+  }
+  const teachers = store.teachers.map(x => {
+    let lastActive = 0;
+    const recent = [];
+    const classes = [];
+    for (const c of classesByTeacher.get(x.id) || []) {
+      const checks = byClass.get(c.id) || [];
+      let students = 0;
+      let classLast = 0;
+      for (const s of checks) {
+        const act = sessionActivity(s);
+        students += act.answers;
+        if (act.activity > classLast) classLast = act.activity;
+        if (act.activity > lastActive) lastActive = act.activity;
+        recent.push({
+          topic: s.topic || '',
+          at: act.at,
+          lastAnswerAt: act.lastAnswerAt || null,
+          className: c.name || '',
+          code: c.code || '',
+          answers: act.answers,
+          activity: act.activity
+        });
+      }
+      classes.push({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        year: c.year || '',
+        checks: checks.length,
+        students,
+        lastAt: classLast || null
+      });
+    }
+    recent.sort((a, b) => b.activity - a.activity || b.at - a.at);
+    return {
+      id: x.id,
+      email: x.email,
+      role: x.role || 'teacher',
+      createdAt: x.createdAt,
+      marketing_opt_out: marketingOptOut(x),
+      marketing_choice_at: x.marketing_choice_at || null,
+      lastActive: lastActive || null,
+      classes,
+      recentChecks: recent.slice(0, ADMIN_RECENT_CHECKS).map(r => ({
+        topic: r.topic,
+        at: r.at,
+        lastAnswerAt: r.lastAnswerAt,
+        className: r.className,
+        code: r.code,
+        answers: r.answers
+      })),
+      checkCount: classes.reduce((n, c) => n + c.checks, 0),
+      studentCount: classes.reduce((n, c) => n + c.students, 0)
+    };
+  });
+  teachers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0) || String(a.email || '').localeCompare(String(b.email || '')));
+  return teachers;
+}
+
+/* Read-only list for the marketing assistant. The browser login is not enough:
+   the caller must send Authorization: Bearer <ADMIN_EXPORT_TOKEN>. The route
+   does not exist when that variable is unset. The token is never logged, and
+   it is not accepted from the query string (that would land in an error log). */
+function adminExportSecret() {
+  const raw = process.env.ADMIN_EXPORT_TOKEN;
+  if (raw == null) return '';
+  return String(raw).trim();
+}
+function exportTokenEqual(given, secret) {
+  const left = Buffer.from(String(given == null ? '' : given), 'utf8');
+  const right = Buffer.from(String(secret == null ? '' : secret), 'utf8');
+  const len = Math.max(left.length, right.length, 1);
+  const a = Buffer.alloc(len);
+  const b = Buffer.alloc(len);
+  left.copy(a);
+  right.copy(b);
+  return crypto.timingSafeEqual(a, b) && left.length === right.length && right.length > 0;
+}
+function bearerCredential(req) {
+  const raw = req && req.headers ? req.headers.authorization : '';
+  if (typeof raw !== 'string' || raw.length > 1200) return '';
+  const m = /^Bearer[ \t]+(\S+)\s*$/i.exec(raw);
+  if (!m || m[1].length > 1024) return '';
+  return m[1];
+}
+function isoOrNull(ms) {
+  if (!ms) return null;
+  const d = new Date(ms);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+function adminExportTeachers() {
+  return adminTeacherRows().map(t => ({
+    email: t.email || '',
+    joined: isoOrNull(t.createdAt),
+    lastActive: isoOrNull(t.lastActive),
+    classes: (t.classes || []).length,
+    checks: t.checkCount || 0,
+    answers: t.studentCount || 0,
+    marketing_opt_out: t.marketing_opt_out === true
+  }));
+}
+function csvExportField(v) {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function adminExportCsv(teachers) {
+  const head = ['email', 'joined', 'last_active', 'classes', 'checks', 'answers', 'marketing_opt_out'];
+  const lines = [head].concat((teachers || []).map(t => [
+    t.email, t.joined || '', t.lastActive || '', t.classes, t.checks, t.answers,
+    t.marketing_opt_out ? 'true' : 'false'
+  ]));
+  return '\uFEFF' + lines.map(r => r.map(csvExportField).join(',')).join('\r\n') + '\r\n';
+}
+
 // -------------------------------------------------------------------- server
 const server = http.createServer((req, res) => runWithUsage(async () => {
   await readyPromise;
@@ -2907,24 +3052,43 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
       return sendJson(res, liveSnapshot(), { 'Cache-Control': 'no-store' });
     }
 
+    /* Marketing list. Read only. Bearer token, not the owner cookie. Off when
+       ADMIN_EXPORT_TOKEN is unset, so the path looks like any other missing route. */
+    if (p === '/api/admin/teachers.json' || p === '/api/admin/teachers.csv') {
+      const secret = adminExportSecret();
+      if (!secret) return sendErr(res, 'Unknown endpoint.', 404);
+      const given = bearerCredential(req);
+      if (!exportTokenEqual(given, secret)) {
+        if (tooMany(req, 'admin-export', 30, 600000)) {
+          return sendErr(res, 'Too many attempts. Wait a minute and try again.', 429);
+        }
+        return sendErr(res, 'Not allowed.', 401);
+      }
+      if (req.method !== 'GET') return sendErr(res, 'Not allowed.', 405);
+      let teachers;
+      try { teachers = adminExportTeachers(); }
+      catch (e) {
+        logError(p, e.message || 'Server error');
+        return sendErr(res, 'Server error', 500);
+      }
+      if (p === '/api/admin/teachers.csv') {
+        const csv = adminExportCsv(teachers);
+        const day = new Date().toISOString().slice(0, 10);
+        res.writeHead(200, {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="getit-teachers-' + day + '.csv"',
+          'Cache-Control': 'no-store'
+        });
+        return res.end(csv);
+      }
+      return sendJson(res, { teachers }, { 'Cache-Control': 'no-store' });
+    }
+
     if (p === '/api/admin/overview' && req.method === 'GET') {
       const me = currentTeacher(req);
       if (!me) return sendErr(res, 'Not signed in.', 401);
       if (me.role !== 'admin') return sendErr(res, 'Not allowed.', 403);
-      const teachers = store.teachers.map(x => {
-        const classes = store.classes.filter(c => c.teacherId === x.id).map(c => {
-          const checks = store.sessions.filter(s => s.classId === c.id);
-          const students = checks.reduce((n, s) => n + (s.students || []).length, 0);
-          return { id: c.id, name: c.name, code: c.code, checks: checks.length, students };
-        });
-        return {
-          id: x.id, email: x.email, role: x.role || 'teacher', createdAt: x.createdAt,
-          marketing_opt_out: marketingOptOut(x),
-          marketing_choice_at: x.marketing_choice_at || null,
-          classes, checkCount: classes.reduce((n, c) => n + c.checks, 0),
-          studentCount: classes.reduce((n, c) => n + c.students, 0)
-        };
-      }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const teachers = adminTeacherRows();
       const totals = {
         teachers: teachers.length,
         classes: store.classes.length,
@@ -3227,10 +3391,11 @@ if (require.main === module) {
     console.log('  ->  http://localhost:' + cfg.port);
     console.log('  Key loaded: ' + (API_KEY ? 'yes' : 'NO - add key.txt and restart'));
     console.log('  AI: ' + (process.env.MOCK_AI === '1' ? 'MOCK — marks are fake. Never set MOCK_AI on the live site.' : describeProvider()));
+    console.log('  Teacher export: ' + (adminExportSecret() ? 'on' : 'off'));
     console.log('');
     console.log('  Keep this window open. Close it to stop.');
     console.log('');
   });
 }
 
-module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut, signupNotice, notifyNewSignup, signupWelcome, welcomeNewSignup, setSignupNoticeDelivery, formatLondon, server, passwordResetMail, setResetMailDelivery, RESET_SENT, RESET_BAD };
+module.exports = { gradeCheck, setMarker, questionWriterSystem, criticSystem, takeCriticMarks, asksOneFact, refusedMarketing, signupRefusedMarketing, marketingOptOut, signupNotice, notifyNewSignup, signupWelcome, welcomeNewSignup, setSignupNoticeDelivery, formatLondon, server, passwordResetMail, setResetMailDelivery, RESET_SENT, RESET_BAD, exportTokenEqual };

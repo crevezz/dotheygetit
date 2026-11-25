@@ -956,99 +956,574 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && me && me.role === 'admin') refreshLive();
 });
 
+/* Owner directory. The list is filtered in the browser: one overview fetch,
+   then search, sort, status and school run on that. lastActive is not stored.
+   The server fills it from the newest check or answer already on the account.
+   New = joined in the last 7 days. Active = a check or an answer in the last
+   14 days. Needs a nudge = no class and no check (the owner is left out).
+   Gone quiet = they have made something, and nothing for 21 days. */
+const OWNER_PAGE = 25;
+const OWNER_NEW_MS = 7 * 86400000;
+const OWNER_ACTIVE_MS = 14 * 86400000;
+const OWNER_QUIET_MS = 21 * 86400000;
+const OWNER_FILTERS = [
+  ['all', 'All'],
+  ['new', 'New this week'],
+  ['active', 'Active'],
+  ['nudge', 'Needs a nudge'],
+  ['quiet', 'Gone quiet']
+];
+const OWNER_FILTER_LABEL = {
+  new: 'New this week',
+  active: 'Active',
+  nudge: 'Needs a nudge',
+  quiet: 'Gone quiet'
+};
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.co.uk', 'outlook.com', 'outlook.co.uk',
+  'live.com', 'live.co.uk', 'yahoo.com', 'yahoo.co.uk', 'ymail.com', 'icloud.com', 'me.com', 'mac.com',
+  'aol.com', 'msn.com', 'btinternet.com', 'sky.com', 'virginmedia.com', 'talktalk.net', 'ntlworld.com',
+  'proton.me', 'protonmail.com', 'pm.me'
+]);
+let adminTeachers = [];
+let adminQuery = '';
+let adminSort = 'newest';
+let adminFilter = 'all';
+let adminSchool = '';
+let adminPage = 0;
+let adminOpenId = '';
+let adminSchoolsOpen = false;
+
+function breakEmail(email) {
+  return esc(email).replace(/([@.])/g, '$1<wbr>');
+}
+function nLabel(n, one, many) {
+  const v = Number(n) || 0;
+  return v + ' ' + (v === 1 ? one : many);
+}
+function schoolOf(email) {
+  const s = String(email || '').toLowerCase().trim();
+  const i = s.lastIndexOf('@');
+  if (i < 0 || i === s.length - 1) return 'unknown';
+  return s.slice(i + 1);
+}
+function isPersonalDomain(domain) {
+  return PERSONAL_EMAIL_DOMAINS.has(String(domain || '').toLowerCase());
+}
+function whenJoined(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts), now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString('en-GB', sameYear
+    ? { day: 'numeric', month: 'short' }
+    : { day: 'numeric', month: 'short', year: '2-digit' });
+}
+function whenCompact(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts), now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return 'Yesterday';
+  const days = Math.floor((now - d) / 86400000);
+  if (days > 0 && days < 14) return days + 'd ago';
+  return whenJoined(ts);
+}
+function isoStamp(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
+function csvCell(v) {
+  let s = String(v == null ? '' : v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function ownerFlags(t, now) {
+  const joined = t.createdAt || 0;
+  const last = t.lastActive || 0;
+  const made = ((t.classes && t.classes.length) || 0) > 0 || (t.checkCount || 0) > 0;
+  const owner = t.role === 'admin';
+  const fresh = !!(joined && now - joined <= OWNER_NEW_MS);
+  const active = !!(last && now - last <= OWNER_ACTIVE_MS);
+  const nudge = !owner && !made;
+  const quiet = !owner && made && !active && (
+    (last && now - last > OWNER_QUIET_MS) ||
+    (!last && joined && now - joined > OWNER_QUIET_MS)
+  );
+  return { owner, fresh, active, nudge, quiet };
+}
+function ownerBadge(flags) {
+  if (flags.nudge) return { cls: 'nudge', text: 'Needs a nudge' };
+  if (flags.active) return { cls: 'active', text: 'Active' };
+  if (flags.quiet) return { cls: 'quiet', text: 'Gone quiet' };
+  if (flags.fresh) return { cls: 'new', text: 'New' };
+  if (flags.owner) return { cls: 'owner', text: 'Owner' };
+  return null;
+}
+function ownerStatusText(flags) {
+  const bits = [];
+  if (flags.owner) bits.push('Owner');
+  if (flags.fresh) bits.push('New this week');
+  if (flags.active) bits.push('Active');
+  if (flags.nudge) bits.push('Needs a nudge');
+  if (flags.quiet) bits.push('Gone quiet');
+  return bits.join('; ');
+}
+function ownerMatchQuery(x, q) {
+  if (!q) return true;
+  if (String(x.t.email || '').toLowerCase().includes(q)) return true;
+  if (x.school.includes(q)) return true;
+  const classes = x.t.classes || [];
+  for (let i = 0; i < classes.length; i++) {
+    const c = classes[i];
+    if (String(c.name || '').toLowerCase().includes(q)) return true;
+    if (String(c.code || '').toLowerCase().includes(q)) return true;
+  }
+  return false;
+}
+function ownerMatchFilter(flags, filter) {
+  if (filter === 'new') return flags.fresh;
+  if (filter === 'active') return flags.active;
+  if (filter === 'nudge') return flags.nudge;
+  if (filter === 'quiet') return flags.quiet;
+  return true;
+}
+function ownerCompare(a, b, sort) {
+  const ta = a.t, tb = b.t;
+  let diff = 0;
+  if (sort === 'active') {
+    diff = (tb.studentCount || 0) - (ta.studentCount || 0)
+      || (tb.checkCount || 0) - (ta.checkCount || 0)
+      || (tb.lastActive || 0) - (ta.lastActive || 0);
+  } else if (sort === 'last') {
+    diff = (tb.lastActive || 0) - (ta.lastActive || 0)
+      || (tb.createdAt || 0) - (ta.createdAt || 0);
+  } else if (sort === 'checks') {
+    diff = (tb.checkCount || 0) - (ta.checkCount || 0)
+      || (tb.studentCount || 0) - (ta.studentCount || 0)
+      || (tb.lastActive || 0) - (ta.lastActive || 0);
+  } else {
+    diff = (tb.createdAt || 0) - (ta.createdAt || 0);
+  }
+  if (diff) return diff;
+  return String(ta.email || '').localeCompare(String(tb.email || ''));
+}
+function ownerSchoolsOf(list) {
+  const map = new Map();
+  for (const x of list) {
+    let s = map.get(x.school);
+    if (!s) {
+      s = {
+        domain: x.school, teachers: 0, classes: 0, checks: 0, answers: 0,
+        personal: isPersonalDomain(x.school)
+      };
+      map.set(x.school, s);
+    }
+    s.teachers++;
+    s.classes += (x.t.classes || []).length;
+    s.checks += x.t.checkCount || 0;
+    s.answers += x.t.studentCount || 0;
+  }
+  const schools = Array.from(map.values());
+  schools.sort((a, b) => b.teachers - a.teachers || b.checks - a.checks || a.domain.localeCompare(b.domain));
+  return schools;
+}
+function ownerSlice(now) {
+  const q = adminQuery.trim().toLowerCase();
+  const decorated = adminTeachers.map(t => ({
+    t, flags: ownerFlags(t, now || Date.now()), school: schoolOf(t.email)
+  }));
+  const searched = decorated.filter(x => ownerMatchQuery(x, q));
+  const inSchool = adminSchool ? searched.filter(x => x.school === adminSchool) : searched;
+  const counts = { all: inSchool.length, new: 0, active: 0, nudge: 0, quiet: 0 };
+  for (const x of inSchool) {
+    if (x.flags.fresh) counts.new++;
+    if (x.flags.active) counts.active++;
+    if (x.flags.nudge) counts.nudge++;
+    if (x.flags.quiet) counts.quiet++;
+  }
+  const matched = inSchool.filter(x => ownerMatchFilter(x.flags, adminFilter));
+  matched.sort((a, b) => ownerCompare(a, b, adminSort));
+  const schoolSource = searched.filter(x => ownerMatchFilter(x.flags, adminFilter));
+  let schools = ownerSchoolsOf(schoolSource);
+  if (adminSchool && !schools.some(s => s.domain === adminSchool)) {
+    schools = schools.concat([{
+      domain: adminSchool, teachers: 0, classes: 0, checks: 0, answers: 0,
+      personal: isPersonalDomain(adminSchool)
+    }]);
+  }
+  const allTotals = {
+    teachers: schoolSource.length,
+    classes: schoolSource.reduce((n, x) => n + (x.t.classes || []).length, 0),
+    checks: schoolSource.reduce((n, x) => n + (x.t.checkCount || 0), 0),
+    answers: schoolSource.reduce((n, x) => n + (x.t.studentCount || 0), 0)
+  };
+  const pages = Math.max(1, Math.ceil(matched.length / OWNER_PAGE) || 1);
+  if (adminPage > pages - 1) adminPage = pages - 1;
+  if (adminPage < 0) adminPage = 0;
+  const start = adminPage * OWNER_PAGE;
+  return {
+    counts, matched, schools, allTotals, pages, start,
+    from: matched.length ? start + 1 : 0,
+    to: Math.min(start + OWNER_PAGE, matched.length),
+    pageRows: matched.slice(start, start + OWNER_PAGE),
+    total: adminTeachers.length
+  };
+}
+function ownerPills(t, flags) {
+  const html = [];
+  if (me && t.id === me.id) html.push('<span class="od-pill owner">You</span>');
+  const b = ownerBadge(flags);
+  if (b && !(me && t.id === me.id && b.cls === 'owner')) {
+    html.push('<span class="od-pill ' + b.cls + '">' + esc(b.text) + '</span>');
+  }
+  return html.join('');
+}
+function ownerClassLine(c) {
+  const bits = [
+    nLabel(c.checks || 0, 'check', 'checks'),
+    nLabel(c.students || 0, 'answer', 'answers')
+  ];
+  if (c.lastAt) bits.push('last ' + whenCompact(c.lastAt));
+  const title = esc(c.name || 'Untitled class') + (c.year ? ' · ' + esc(c.year) : '');
+  return '<div class="od-line"><span class="od-cname">' + title + '</span><b class="od-code">' + esc(c.code || '') + '</b><span class="od-cmeta">' + esc(bits.join(' · ')) + '</span></div>';
+}
+function ownerCheckLine(c) {
+  const bits = [];
+  if (c.className) bits.push(esc(c.className));
+  if (c.at) bits.push(esc(when(c.at)));
+  bits.push(nLabel(c.answers || 0, 'answer', 'answers'));
+  if (c.lastAnswerAt && c.at && c.lastAnswerAt - c.at > 120000) bits.push('last answer ' + esc(when(c.lastAnswerAt)));
+  return '<div class="od-line"><span class="od-cname">' + esc(c.topic || 'Untitled check') + '</span><span class="od-cmeta">' + bits.join(' · ') + '</span></div>';
+}
+function ownerDetail(t) {
+  const classes = t.classes || [];
+  const checks = t.recentChecks || [];
+  const classHtml = classes.length
+    ? classes.map(ownerClassLine).join('')
+    : '<p class="muted tiny">No classes yet.</p>';
+  const checkHtml = checks.length
+    ? checks.map(ownerCheckLine).join('')
+    : '<p class="muted tiny">No checks yet.</p>';
+  const more = t.checkCount > checks.length
+    ? '<p class="tiny muted">Latest ' + checks.length + ' of ' + t.checkCount + '.</p>'
+    : '';
+  const removable = t.role !== 'admin' && !(me && t.id === me.id);
+  const remove = removable
+    ? '<div class="od-remove"><button type="button" class="ghost tdel" data-id="' + esc(t.id) + '" data-email="' + esc(t.email) + '" data-classes="' + classes.length + '" data-checks="' + (t.checkCount || 0) + '" data-answers="' + (t.studentCount || 0) + '">Remove teacher</button><p class="tiny muted od-warn">This deletes the account, their classes, checks and answers, and signs them out. It asks you to confirm first. It cannot be undone.</p></div>'
+    : '';
+  return '<div class="od-detail"><div class="od-emailfull">' + breakEmail(t.email) + '</div>'
+    + '<div class="od-k">Classes</div>' + classHtml
+    + '<div class="od-k">Recent checks</div>' + checkHtml + more
+    + remove + '</div>';
+}
+function ownerRow(x) {
+  const t = x.t;
+  const open = adminOpenId === t.id;
+  const badge = ownerBadge(x.flags);
+  const status = badge ? ' st-' + badge.cls : '';
+  const meta = whenJoined(t.createdAt) + ' · ' + (t.lastActive ? whenCompact(t.lastActive) : 'never active')
+    + ' · ' + nLabel((t.classes || []).length, 'class', 'classes')
+    + ' · ' + nLabel(t.checkCount || 0, 'check', 'checks')
+    + ' · ' + nLabel(t.studentCount || 0, 'answer', 'answers');
+  const label = (t.email || 'Teacher') + ', ' + x.school
+    + ', joined ' + whenJoined(t.createdAt)
+    + ', last active ' + (t.lastActive ? whenCompact(t.lastActive) : 'never')
+    + ', ' + nLabel((t.classes || []).length, 'class', 'classes')
+    + ', ' + nLabel(t.checkCount || 0, 'check', 'checks')
+    + ', ' + nLabel(t.studentCount || 0, 'answer', 'answers')
+    + (open ? ', hide details' : ', show details');
+  return '<div class="od-row' + status + (open ? ' open' : '') + '">'
+    + '<button type="button" class="od-main od-grid" data-id="' + esc(t.id) + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-label="' + esc(label) + '" title="' + esc(t.email) + '">'
+    + '<span class="od-chev" aria-hidden="true"></span>'
+    + '<span class="od-who"><span class="od-email">' + breakEmail(t.email) + '</span>'
+    + '<span class="od-school"><span class="od-dom" title="' + esc(x.school + (isPersonalDomain(x.school) ? ' · personal email' : '')) + '">' + esc(x.school) + '</span>' + ownerPills(t, x.flags) + '</span></span>'
+    + '<span class="od-joined od-hide-sm">' + esc(whenJoined(t.createdAt)) + '</span>'
+    + '<span class="od-last od-hide-sm">' + esc(t.lastActive ? whenCompact(t.lastActive) : '—') + '</span>'
+    + '<span class="od-num od-hide-sm" title="Classes">' + (t.classes || []).length + '</span>'
+    + '<span class="od-num od-hide-sm" title="Checks">' + (t.checkCount || 0) + '</span>'
+    + '<span class="od-num od-hide-sm" title="Answers">' + (t.studentCount || 0) + '</span>'
+    + '<span class="od-mmeta">' + esc(meta) + '</span>'
+    + '</button>'
+    + (open ? ownerDetail(t) : '')
+    + '</div>';
+}
+function ownerSchoolButton(domain, label, personal, totals, on) {
+  return '<button type="button" class="od-sch' + (on ? ' on' : '') + '" data-school="' + esc(domain) + '" aria-pressed="' + (on ? 'true' : 'false') + '">'
+    + '<span class="od-schname">' + esc(label) + (personal ? '<i class="od-personal">personal</i>' : '') + '</span>'
+    + '<span class="od-schmeta">' + nLabel(totals.teachers, 'teacher', 'teachers')
+    + ' · ' + nLabel(totals.classes, 'class', 'classes')
+    + ' · ' + nLabel(totals.checks, 'check', 'checks')
+    + ' · ' + nLabel(totals.answers, 'answer', 'answers') + '</span></button>';
+}
+function ownerCountText(view) {
+  const n = view.matched.length;
+  const narrowed = !!(adminQuery.trim() || adminFilter !== 'all' || adminSchool);
+  const noun = n === 1 ? 'teacher' : 'teachers';
+  if (!view.total) return 'Nobody has signed up yet.';
+  if (!n) return 'No teachers match.';
+  let text = n <= OWNER_PAGE
+    ? (n + ' ' + noun + (narrowed ? ' of ' + view.total : ''))
+    : ('Showing ' + view.from + '–' + view.to + ' of ' + n + (narrowed ? ' (' + view.total + ' on the account)' : ''));
+  if (adminFilter !== 'all' && OWNER_FILTER_LABEL[adminFilter]) text += ' · ' + OWNER_FILTER_LABEL[adminFilter];
+  if (adminSchool) text += ' · ' + adminSchool;
+  return text;
+}
+function ownerDynamicHtml(view) {
+  const filters = '<div class="filters od-filters" role="group" aria-label="Teacher status">'
+    + OWNER_FILTERS.map(([id, label]) =>
+      '<button type="button" data-filter="' + id + '" class="' + (adminFilter === id ? 'on' : '') + '" aria-pressed="' + (adminFilter === id ? 'true' : 'false') + '">'
+      + label + ' (' + view.counts[id] + ')</button>'
+    ).join('')
+    + '</div>'
+    + '<p class="tiny muted od-hint">New this week: joined in the last 7 days. Active: a check or an answer in the last 14 days. Needs a nudge: signed up, and still no class or check. Gone quiet: they have made something, and nothing for 21 days.</p>';
+  const schoolButtons = ownerSchoolButton('', 'All schools', false, view.allTotals, !adminSchool)
+    + view.schools.map(s => ownerSchoolButton(s.domain, s.domain, s.personal, s, adminSchool === s.domain)).join('');
+  const busiest = view.schools[0];
+  const schoolSummary = adminSchool
+    ? adminSchool
+    : (busiest ? busiest.domain + ' · ' + nLabel(busiest.teachers, 'teacher', 'teachers') : 'All schools');
+  const schools = '<details class="od-schools" id="ownerSchools"' + (adminSchoolsOpen ? ' open' : '') + '>'
+    + '<summary><span>Schools <b>' + view.schools.length + '</b></span><span class="small">' + esc(schoolSummary) + '</span></summary>'
+    + '<div class="od-schscroll">' + schoolButtons + '</div></details>';
+  const narrowed = !!(adminQuery.trim() || adminFilter !== 'all' || adminSchool);
+  const count = '<div class="od-count"><p class="small">' + esc(ownerCountText(view)) + '</p>'
+    + (narrowed ? '<button type="button" class="od-clear" id="ownerClear">Clear</button>' : '')
+    + '</div>';
+  let list;
+  if (!view.total) list = '<p class="muted">Nobody has signed up yet.</p>';
+  else if (!view.matched.length) list = '<p class="muted">No teachers match. Clear the search or pick All.</p>';
+  else {
+    list = '<div class="od-head od-grid" aria-hidden="true"><span></span><span>Teacher</span><span>Joined</span><span>Last active</span><span class="n" title="Classes">Cls</span><span class="n" title="Checks">Chk</span><span class="n" title="Answers">Ans</span></div>'
+      + view.pageRows.map(ownerRow).join('');
+  }
+  const pager = view.matched.length > OWNER_PAGE
+    ? '<div class="od-pager"><button type="button" class="small-btn" data-page="prev"' + (adminPage === 0 ? ' disabled' : '') + '>Previous</button><span class="small">Page ' + (adminPage + 1) + ' of ' + view.pages + '</span><button type="button" class="small-btn" data-page="next"' + (adminPage >= view.pages - 1 ? ' disabled' : '') + '>Next</button></div>'
+    : '';
+  return filters + schools + count + list + pager;
+}
+function paintOwnerDynamic() {
+  const host = document.getElementById('ownerDynamic');
+  if (!host) return;
+  host.innerHTML = ownerDynamicHtml(ownerSlice(Date.now()));
+}
+function exportOwners() {
+  const view = ownerSlice(Date.now());
+  if (!view.matched.length) { toast('Nothing to export'); return; }
+  const rows = [[
+    'email', 'school', 'personal_email', 'role', 'joined', 'last_active',
+    'classes', 'checks', 'answers', 'marketing_opt_out', 'status', 'class_list'
+  ]];
+  view.matched.forEach(x => {
+    const t = x.t;
+    const classes = t.classes || [];
+    const list = classes.map(c => {
+      const name = c.name || 'Untitled';
+      const year = c.year ? ', ' + c.year : '';
+      const code = c.code ? ' (' + c.code + ')' : '';
+      return name + year + code;
+    }).join(' | ');
+    rows.push([
+      t.email || '',
+      x.school,
+      isPersonalDomain(x.school) ? 'yes' : 'no',
+      t.role || 'teacher',
+      isoStamp(t.createdAt),
+      isoStamp(t.lastActive),
+      classes.length,
+      t.checkCount || 0,
+      t.studentCount || 0,
+      t.marketing_opt_out === true ? 'true' : 'false',
+      ownerStatusText(x.flags),
+      list
+    ]);
+  });
+  const csv = '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  const day = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+  a.href = URL.createObjectURL(blob);
+  a.download = 'getit-teachers-' + day + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  toast('Exported ' + nLabel(view.matched.length, 'teacher', 'teachers'));
+}
+function statNum(n) {
+  const v = Number(n);
+  return Number.isFinite(v) ? String(v) : '0';
+}
+function ownerShell(t) {
+  const sorts = [
+    ['newest', 'Newest'],
+    ['active', 'Most active'],
+    ['last', 'Last active'],
+    ['checks', 'Most checks']
+  ];
+  return '<div class="card ownercard">'
+    + '<div class="livebar tight"><span class="dot"></span><span>On it right now</span><span class="small" id="liveStamp">checking…</span></div>'
+    + '<div class="stat-row" aria-live="polite">'
+    + '<div class="stat green"><b id="liveTeachers">–</b><span>teachers</span></div>'
+    + '<div class="stat"><b id="livePupils">–</b><span>pupils</span></div>'
+    + '<div class="stat amber"><b id="liveChecks">–</b><span>checks running</span></div>'
+    + '</div>'
+    + '<p class="muted tiny" id="liveToday">Today’s checks and answers appear here.</p>'
+    + '<div class="srow" style="margin-top:18px"><h3>Owner view</h3><span class="small">Open a row for classes, codes and recent checks. Remove teacher is inside the row, and it asks before it deletes.</span></div>'
+    + '<div class="stat-row">'
+    + '<div class="stat green"><b>' + statNum(t.teachers) + '</b><span>teachers</span></div>'
+    + '<div class="stat amber"><b>' + statNum(t.classes) + '</b><span>classes</span></div>'
+    + '<div class="stat"><b>' + statNum(t.checks) + '</b><span>checks</span></div>'
+    + '<div class="stat"><b>' + statNum(t.students) + '</b><span>answers</span></div>'
+    + '</div>'
+    + '<div class="btnrow">'
+    + '<button type="button" id="btnSelftest" class="primary" data-tip="Sends one test question to the AI to check it is still working.">Test the AI</button>'
+    + '<button type="button" id="btnErrors" class="ghost" data-tip="Show the last 20 things that went wrong.">Check for errors</button>'
+    + '</div>'
+    + '<p class="msg" id="healthMsg"></p>'
+    + '<div id="errorList"></div>'
+    + '<div class="od-tools">'
+    + '<input id="ownerSearch" type="search" placeholder="Search email, school, or class" aria-label="Search teachers by email, school, or class" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(adminQuery) + '"/>'
+    + '<label class="od-sortlab" for="ownerSort">Sort <select id="ownerSort" class="od-sort" title="Most active is answers, then checks. Last active is the newest check or answer.">'
+    + sorts.map(([v, label]) => '<option value="' + v + '"' + (adminSort === v ? ' selected' : '') + '>' + label + '</option>').join('')
+    + '</select></label>'
+    + '<button type="button" id="btnOwnerExport" class="small-btn" data-tip="Download this list, including who opted out of emails.">Export CSV</button>'
+    + '</div>'
+    + '<div id="ownerDynamic"></div>'
+    + '</div>';
+}
 async function loadAdmin() {
   if (!me || me.role !== 'admin') { $('#adminWrap').innerHTML = ''; stopLive(); return; }
   try {
     const j = await api('/api/admin/overview');
-    const t = j.totals;
-    const rows = j.teachers.map(x => `
-      <div class="sresult lv-${x.role === 'admin' ? 'green' : 'amber'}">
-        <div class="head"><span class="name">${esc(x.email)}</span><span class="tag">${esc(x.role)}</span></div>
-        <div class="detail">
-          <div><span class="k">Joined</span>${esc(when(x.createdAt))}</div>
-          <div><span class="k">Classes</span>${x.classes.length} &nbsp; <span class="k">Checks</span>${x.checkCount} &nbsp; <span class="k">Answers</span>${x.studentCount}</div>
-          ${x.classes.length ? `<div class="notes">${x.classes.map(c => esc(c.name) + ' <b>' + esc(c.code) + '</b>').join(' · ')}</div>` : ''}
-        </div>
-        ${(x.role === 'admin' || (me && x.id === me.id)) ? ''
-          : `<div class="btnrow"><button class="ghost tdel" data-id="${esc(x.id)}" data-email="${esc(x.email)}" data-classes="${x.classes.length}" data-checks="${x.checkCount}" data-answers="${x.studentCount}" data-tip="Removes this teacher and everything they made. Only you can do this.">Remove teacher</button></div>`}
-      </div>`).join('');
-    $('#adminWrap').innerHTML =
-      `<div class="card">
-         <div class="livebar tight">
-           <span class="dot"></span>
-           <span>On it right now</span>
-           <span class="small" id="liveStamp">checking…</span>
-         </div>
-         <div class="stat-row" aria-live="polite">
-           <div class="stat green"><b id="liveTeachers">–</b><span>teachers</span></div>
-           <div class="stat"><b id="livePupils">–</b><span>pupils</span></div>
-           <div class="stat amber"><b id="liveChecks">–</b><span>checks running</span></div>
-         </div>
-         <p class="muted tiny" id="liveToday">Today’s checks and answers appear here.</p>
-         <div class="srow" style="margin-top:18px"><h3>Owner view</h3><span class="small">every account, and what they have made — Remove teacher deletes the account and everything they made</span></div>
-         <div class="stat-row">
-           <div class="stat green"><b>${t.teachers}</b><span>teachers</span></div>
-           <div class="stat amber"><b>${t.classes}</b><span>classes</span></div>
-           <div class="stat"><b>${t.checks}</b><span>checks</span></div>
-           <div class="stat"><b>${t.students}</b><span>answers</span></div>
-         </div>
-         <div class="btnrow">
-           <button id="btnSelftest" class="primary" data-tip="Sends one test question to the AI to check it is still working.">Test the AI</button>
-           <button id="btnErrors" class="ghost" data-tip="Show the last 20 things that went wrong.">Check for errors</button>
-         </div>
-         <p class="msg" id="healthMsg"></p>
-         <div id="errorList"></div>
-         ${rows || '<p class="muted">Nobody has signed up yet.</p>'}
-       </div>`;
-
-    /* Removing a teacher takes their classes, their checks and every answer in them,
-       so the confirm has to say the real numbers out loud before it asks. */
-    document.querySelectorAll('.tdel').forEach(btn => btn.addEventListener('click', async () => {
-      const n = Number(btn.dataset.classes) || 0;
-      const k = Number(btn.dataset.checks) || 0;
-      const a = Number(btn.dataset.answers) || 0;
-      const bits = [];
-      if (n) bits.push(n === 1 ? 'their 1 class' : 'their ' + n + ' classes');
-      if (k) bits.push(k === 1 ? '1 check' : k + ' checks');
-      if (a) bits.push(a === 1 ? '1 answer' : a + ' answers');
-      const q = 'Remove ' + btn.dataset.email + '?\n\n' + (bits.length
-        ? 'This also deletes ' + bits.join(', ') + '. The join codes stop working, and their browser is signed out.\n\n'
-        : 'They have not made anything yet, so nothing else goes.\n\n') + 'This cannot be undone.';
-      if (!confirm(q)) return;
-      try {
-        const r = await post('/api/admin/teacher/delete', { teacherId: btn.dataset.id });
-        toast('Removed ' + r.email + (r.deletedClasses ? ' and ' + r.deletedClasses + ' class(es)' : ''));
-        await loadAdmin();
-      } catch (e) { toast(e.message); }
-    }));
-
-    $('#btnSelftest').addEventListener('click', async () => {
-      setMsg($('#healthMsg'), 'Asking the AI...');
-      try {
-        const r = await post('/api/admin/selftest');
-        if (r.ok) setMsg($('#healthMsg'), `AI working · ${r.model} · replied "${r.reply}" in ${(r.ms / 1000).toFixed(1)}s`, true);
-        else setMsg($('#healthMsg'), `AI NOT WORKING — ${r.error}`);
-      } catch (e) { setMsg($('#healthMsg'), e.message); }
-    });
-
-    $('#btnErrors').addEventListener('click', async () => {
-      setMsg($('#healthMsg'), '');
-      try {
-        const r = await api('/api/admin/errors');
-        const up = r.uptimeSec < 90 ? r.uptimeSec + 's' : Math.round(r.uptimeSec / 60) + ' min';
-        const head = `<p class="muted">Up ${esc(up)} · storage: <b>${esc(r.storage)}</b>${r.storage === 'file' ? ' (data will be lost on restart!)' : ''}</p>`;
-        $('#errorList').innerHTML = head + (r.errors.length
-          ? r.errors.map(x => `<div class="sresult lv-red"><div class="head"><span class="name">${esc(when(x.at))}</span><span class="tag">${esc(x.where)}</span></div><div class="notes">${esc(x.message)}</div></div>`).join('')
-          : '<p class="muted">No errors. </p>');
-      } catch (e) { setMsg($('#healthMsg'), e.message); }
-    });
+    adminTeachers = j.teachers || [];
+    const totals = j.totals || { teachers: 0, classes: 0, checks: 0, students: 0 };
+    $('#adminWrap').innerHTML = ownerShell(totals);
+    paintOwnerDynamic();
     startLive();
   } catch (e) {
     $('#adminWrap').innerHTML = '';
     stopLive();
   }
 }
+function onOwnerInput(e) {
+  if (!e.target || e.target.id !== 'ownerSearch') return;
+  adminQuery = e.target.value;
+  adminPage = 0;
+  paintOwnerDynamic();
+}
+function onOwnerChange(e) {
+  if (!e.target || e.target.id !== 'ownerSort') return;
+  const next = e.target.value;
+  adminSort = (next === 'active' || next === 'last' || next === 'checks') ? next : 'newest';
+  adminPage = 0;
+  paintOwnerDynamic();
+}
+function onOwnerToggle(e) {
+  if (e.target && e.target.id === 'ownerSchools') adminSchoolsOpen = !!e.target.open;
+}
+async function onOwnerClick(e) {
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest('#btnOwnerExport')) { exportOwners(); return; }
+  if (t.closest('#btnSelftest')) {
+    setMsg($('#healthMsg'), 'Asking the AI...');
+    try {
+      const r = await post('/api/admin/selftest');
+      if (r.ok) setMsg($('#healthMsg'), 'AI working · ' + r.model + ' · replied "' + r.reply + '" in ' + (r.ms / 1000).toFixed(1) + 's', true);
+      else setMsg($('#healthMsg'), 'AI NOT WORKING — ' + r.error);
+    } catch (err) { setMsg($('#healthMsg'), err.message); }
+    return;
+  }
+  if (t.closest('#btnErrors')) {
+    setMsg($('#healthMsg'), '');
+    try {
+      const r = await api('/api/admin/errors');
+      const up = r.uptimeSec < 90 ? r.uptimeSec + 's' : Math.round(r.uptimeSec / 60) + ' min';
+      const head = '<p class="muted">Up ' + esc(up) + ' · storage: <b>' + esc(r.storage) + '</b>' + (r.storage === 'file' ? ' (data will be lost on restart!)' : '') + '</p>';
+      $('#errorList').innerHTML = head + (r.errors.length
+        ? r.errors.map(x => '<div class="sresult lv-red"><div class="head"><span class="name">' + esc(when(x.at)) + '</span><span class="tag">' + esc(x.where) + '</span></div><div class="notes">' + esc(x.message) + '</div></div>').join('')
+        : '<p class="muted">No errors. </p>');
+    } catch (err) { setMsg($('#healthMsg'), err.message); }
+    return;
+  }
+  if (t.closest('#ownerClear')) {
+    adminQuery = '';
+    adminFilter = 'all';
+    adminSchool = '';
+    adminPage = 0;
+    const input = document.getElementById('ownerSearch');
+    if (input) input.value = '';
+    paintOwnerDynamic();
+    return;
+  }
+  const del = t.closest('.tdel');
+  if (del) {
+    /* Removing a teacher takes their classes, their checks and every answer in them,
+       so the confirm has to say the real numbers out loud before it asks. */
+    const n = Number(del.dataset.classes) || 0;
+    const k = Number(del.dataset.checks) || 0;
+    const a = Number(del.dataset.answers) || 0;
+    const bits = [];
+    if (n) bits.push(n === 1 ? 'their 1 class' : 'their ' + n + ' classes');
+    if (k) bits.push(k === 1 ? '1 check' : k + ' checks');
+    if (a) bits.push(a === 1 ? '1 answer' : a + ' answers');
+    const q = 'Remove ' + del.dataset.email + '?\n\n' + (bits.length
+      ? 'This also deletes ' + bits.join(', ') + '. The join codes stop working, and their browser is signed out.\n\n'
+      : 'They have not made anything yet, so nothing else goes.\n\n') + 'This cannot be undone.';
+    if (!confirm(q)) return;
+    try {
+      const r = await post('/api/admin/teacher/delete', { teacherId: del.dataset.id });
+      if (adminOpenId === del.dataset.id) adminOpenId = '';
+      toast('Removed ' + r.email + (r.deletedClasses ? ' and ' + r.deletedClasses + ' class(es)' : ''));
+      await loadAdmin();
+    } catch (err) { toast(err.message); }
+    return;
+  }
+  const filterBtn = t.closest('[data-filter]');
+  if (filterBtn && filterBtn.closest('#ownerDynamic')) {
+    adminFilter = filterBtn.getAttribute('data-filter') || 'all';
+    adminPage = 0;
+    paintOwnerDynamic();
+    return;
+  }
+  const schoolBtn = t.closest('[data-school]');
+  if (schoolBtn && schoolBtn.closest('#ownerSchools')) {
+    adminSchool = schoolBtn.getAttribute('data-school') || '';
+    adminPage = 0;
+    paintOwnerDynamic();
+    return;
+  }
+  const pageBtn = t.closest('[data-page]');
+  if (pageBtn && !pageBtn.disabled) {
+    const dir = pageBtn.getAttribute('data-page');
+    if (dir === 'next') adminPage++;
+    else if (dir === 'prev') adminPage--;
+    paintOwnerDynamic();
+    return;
+  }
+  const main = t.closest('.od-main');
+  if (main) {
+    const id = main.getAttribute('data-id') || '';
+    adminOpenId = adminOpenId === id ? '' : id;
+    paintOwnerDynamic();
+  }
+}
+function bindOwner() {
+  const wrap = document.getElementById('adminWrap');
+  if (!wrap || wrap.dataset.ownerBound) return;
+  wrap.dataset.ownerBound = '1';
+  wrap.addEventListener('click', onOwnerClick);
+  wrap.addEventListener('input', onOwnerInput);
+  wrap.addEventListener('search', onOwnerInput);
+  wrap.addEventListener('change', onOwnerChange);
+  wrap.addEventListener('toggle', onOwnerToggle, true);
+}
 
+bindOwner();
 boot();
 
 // =================================================================== STUDENT

@@ -385,7 +385,9 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
   z-index:120;box-shadow:0 10px 30px rgba(0,0,0,.5);
 }
 [data-tip]:hover::after{opacity:1}
-header [data-tip]::after,.tutbar [data-tip]::after{bottom:auto;top:calc(100% + 9px)}
+/* Header tips hang inward. Centred tips on the right-hand tabs stick out of a
+   tablet-width window and make the whole page scroll sideways. */
+header [data-tip]::after,.tutbar [data-tip]::after{bottom:auto;top:calc(100% + 9px);left:auto;right:0;transform:none}
 
 /* ------------------------------------------------------------ responsive */
 @media (max-width:640px){
@@ -579,3 +581,140 @@ a.tiktok svg{display:block;flex:0 0 auto}
 .tutdisc.nudge:hover{animation:none}
 @media (prefers-reduced-motion: reduce){ .tutdisc.nudge{animation:none} }
 @media (max-width:520px){ .tutnote{display:none} .tutbtn{width:100%;justify-content:center} }
+
+/* ------------------------------------------------- owner teacher directory
+   Only the owner card. Teacher and pupil screens do not use these classes. */
+#adminWrap .od-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+#adminWrap .od-tools input{flex:1 1 220px;width:auto;min-width:0;padding:10px 12px}
+#adminWrap .od-sortlab{
+  display:flex;align-items:center;gap:8px;margin:0;
+  font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+}
+#adminWrap .od-sort{
+  width:auto;min-width:148px;margin:0;padding:10px 12px;
+  background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:12px;font-size:14px;
+}
+#adminWrap #btnOwnerExport{padding:10px 14px}
+#adminWrap .od-filters{margin:12px 0 6px}
+#adminWrap .od-hint{margin:0 0 8px}
+#adminWrap .od-schools{
+  margin:0 0 8px;border:1px solid var(--line);border-radius:12px;background:var(--bg2);
+}
+#adminWrap .od-schools summary{
+  display:flex;align-items:center;gap:8px;
+  cursor:pointer;padding:10px 12px;font-weight:700;font-size:13.5px;list-style:none;
+}
+#adminWrap .od-schools summary::-webkit-details-marker{display:none}
+#adminWrap .od-schools summary::before{
+  content:"";width:0;height:0;margin-right:8px;flex:0 0 auto;
+  border-left:5px solid var(--muted);border-top:4px solid transparent;border-bottom:4px solid transparent;
+}
+#adminWrap .od-schools[open] summary::before{transform:rotate(90deg)}
+#adminWrap .od-schools summary .small{margin-left:auto;font-weight:600}
+#adminWrap .od-schscroll{max-height:220px;overflow:auto}
+#adminWrap .od-schscroll .od-sch:first-child{position:sticky;top:0;z-index:1;background:var(--surface2)}
+#adminWrap .od-sch{
+  display:flex;width:100%;text-align:left;gap:10px;align-items:baseline;justify-content:space-between;
+  padding:7px 12px;background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;
+  font-size:13px;font-weight:600;box-shadow:none;color:var(--text);
+}
+#adminWrap .od-sch:hover{transform:none;background:rgba(79,140,255,.08)}
+#adminWrap .od-sch.on{background:rgba(79,140,255,.14)}
+#adminWrap .od-schname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#adminWrap .od-schmeta{color:var(--muted);font-size:12px;font-weight:600;white-space:nowrap}
+#adminWrap .od-personal{
+  font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);margin-left:6px;
+}
+#adminWrap .od-count{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}
+#adminWrap .od-count p{margin:0}
+#adminWrap .od-clear{
+  background:none;border:0;color:var(--accent);padding:4px 0;font-size:13px;font-weight:700;box-shadow:none;
+}
+#adminWrap .od-clear:hover{transform:none}
+#adminWrap .od-grid{
+  display:grid;
+  grid-template-columns:16px minmax(0,1fr) 78px 92px 36px 38px 44px;
+  column-gap:10px;align-items:center;
+}
+#adminWrap .od-head{
+  padding:0 11px 4px 13px;
+  font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);line-height:1.2;
+}
+#adminWrap .od-num,#adminWrap .od-head .n{text-align:right;font-variant-numeric:tabular-nums}
+#adminWrap .od-row{
+  border:1px solid var(--line);border-left-width:3px;border-radius:12px;
+  background:var(--bg2);margin-bottom:6px;
+}
+#adminWrap .od-row.st-active{border-left-color:var(--green)}
+#adminWrap .od-row.st-nudge{border-left-color:var(--amber)}
+#adminWrap .od-row.st-quiet{border-left-color:var(--red)}
+#adminWrap .od-row.st-new{border-left-color:var(--accent)}
+#adminWrap .od-row.st-owner{border-left-color:var(--accent2)}
+#adminWrap .od-row.open{border-top-color:var(--accent);border-right-color:var(--accent);border-bottom-color:var(--accent)}
+#adminWrap .od-main{
+  width:100%;text-align:left;background:transparent;border:0;border-radius:11px;
+  padding:8px 10px;font-size:13.5px;font-weight:500;box-shadow:none;color:var(--text);
+}
+#adminWrap .od-main:hover{transform:none;background:rgba(79,140,255,.06)}
+#adminWrap .od-main:focus-visible,#adminWrap .od-sch:focus-visible,#adminWrap .od-filters button:focus-visible,#adminWrap .od-clear:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+#adminWrap .od-chev{
+  display:block;width:0;height:0;justify-self:center;
+  border-left:5px solid var(--muted);border-top:4px solid transparent;border-bottom:4px solid transparent;
+}
+#adminWrap .od-row.open .od-chev{transform:rotate(90deg)}
+#adminWrap .od-who{min-width:0;display:flex;flex-direction:column;gap:1px}
+#adminWrap .od-email{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#adminWrap .od-school{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:nowrap}
+#adminWrap .od-dom{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12.5px}
+#adminWrap .od-joined,#adminWrap .od-last{color:var(--muted);font-size:12.5px;white-space:nowrap}
+#adminWrap .od-num{font-weight:700}
+#adminWrap .od-mmeta{display:none}
+#adminWrap .od-pill{
+  display:inline-block;flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  padding:1px 7px;border-radius:999px;white-space:nowrap;line-height:1.5;
+}
+#adminWrap .od-pill.active{color:var(--green);background:rgba(61,220,132,.14)}
+#adminWrap .od-pill.new{color:#9dbbff;background:rgba(79,140,255,.16)}
+#adminWrap .od-pill.nudge{color:var(--amber);background:rgba(255,200,87,.14)}
+#adminWrap .od-pill.quiet{color:var(--red);background:rgba(255,107,107,.12)}
+#adminWrap .od-pill.owner{color:#c4b5fd;background:rgba(139,92,255,.16)}
+#adminWrap .od-detail{padding:2px 12px 12px 34px;border-top:1px solid var(--line);user-select:text}
+#adminWrap .od-emailfull{font-weight:700;font-size:14px;margin:8px 0 2px;overflow-wrap:break-word}
+#adminWrap .od-k{
+  font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px;
+}
+#adminWrap .od-line{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:13.5px;padding:3px 0}
+#adminWrap .od-cname{font-weight:700}
+#adminWrap .od-code{font-family:ui-monospace,Consolas,monospace;letter-spacing:.06em;font-weight:700}
+#adminWrap .od-cmeta{color:var(--muted);font-size:12.5px}
+#adminWrap .od-remove{margin-top:12px}
+#adminWrap .od-warn{margin:6px 0 0}
+#adminWrap .od-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+@media (max-width:720px){
+  #adminWrap .od-head{display:none}
+  #adminWrap .od-hide-sm{display:none !important}
+  #adminWrap .od-mmeta{
+    display:block;grid-column:2;color:var(--muted);font-size:12.5px;line-height:1.35;white-space:normal;
+  }
+  #adminWrap .od-main.od-grid{grid-template-columns:16px minmax(0,1fr);row-gap:2px}
+  #adminWrap .od-main .od-chev{grid-row:1 / span 2;align-self:center}
+  #adminWrap .od-main .od-who,#adminWrap .od-main .od-mmeta{grid-column:2}
+  #adminWrap .od-school{flex-wrap:wrap}
+  #adminWrap .od-sch{flex-wrap:wrap}
+  #adminWrap .od-schname,#adminWrap .od-schmeta{white-space:normal}
+  #adminWrap .od-detail{padding-left:12px}
+  #adminWrap .od-tools{align-items:stretch}
+  #adminWrap .od-sortlab{width:auto;flex:1 1 auto}
+  #adminWrap .od-sort{flex:1;min-width:0}
+  #adminWrap #btnOwnerExport{align-self:flex-end}
+  #adminWrap .od-email{white-space:normal;overflow:visible;text-overflow:clip}
+  #adminWrap .od-schools summary{flex-wrap:wrap;align-items:flex-start}
+  #adminWrap .od-schools summary > span:first-of-type{white-space:nowrap}
+  #adminWrap .od-schools summary .small{margin-left:0;flex:1 0 100%;padding-left:18px;white-space:normal}
+}
+@media (prefers-reduced-motion: reduce){
+  #adminWrap .od-chev,#adminWrap .od-schools summary::before{transition:none}
+}
