@@ -6,6 +6,7 @@ module.exports = {
   metaDesc: 'Checking for understanding in a real lesson: quick techniques that show the whole class, not just the pupils with their hands up.',
   twitter: 'Checking for understanding without another worksheet. What each quick technique shows you, and what it hides.',
   date: '2026-10-27',
+  dateModified: '2026-11-25',
   mins: 8,
   lede: 'Checking for understanding is the bit of the lesson where you stop performing and find out. Most of the usual moves check the six pupils who like answering. These are the ones that show you the room.',
   related: ['how-do-you-know-who-understood', 'mini-whiteboards-vs-digital-checks', 'cold-calling-vs-no-hands-up'],
@@ -28,7 +29,7 @@ module.exports = {
     }
   ],
   body: `
-<p>You already know the lecture version of checking for understanding. Ask if it makes sense. Watch the nods. Carry on. The reason that fails is set out in <a href="/how-do-you-know-who-understood">how you know who actually understood</a>. This page assumes you have given that up. It is a menu of checks that fit inside a normal lesson, including period 5, including the class that packs up early. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
+<p>You already know the lecture version of checking for understanding. Ask if it makes sense. Watch the nods. Carry on. The reason that fails is set out in <a href="/how-do-you-know-who-understood">how you know who actually understood</a>. This page assumes you have given that up. It is a menu of checks that fit inside a normal lesson, including period 5, including the class that packs up early. A planned mid-lesson question that decides whether to move on is in <a href="/hinge-questions">hinge questions</a>. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. The rest of the notes are on <a href="/blog/">the blog</a>.</p>
 
 <p>Every technique below has a hole. The point is to pick the hole you can live with for this question, not to pretend one routine sees everything.</p>
 

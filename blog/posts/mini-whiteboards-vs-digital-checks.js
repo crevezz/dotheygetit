@@ -6,6 +6,7 @@ module.exports = {
   metaDesc: 'Mini whiteboards vs a digital check: when show-me boards tell the truth, when pupils copy, and when you need a private answer.',
   twitter: 'Mini whiteboards are fast and public. A digital check is private and named. When to use each, and when to use both.',
   date: '2026-10-27',
+  dateModified: '2026-11-25',
   mins: 8,
   lede: 'Mini whiteboards are one of the best tools in a UK classroom. They are also easy to fool yourself with. A digital check fixes the privacy and the names, and it brings its own failures. Use the one that matches the question.',
   related: ['plickers-alternatives', 'checking-for-understanding', 'cold-calling-vs-no-hands-up'],
@@ -30,7 +31,7 @@ module.exports = {
   body: `
 <p>Show-me boards, mini whiteboards, whatever the department calls them: a pen, a wipe, every pupil holds up an answer. No account, no trolley that was booked by science, no password written on a planner and lost. For a lot of checks they are the right tool. They are not the honest tool for every question.</p>
 
-<p>This is the comparison. A wider menu of checks is in <a href="/checking-for-understanding">checking for understanding</a>. How talk-based routines fail to show you the class is in <a href="/cold-calling-vs-no-hands-up">cold calling and no-hands-up</a>. If you have been using scannable cards instead of boards, that comparison is in <a href="/plickers-alternatives">Plickers alternatives</a>. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. More notes are on <a href="/blog/">the blog</a>.</p>
+<p>This is the comparison. A wider menu of checks is in <a href="/checking-for-understanding">checking for understanding</a>. How talk-based routines fail to show you the class is in <a href="/cold-calling-vs-no-hands-up">cold calling and no-hands-up</a>. If you are using the boards to decide whether to move on mid-lesson, that check is a <a href="/hinge-questions">hinge question</a>. If you have been using scannable cards instead of boards, that comparison is in <a href="/plickers-alternatives">Plickers alternatives</a>. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. More notes are on <a href="/blog/">the blog</a>.</p>
 
 <h2>What mini whiteboards are genuinely good at</h2>
 
