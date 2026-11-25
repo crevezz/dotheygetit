@@ -1315,7 +1315,7 @@ function exportOwners() {
   if (!view.matched.length) { toast('Nothing to export'); return; }
   const rows = [[
     'email', 'school', 'personal_email', 'role', 'joined', 'last_active',
-    'classes', 'checks', 'answers', 'status', 'class_list'
+    'classes', 'checks', 'answers', 'marketing_opt_out', 'status', 'class_list'
   ]];
   view.matched.forEach(x => {
     const t = x.t;
@@ -1336,6 +1336,7 @@ function exportOwners() {
       classes.length,
       t.checkCount || 0,
       t.studentCount || 0,
+      t.marketing_opt_out === true ? 'true' : 'false',
       ownerStatusText(x.flags),
       list
     ]);
@@ -1389,7 +1390,7 @@ function ownerShell(t) {
     + '<label class="od-sortlab" for="ownerSort">Sort <select id="ownerSort" class="od-sort" title="Most active is answers, then checks. Last active is the newest check or answer.">'
     + sorts.map(([v, label]) => '<option value="' + v + '"' + (adminSort === v ? ' selected' : '') + '>' + label + '</option>').join('')
     + '</select></label>'
-    + '<button type="button" id="btnExport" class="small-btn">Export CSV</button>'
+    + '<button type="button" id="btnOwnerExport" class="small-btn" data-tip="Download this list, including who opted out of emails.">Export CSV</button>'
     + '</div>'
     + '<div id="ownerDynamic"></div>'
     + '</div>';
@@ -1427,7 +1428,7 @@ function onOwnerToggle(e) {
 async function onOwnerClick(e) {
   const t = e.target;
   if (!t || !t.closest) return;
-  if (t.closest('#btnExport')) { exportOwners(); return; }
+  if (t.closest('#btnOwnerExport')) { exportOwners(); return; }
   if (t.closest('#btnSelftest')) {
     setMsg($('#healthMsg'), 'Asking the AI...');
     try {

@@ -594,7 +594,7 @@ a.tiktok svg{display:block;flex:0 0 auto}
   width:auto;min-width:148px;margin:0;padding:10px 12px;
   background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:12px;font-size:14px;
 }
-#adminWrap #btnExport{padding:10px 14px}
+#adminWrap #btnOwnerExport{padding:10px 14px}
 #adminWrap .od-filters{margin:12px 0 6px}
 #adminWrap .od-hint{margin:0 0 8px}
 #adminWrap .od-schools{
@@ -709,7 +709,7 @@ a.tiktok svg{display:block;flex:0 0 auto}
   #adminWrap .od-tools{align-items:stretch}
   #adminWrap .od-sortlab{width:auto;flex:1 1 auto}
   #adminWrap .od-sort{flex:1;min-width:0}
-  #adminWrap #btnExport{align-self:flex-end}
+  #adminWrap #btnOwnerExport{align-self:flex-end}
   #adminWrap .od-email{white-space:normal;overflow:visible;text-overflow:clip}
   #adminWrap .od-schools summary{flex-wrap:wrap;align-items:flex-start}
   #adminWrap .od-schools summary > span:first-of-type{white-space:nowrap}

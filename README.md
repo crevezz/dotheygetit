@@ -118,9 +118,32 @@ numbers before it asks, and nothing here can be undone.
 Teacher and pupil pages are unchanged. The directory is owner-only, same as the
 overview API.
 
+**Export CSV** on that card downloads the list you are looking at, including
+`marketing_opt_out`. The class button **Export results** is a different file:
+one class, for the teacher.
+
+A marketing assistant can read the same facts without signing in. The route is
+off until `ADMIN_EXPORT_TOKEN` is set on the Render service `dotheygetit`. It
+is read-only, it takes the token as `Authorization: Bearer …` (never in the
+URL, and the token is never logged), and it returns email, joined, last active,
+class/check/answer counts, and `marketing_opt_out`. No pupil names.
+
+```
+curl -sS https://app.dotheygetit.app/api/admin/teachers.json \
+  -H "Authorization: Bearer $ADMIN_EXPORT_TOKEN"
+curl -sS -D- https://app.dotheygetit.app/api/admin/teachers.csv \
+  -H "Authorization: Bearer $ADMIN_EXPORT_TOKEN" -o getit-teachers.csv
+```
+
+On Render: open the [dotheygetit service](https://dashboard.render.com/web/srv-dak0p7142hec73971ls0),
+Environment, Add variable, key `ADMIN_EXPORT_TOKEN`, a long random value.
+Choose **Save and deploy** so the running process picks it up. Save only waits
+until the next deploy. Leave the value out of git.
+
 ```
 node test-admin-delete.js     :: a teacher is refused, the owner is allowed
 node test-admin-overview.js   :: last active comes from check and answer times, and pupil names stay out
+node test-admin-export.js     :: the token route is off until set, and it does not write
 ```
 
 ## Facebook lead ads (misconception PDFs)
