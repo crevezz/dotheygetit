@@ -55,7 +55,7 @@ const ORIGINAL = {
     title: 'Exit tickets: why teachers stop using them',
     desc: 'Exit tickets are good practice. The paper is the problem. Four reasons they get abandoned within a term, and how to keep the ritual without the pile.',
     date: '2026-09-20',
-    dateModified: '2026-11-24',
+    dateModified: '2026-11-25',
     mins: 6
   },
   'pupils-quietly-faking-it': {
@@ -75,6 +75,17 @@ function attr(s) {
 
 function ld(obj) {
   return `<script type="application/ld+json">\n${JSON.stringify(obj)}\n</script>`;
+}
+
+/* Visible FAQ answers may wrap a source title in a link. JSON-LD stays the words. */
+function plainFaq(s) {
+  return String(s)
+    .replace(/<[^>]+>/g, '')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
 }
 
 function wordsFrom(html) {
@@ -393,7 +404,7 @@ function renderPost(p, bySlug) {
     mainEntity: p.faq.map((item) => ({
       '@type': 'Question',
       name: item.q,
-      acceptedAnswer: { '@type': 'Answer', text: item.a }
+      acceptedAnswer: { '@type': 'Answer', text: plainFaq(item.a) }
     }))
   };
   const crumbs = {

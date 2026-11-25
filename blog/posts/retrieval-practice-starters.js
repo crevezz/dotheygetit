@@ -6,7 +6,7 @@ module.exports = {
   metaDesc: 'Retrieval practice starters and do-now ideas for KS3 and GCSE. What to ask, what to skip, and how to see what actually stuck.',
   twitter: 'Retrieval practice starters and do-now ideas that show you what stuck, not who copied the date.',
   date: '2026-10-27',
-  dateModified: '2026-11-24',
+  dateModified: '2026-11-25',
   mins: 8,
   lede: 'A retrieval starter asks pupils to bring something back from memory, before you teach anything new and before the books are open. A do-now that is just on the board to be copied is a settling task. It is not retrieval.',
   related: ['exit-ticket-ideas', 'spot-misconceptions-in-lesson', 'assessment-for-learning-strategies'],
@@ -31,7 +31,7 @@ module.exports = {
   body: `
 <p>Retrieval practice is the plain idea that if you want something to be remembered, pupils have to try to remember it. Re-reading the notes feels smoother and does less. A starter is the cheapest place to put that try: they are coming in, you are taking the register, nobody has started performing the new lesson yet.</p>
 
-<p>This page is the do-now. It is not the end-of-lesson question. That is <a href="/exit-ticket-ideas">exit ticket ideas</a>, and the two should talk to each other: today's exit ticket is a fair starter in a few days' time, with the surface changed. What to do when the thing they retrieve is the wrong model is in <a href="/spot-misconceptions-in-lesson">spotting misconceptions</a>. How this sits inside assessment for learning is in <a href="/assessment-for-learning-strategies">AfL strategies</a>. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. The full set of notes is on <a href="/blog/">the blog</a>.</p>
+<p>This page is the do-now. It is not the end-of-lesson question. That is <a href="/exit-ticket-ideas">exit ticket ideas</a>, and the two should talk to each other: today's exit ticket is a fair starter in a few days' time, with a new example. It is not a mid-lesson hinge either. That sits in the middle, when you still have to choose a path, and is in <a href="/hinge-questions">hinge questions</a>. What to do when the thing they retrieve is the wrong idea is in <a href="/spot-misconceptions-in-lesson">spotting misconceptions</a>. How this sits inside assessment for learning is in <a href="/assessment-for-learning-strategies">AfL strategies</a>. A wider look at what is actually free in a UK school is in <a href="/free-formative-assessment-tools">free formative assessment tools</a>. The full set of notes is on <a href="/blog/">the blog</a>.</p>
 
 <h2>What counts, and what is just a quiet start</h2>
 
