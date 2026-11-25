@@ -91,16 +91,36 @@ default) is very cheap and reliable — a whole check is a tiny fraction of a pe
 ## The owner view
 
 Whoever signs up with `ADMIN_EMAIL` (default `craigokelly121@hotmail.com`) is the owner.
-The owner gets an extra card on the dashboard: every teacher, what they have made, a
-button to test the AI, and a button to read the last 20 errors.
+The owner gets an extra card on the dashboard: who is on it right now, the totals, a
+button to test the AI, a button to read the last 20 errors, and a directory of every
+teacher.
 
-**Remove teacher** deletes that account, its classes, every check inside them and every
+The directory is a compact list: search (email, school, class name or code), sort
+(newest, most active, last active, most checks), status filters with counts, and
+schools grouped from the email domain with totals for teachers, classes, checks and
+answers. Open a row for class names, join codes and recent checks. Twenty-five
+teachers show at a time. Export CSV downloads the list you are looking at.
+
+**Last active** is not a new field. It is the newest check or answer time already
+stored on that teacher's classes. Nothing extra is written.
+
+- **New this week** — joined in the last 7 days.
+- **Active** — a check or an answer in the last 14 days.
+- **Needs a nudge** — signed up, and still no class or check. The owner is left out of this.
+- **Gone quiet** — they have made something, and nothing for 21 days.
+
+**Remove teacher** stays inside the opened row, so it is not on the list itself.
+It still deletes that account, its classes, every check inside them and every
 answer in them, and signs their browser out. Their join codes stop working. The owner
 cannot remove their own account, or another owner account. The confirm says the real
 numbers before it asks, and nothing here can be undone.
 
+Teacher and pupil pages are unchanged. The directory is owner-only, same as the
+overview API.
+
 ```
-node test-admin-delete.js     :: 16 checks: a teacher is refused, the owner is allowed
+node test-admin-delete.js     :: a teacher is refused, the owner is allowed
+node test-admin-overview.js   :: last active comes from check and answer times, and pupil names stay out
 ```
 
 ## Facebook lead ads (misconception PDFs)

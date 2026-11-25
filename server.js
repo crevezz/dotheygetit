@@ -2308,6 +2308,94 @@ function latestSessionForClass(classId) {
   return list[0] || null;
 }
 
+/* Owner directory. lastActive is the newest check or answer already stored
+   on that teacher's classes — nothing new is written, and pupil names stay
+   out of the payload. recentChecks is the latest few checks only. */
+const ADMIN_RECENT_CHECKS = 8;
+function sessionActivity(s) {
+  let lastAnswerAt = 0;
+  const students = (s && s.students) || [];
+  for (const st of students) {
+    const at = (st && st.at) || 0;
+    if (at > lastAnswerAt) lastAnswerAt = at;
+  }
+  const at = (s && s.createdAt) || 0;
+  return { at, lastAnswerAt, activity: Math.max(at, lastAnswerAt), answers: students.length };
+}
+function adminTeacherRows() {
+  const byClass = new Map();
+  for (const s of store.sessions) {
+    if (!s || !s.classId) continue;
+    let list = byClass.get(s.classId);
+    if (!list) { list = []; byClass.set(s.classId, list); }
+    list.push(s);
+  }
+  const classesByTeacher = new Map();
+  for (const c of store.classes) {
+    if (!c || !c.teacherId) continue;
+    let list = classesByTeacher.get(c.teacherId);
+    if (!list) { list = []; classesByTeacher.set(c.teacherId, list); }
+    list.push(c);
+  }
+  const teachers = store.teachers.map(x => {
+    let lastActive = 0;
+    const recent = [];
+    const classes = [];
+    for (const c of classesByTeacher.get(x.id) || []) {
+      const checks = byClass.get(c.id) || [];
+      let students = 0;
+      let classLast = 0;
+      for (const s of checks) {
+        const act = sessionActivity(s);
+        students += act.answers;
+        if (act.activity > classLast) classLast = act.activity;
+        if (act.activity > lastActive) lastActive = act.activity;
+        recent.push({
+          topic: s.topic || '',
+          at: act.at,
+          lastAnswerAt: act.lastAnswerAt || null,
+          className: c.name || '',
+          code: c.code || '',
+          answers: act.answers,
+          activity: act.activity
+        });
+      }
+      classes.push({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        year: c.year || '',
+        checks: checks.length,
+        students,
+        lastAt: classLast || null
+      });
+    }
+    recent.sort((a, b) => b.activity - a.activity || b.at - a.at);
+    return {
+      id: x.id,
+      email: x.email,
+      role: x.role || 'teacher',
+      createdAt: x.createdAt,
+      marketing_opt_out: marketingOptOut(x),
+      marketing_choice_at: x.marketing_choice_at || null,
+      lastActive: lastActive || null,
+      classes,
+      recentChecks: recent.slice(0, ADMIN_RECENT_CHECKS).map(r => ({
+        topic: r.topic,
+        at: r.at,
+        lastAnswerAt: r.lastAnswerAt,
+        className: r.className,
+        code: r.code,
+        answers: r.answers
+      })),
+      checkCount: classes.reduce((n, c) => n + c.checks, 0),
+      studentCount: classes.reduce((n, c) => n + c.students, 0)
+    };
+  });
+  teachers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0) || String(a.email || '').localeCompare(String(b.email || '')));
+  return teachers;
+}
+
 // -------------------------------------------------------------------- server
 const server = http.createServer((req, res) => runWithUsage(async () => {
   await readyPromise;
@@ -2911,20 +2999,7 @@ Return ONLY JSON: {"points":["...","..."]} - one point per question, in order.` 
       const me = currentTeacher(req);
       if (!me) return sendErr(res, 'Not signed in.', 401);
       if (me.role !== 'admin') return sendErr(res, 'Not allowed.', 403);
-      const teachers = store.teachers.map(x => {
-        const classes = store.classes.filter(c => c.teacherId === x.id).map(c => {
-          const checks = store.sessions.filter(s => s.classId === c.id);
-          const students = checks.reduce((n, s) => n + (s.students || []).length, 0);
-          return { id: c.id, name: c.name, code: c.code, checks: checks.length, students };
-        });
-        return {
-          id: x.id, email: x.email, role: x.role || 'teacher', createdAt: x.createdAt,
-          marketing_opt_out: marketingOptOut(x),
-          marketing_choice_at: x.marketing_choice_at || null,
-          classes, checkCount: classes.reduce((n, c) => n + c.checks, 0),
-          studentCount: classes.reduce((n, c) => n + c.students, 0)
-        };
-      }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const teachers = adminTeacherRows();
       const totals = {
         teachers: teachers.length,
         classes: store.classes.length,
